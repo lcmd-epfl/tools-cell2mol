@@ -1,0 +1,11 @@
+
+
+function session_keepalive() {
+    //document.getElementById("logout-timer").innerHTML= "Attention: déconnection du planning dans " + logout_timer + " secondes si inactivité.";
+    setTimeout('session_keepalive()', 30000);
+}
+
+
+$(document).ready(function(){
+    setTimeout('session_keepalive()', 30000)
+}

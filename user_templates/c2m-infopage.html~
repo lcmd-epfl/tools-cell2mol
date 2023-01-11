@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Add CSS, JS, ... here, e.g, these from tools-barebone;  -->
+    <link href="../../static/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="../../static/css/jquery-ui.1.12.1.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_base.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_input.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../user_static/css/custom-elements.css"/>    
+    <script src="../../static/js/jquery-3.1.0.min.js"></script>
+    <script src="../../static/js/jquery-ui.1.12.1.min.js"></script>
+
+    <!-- If you add things in a user_static folder, you will be able to access it via ../../user_static/xxx -->
+
+    <title>Cell2Mol structure information</title>
+
+    <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
+    <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+</head>
+
+<body>
+<div id='container'>
+    <div id='maintitle'>
+        <h1 style="text-align: center;">Cell2Mol basic structure information</h1>
+    </div>
+    <h2>Structure {{struct_name}} imported successfully</h2>
+
+
+    <div class="collapsed-text-outer">
+    <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
+    <label for="cifinfo-togg" class="lbl-toggle" id="c2m-lbl-info" aria-selected="false" aria-expanded="false">Structure information</label>
+    <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">
+    
+    <!--<div class="ui-accordion ui-widget ui-helper-reset">
+    <h2 class="ui-accordion-header ui-corner-top ui-state-default ui-accordion-icons ui-accordion-header-collapsed ui-corner-all" role="tab" id="c2m-ctrl-info" aria-controls="c2m-output-info" aria-selected="false" aria-expanded="false" tabindex="-1">
+    <span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"/>
+      Structure Information
+    </h2>
+    <div style="display: none;" class="ui-accordion-content ui-corner-bottom ui-helper-reset ui-widget-content" id="c2m-output-info" aria-labelledby="c2m-ctrl-info" role="tabpanel" aria-hidden="true">-->
+    {% for paragraph in infodata.split('\n\n') -%}
+    {% set paragraph = paragraph.split('\n')-%}
+    <p style="font-family=mono;">
+      {% for line_id,line in enumerate(paragraph) -%}
+          {{- line -}}
+	  {%if line_id+1 < len(paragraph)-%}
+	    <br/>
+	  {%-endif%}
+      {%-endfor%}
+    </p>
+    {%- endfor %}
+    </div></div>
+    <form action="analysis">
+      <button type="submit">Onto analysis</button>
+    </form>
+</div>
+
+<!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->
+<!-- It is needed to properly detect the size of the iframe -->
+<div style ="position: relative" data-iframe-height></div>
+</body>
+</html>

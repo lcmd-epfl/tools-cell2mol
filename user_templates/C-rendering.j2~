@@ -1,0 +1,126 @@
+        <div id="webglcheckwrapper">
+            <div id="support">
+                <div class="webgl-hidden" id="have-javascript">
+                    <div class="webgl-hidden webgl-div" id="webgl-yes">
+                        <div id="webgl-experimental">
+                            <div class="alert alert-warning">
+                                Your browser support for WebGL is marked as
+                                experimental. This means
+                                3D content (crystal structure) may not be shown as expected.
+                                <br />
+                                You may want to consider an <a href="http://get.webgl.org" target="_blank">upgrade of
+                                    your browser</a>.
+                            </div>
+                        </div>
+                        <!-- <div>
+                WebGL detected, all good!
+              </div> -->
+                        <div id="logo-container">
+                            <!-- Placeholder needed for testing -->
+                            <canvas id="webgl-logo" style="width: 1px; height: 1px;"></canvas>
+                        </div>
+                    </div>
+                    <div class="webgl-hidden webgl-div" id="webgl-disabled">
+                        <div class="alert alert-danger">
+                            Your browser seems to support WebGL, but it is disabled or unavailable. If possible, please
+                            ensure that you are running the latest drivers for your video card, or enable WebGL in your
+                            browser settings.
+                            <br /><br />
+                            For more help, please visit <a href="http://get.webgl.org/troubleshooting"
+                                target="_blank">this page</a>.
+                        </div>
+                    </div>
+                    <div class="webgl-hidden webgl-div" id="webgl-no">
+                        <div class="alert alert-danger">
+                            <p>We are sorry, but your browser does not seem to support WebGL, so we cannot show 3D
+                                objects like the crystal structure.</p>
+                            <p>You may want to visit <a href="http://get.webgl.org" target="_blank">this page</a> to get
+                                a list of
+                                recent browsers that support WebGL.</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="no-javascript">
+                    <div class="alert alert-danger">
+                        PROBLEM DETECTED! <br />
+
+                        You must enable JavaScript to use this web service, otherwise the content will not render
+                        properly.
+                    </div>
+                </div>
+                <script>
+                    // Hide div ASAP
+                    element = document.getElementById('no-javascript');
+                    element.className = element.className + " webgl-hidden";
+                </script>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div id="above">
+        <div id="structuretitle">
+            <h2> Structure</h2>
+            <p><em>Drag to rotate, scroll to zoom, double-click to enable/disable interaction</em></p>
+        </div>
+        <div id="structure">
+            <div class="shadow-box">
+                <div class="plot-diagram">
+                    <div class="structure-container" id="structure-content">
+                        <div id="crystal" ondblclick="toggleStrVisInteraction(false);"></div>
+                        <div id="str-overlay" class="overlay-div" ondblclick="toggleStrVisInteraction(true);">
+                            <span id="str-overlay-span"
+                                style="display: table-cell; vertical-align: middle; text-align: center;">
+                                Double click to toggle interaction
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="jsmol-options" , style="margin-top: 20px">
+
+                <div class="option-section">
+                    <h4 class="inline-header">Camera:</h4>
+                    <button id="centerX" onclick="centerXaxis(jmolApplet)">x</button>
+                    <button id="centerY" onclick="centerYaxis(jmolApplet)">y</button>
+                    <button id="centerZ" onclick="centerZaxis(jmolApplet)">z</button>
+                </div>
+
+                <div class="option-section">
+                    <div class="row">
+                        <div class="checkbox-option" id="bonds">
+                            <label>
+                                <input id="bonds-input" style="margin-right:4px" type="checkbox"
+                                    onchange="showBonds(jmolApplet);" checked>bonds
+                                <a href="#" data-toggle="tooltip" title="Show bonds"><sup>[?]</sup></a>
+                            </label>
+                        </div>
+                        <div class="checkbox-option" id="oxlabels">
+                            <label>
+                                <input id="labels-input" style="margin-right:4px" type="checkbox"
+                                    onchange="labelOxStates(jmolApplet, metal_indices, prediction_labels);"
+                                    checked>oxidation state labels
+                                <a href="#" data-toggle="tooltip"
+                                    title="Display oxidation state assignments"><sup>[?]</sup></a>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="checkbox-option" id="sphere">
+                            <label>
+                                <input id="spheres-input" style="margin-right:4px" type="checkbox"
+                                    onchange="showSpheres(jmolApplet)">space-filling
+                                <a href="#" data-toggle="tooltip" title="Show atoms as spheres"><sup>[?]</sup></a>
+                            </label>
+                        </div>
+                        <div class="checkbox-option" id="spin">
+                            <label><input id="spin-input" style="margin-right:4px" type="checkbox"
+                                    onchange="toggleRotation(jmolApplet)">rotation</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

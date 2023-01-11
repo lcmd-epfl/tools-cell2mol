@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Add CSS, JS, ... here, e.g, these from tools-barebone;  -->
+    <link href="../../static/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="../../static/css/jquery-ui.1.12.1.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_base.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_input.min.css"/>
+    <script src="../../static/js/jquery-3.1.0.min.js"></script>
+    <script src="../../static/js/jquery-ui.1.12.1.min.js"></script>
+
+    <!-- If you add things in a user_static folder, you will be able to access it via ../../user_static/xxx -->
+
+    <title>Custom-tools example return page</title>
+
+    <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
+    <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+</head>
+
+<body>
+<div id='container'>
+    <div id='maintitle'>
+        <h1 style="text-align: center;">Tools-example return page</h1>
+    </div>
+
+    <h2>Successfully parsed structure tuple</h2>
+    <p>
+        <code id='structureJson'>
+{{structure_json}}
+        </code>
+    </p>
+</div>
+
+<!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->
+<!-- It is needed to properly detect the size of the iframe -->
+<div style ="position: relative" data-iframe-height></div>
+</body>
+</html>

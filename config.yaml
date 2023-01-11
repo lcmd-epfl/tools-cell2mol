@@ -1,0 +1,28 @@
+window_title: "cell2mol: Unit Cell to Molecule Interpretation"
+page_title: "Unit Cell to Molecule Interpretation"
+
+about_section_title: "About"
+
+# If True, a structure selection block will be shown and it will provide a common set of parsers.
+# In this case, you will have to provide an endpoint
+# `/compute/process_structure/` to process the results
+# as shown later.
+use_upload_structure_block: True
+
+# If you have an upload block and want to have some parsers first, you can specify their internal
+# name as a list. Those from the list will be shown first (NOTE! if the name is unknown, it is ignored).
+# All the remaining ones, if any, are shown afterwards in a default order.
+upload_structure_block_order: ['cif-pymatgen', 'xsf-ase']
+
+templates:
+  about: "about.html"
+  how_to_cite: "how_to_cite.html"
+  select_content: "visualizer_select_example.html" # what to show in the selection page (below the upload structure block, if present)
+  upload_structure_additional_content: "upload_structure_additional_content.html" # if the upload structure block is present, you can add additional content right above the 'submit' button, if you want (e.g. a disclaimer, terms of use, ...)
+
+# Add here more sections to the accordion shown on the top of the selection page
+additional_accordion_entries:
+#  - header: "What is this?"
+#    template_page: what_is.html
+  - header: "Acknowledgements"
+    template_page: ack.html

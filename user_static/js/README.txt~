@@ -1,0 +1,5 @@
+This is a minimal deployment of jsmol a component of  Jmol (wiki.jmol.org):
+
+To obtain a copy of it, go to https://sourceforge.net/projects/jmol/, download the most recent binary archive, then extract some of the contents of its "jsmol.zip" archive here.
+
+Jmol and Jsmol are licensed under the GNU LESSER GENERAL PUBLIC LICENSE version 2.1 (LGPLv2.1)
