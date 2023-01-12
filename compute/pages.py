@@ -27,8 +27,8 @@ def process_structure_init():
         # of a XYZ file)
         fileformat = flask.request.form.get("fileformat", "unknown")
         form_data = dict(flask.request.form)
-        if fileformat not in ('cif-pymatgen','cif-ase'):
-            flask.flash("er… well we will interpret that a a cif file anyway >:)")
+        #if fileformat not in ('cif-pymatgen','cif-ase'):
+        #    flask.flash("er… well we will interpret that a a cif file anyway >:)")
         structurefile = flask.request.files["structurefile"]
 
         token = Token(structurefile)        
@@ -68,11 +68,11 @@ def process_structure_init():
             "user_templates/c2m-infopage.html",
             output_lines=output,
             infodata=infodata,
-            enumerate=enumerate, len=len,  # why TF is this needed?????
+            enumerate=enumerate, len=len,  # why is this needed?
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,
         ))
-        resp.set_cookie("token_path",tkn_path,  secure=True,httponly=True,samesite='Strict')
+        resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
         return resp
         #return flask.redirect(flask.url_for('process_structure/info', token=tkn_path))
     except Exception as err:
@@ -95,11 +95,11 @@ def process_structure_analysis():
         #tkn_path = flask.request.args['token'].replace('_','/')
         tkn_path = flask.request.cookies.get('token_path', None)
         if tkn_path is None:
-            raise ValueError("not token? :( ")
+            raise ValueError("not token?")
         
         token = Token.from_path(tkn_path)
         if token is None:
-            raise ValueError("session expired :( ")
+            raise ValueError("session expired")
         token.keepalive()
         
         #############################
@@ -173,10 +173,10 @@ def process_structure_download():
         #tkn_path = flask.request.args['token'].replace('_','/')
         tkn_path = flask.request.cookies.get('token_path', None)
         if tkn_path is None:
-            raise ValueError("no token? :( ")
+            raise ValueError("no token?")
         token = Token.from_path(tkn_path)
         if token is None:
-            raise ValueError("session expired :( ")
+            raise ValueError("session expired")
         output.append(token.cell_path)
         #output.append(str(os.listdir(tkn_path)))
         #output.append(str((TOKENS, TOKEN_LOCK, MONITOR_THR, thr_iters)))
@@ -229,11 +229,11 @@ def process_structure_view():
         #tkn_path = flask.request.args['token'].replace('_','/')
         tkn_path = flask.request.cookies.get('token_path', None)
         if tkn_path is None:
-            raise ValueError("not token? :( ")
+            raise ValueError("not token?")
         
         token = Token.from_path(tkn_path)
         if token is None:
-            raise ValueError("session expired :( ")
+            raise ValueError("session expired")
         token.keepalive()
         
         #############################

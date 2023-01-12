@@ -7,6 +7,7 @@ COPY ./requirements.txt /home/app/code/requirements.txt
 COPY ./cell2mol/requirements.txt /home/app/code/compute-requirements.txt
 # Run this as sudo to replace the version of pip
 
+
 RUN pip3 install -U 'pip>=10' setuptools wheel
 # install packages as normal user (app, provided by passenger)
 
@@ -31,6 +32,8 @@ COPY ./user_templates/ /home/app/code/webservice/templates/user_templates/
 COPY ./user_static/ /home/app/code/webservice/user_static/
 COPY ./cell2mol/ /home/app/code/webservice/cell2mol/
 COPY ./compute/ /home/app/code/webservice/compute/
+#Needed to allow only .cif file formats in the upload_structure_block
+COPY ./web_module.py /home/app/code/webservice/ 
 
 # If you put any static file (CSS, JS, images),
 #create this folder and put them here
@@ -47,3 +50,5 @@ USER app
 WORKDIR /home/app/code/webservice/cell2mol/
 RUN python3 ./setup.py build
 USER root
+
+

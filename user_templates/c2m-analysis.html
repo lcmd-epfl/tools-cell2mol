@@ -15,6 +15,18 @@
     <script src="../../static/js/jquery-3.1.0.min.js"></script>
     <script src="../../static/js/jquery-ui.1.12.1.min.js"></script>
 
+
+     <!-- Styles used to show the Structure info (cif2cell results) -->
+     <style type="text/css">
+     <!--
+      .tab { margin-left: 40px; }
+      .bolded { font-weight: bold; }
+      .italics { font-style: italic; }
+      .emphasized { font-style: italic;  font-weight: bold; font-size: 1.25em}
+      .center { text-align: center; }
+     -->
+     </style>
+
     <!-- If you add things in a user_static folder, you will be able to access it via ../../user_static/xxx -->
 
     <title>Cell2Mol structure analysis</title>
@@ -36,7 +48,8 @@
     <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
     <label for="cifinfo-togg" class="lbl-toggle" id="c2m-lbl-info" aria-selected="false" aria-expanded="false">Structure information</label>
     <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">
-    
+
+    <!---
     {% for paragraph in infodata.split('\n\n') -%}
     {% set paragraph = paragraph.split('\n')-%}
     <p style="font-family=mono;">
@@ -49,6 +62,42 @@
     </p>
     {%- endfor %}
     </div></div>
+    --->
+
+     <br/>                                                                                                                         
+                                                                                                                                   
+     {% for paragraph_id,paragraph in enumerate(infodata.split('\n\n')) -%}                                                        
+     {% set paragraph = paragraph.split('\n')-%}                                                                                   
+                                                                                                                                   
+     <p style="font-family=mono;" class="tab">                                                                                     
+         {% for line_id,line in enumerate(paragraph) -%}                                                                           
+             {% if paragraph_id == 0 and line_id == 0 %} <!-- cif2cell information -->                                             
+                 <div class="center"> <span class="emphasized"> {{- line -}} </span> </div>                                        
+             {% elif paragraph_id == 0 and line_id != 0 %}                                                                         
+                 <div class="center"> <span class="italics"> {{- line -}} </span> </div>                                           
+             {% else %} <!-- structure information -->                                                                             
+                 {% if "INFORMATION" in line %} <!-- headers -->                                                                   
+                     <br/>                                                                                                         
+                     &nbsp;&nbsp;&nbsp;&nbsp; <span class="bolded">{{- line -}}</span>                                             
+                     {% if "BIBLIOGRAPHIC" in line %} <!-- bibliographic header to match format of other headers -->               
+                         <br/>                                                                                                     
+                     {% endif %}                                                                                                   
+                 {% else %} <!-- not headers -->                                                                                   
+                     {% if ":" in line %} <!-- contain ":", then is  -->                                                           
+                         <br/>                                                                                                     
+                     {% endif %}                                                                                                   
+                     {{- line -}}                                                                                                  
+                 {% endif%}                                                                                                        
+             {% endif %}                                                                                                           
+             {%if line_id+1 < len(paragraph)-%}                                                                                    
+                 <br/>                                                                                                             
+             {%-endif%}                                                                                                            
+         {%-endfor%}                                                                                                               
+     {%- endfor %}                                                                                                                 
+     </p>                                                                                                                          
+                                                                                                                                   
+     </div>                                                                                                                        
+     </div>                                         
 
     <div class="collapsed-text-outer">
     <input id="ciflysi-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-lysi" aria-controls="c2m-output-lysi">
@@ -57,9 +106,15 @@
 
     {% for paragraph in celldata.split('\n\n') -%}
     {% set paragraph = paragraph.split('\n')-%}  
-    <p style="font-family=mono;">
+    <p style="font-family=mono;" class="tab">
       {% for line_id,line in enumerate(paragraph) -%}
-          {{- line -}}
+          {% if "Complex" in line %}
+            &nbsp;&nbsp;<span class="bolded"> {{- line -}} </span>
+          {% elif ">>" in line %}
+            &nbsp;&nbsp;<span class="bolded"> {{- line -}} </span>
+          {% else %}
+            {{- line -}}
+          {% endif %}
 	  {%if line_id+1 < len(paragraph)-%}
 	    <br/>
 	  {%-endif%}
