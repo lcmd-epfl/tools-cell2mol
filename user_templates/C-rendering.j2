@@ -1,4 +1,5 @@
-        <div id="webglcheckwrapper">
+        {#
+	<div id="webglcheckwrapper">
             <div id="support">
                 <div class="webgl-hidden" id="have-javascript">
                     <div class="webgl-hidden webgl-div" id="webgl-yes">
@@ -13,8 +14,8 @@
                             </div>
                         </div>
                         <!-- <div>
-                WebGL detected, all good!
-              </div> -->
+                            WebGL detected, all good!
+                        </div> -->
                         <div id="logo-container">
                             <!-- Placeholder needed for testing -->
                             <canvas id="webgl-logo" style="width: 1px; height: 1px;"></canvas>
@@ -51,15 +52,13 @@
                 <script>
                     // Hide div ASAP
                     element = document.getElementById('no-javascript');
-                    element.className = element.className + " webgl-hidden";
+                    element.innerHTML = ""; //className = element.className + " webgl-hidden";
                 </script>
             </div>
         </div>
-    </div>
+	#}
 
 
-
-    <div id="above">
         <div id="structuretitle">
             <h2> Structure</h2>
             <p><em>Drag to rotate, scroll to zoom, double-click to enable/disable interaction</em></p>
@@ -79,7 +78,7 @@
                 </div>
             </div>
 
-            <div class="jsmol-options" , style="margin-top: 20px">
+            <div class="jsmol-options" style="margin-top: 20px">
 
                 <div class="option-section">
                     <h4 class="inline-header">Camera:</h4>
@@ -123,10 +122,10 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <script>
-        structureviewer = jsmolCrystal({{ xsfdata | tojson | safe }}, "structure-content", "jmolApplet", [1, 1, 1]);
+        {#structureviewer = jsmolCrystal({{ xsfdata | tojson | safe }}, "structure-content", "jmolApplet", [1, 1, 1]);#}
+	structureviewer = jsmolCrystal("{{ xyzdata.replace('\n','\\n') }}", "{{ucellparams}}", "structure-content", "jmolApplet", undefined);
         {#var metal_indices = {{ metal_indices| tojson | safe }};
         var prediction_labels = {{ prediction_labels| tojson | safe }};#}
 
@@ -163,4 +162,8 @@
                 toggleStrVisInteraction(true);
             });
         });
+	$(window).on('resize', function () {
+	    var jsmolcontent = document.getElementById('jmolApplet_appletinfotablediv');
+	    jsmolcontent.style.height = "100%"
+	});
     </script>

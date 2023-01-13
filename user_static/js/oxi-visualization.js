@@ -22,7 +22,8 @@ function toggleStrVisInteraction(enableStrInteraction) {
   }
 }
 
-function jsmolCrystal(data, parentHtmlId, appletName, supercellOptions) {
+//function jsmolCrystal(data, parentHtmlId, appletName, supercellOptions) {
+function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
   var parentDiv = document.getElementById(parentHtmlId);
   var the_width = parentDiv.offsetWidth - 5;
   var the_height = parentDiv.offsetHeight - 5;
@@ -42,7 +43,7 @@ function jsmolCrystal(data, parentHtmlId, appletName, supercellOptions) {
 
   if (supercellOptions === undefined) {
     var loadingScript =
-      'color cpk; load INLINE "' + data + '"; wireframe 0.15; spacefill 23%';
+      'color cpk; load INLINE "' + data + '" centroid unitcell "' + ucell + '"';
   } else {
     var loadingScript =
       'color cpk; load INLINE "' +
@@ -53,18 +54,26 @@ function jsmolCrystal(data, parentHtmlId, appletName, supercellOptions) {
       supercellOptions[1] +
       " " +
       supercellOptions[2] +
-      "}; wireframe 0.15; spacefill 23%";
+      "} centroid unitcell \""
+      ucell + '"';
   }
 
+  // set unit cell data
+  //loadingScript += "; unitcell \""+ucell+"\"";
+  loadingScript += "; frame all; hide none";
+
+  Jmol.script(jsmolStructureviewer, loadingScript)
+    
   //draw x,y,z axes instead of a,b,c vectors as default
-  loadingScript +=
+  loadingScript =
     '; axes off; draw xaxis ">X" vector {0 0 0} {2 0 0} color red width 0.15; draw yaxis ">Y" vector {0 0 0} {0 2 0} color green width 0.15; draw zaxis ">Z" vector {0 0 0} {0 0 2} color blue width 0.15';
 
   //do not show info on top left
+  loadingScript += "; wireframe 0.15; spacefill 23%";
   loadingScript += "; unitcell primitive";
 
   //Sets the unit cell line diameter in Angstroms
-  loadingScript += "; unitcell 2";
+  loadingScript += "; unitcell 2";  
 
   // antialiasDisplay ON
   loadingScript += "; set antialiasDisplay on";
@@ -281,6 +290,10 @@ function centerYaxis(viewer) {
 
 function centerZaxis(viewer) {
   Jmol.script(eval(viewer), "moveto 1 axis z");
+}
+
+function showCompounds(viewer, visible) {
+    Jmol.script(eval(viewer), "frame [" + visible + "]")
 }
 
 $.fn.bindFirst = function(name, fn) {

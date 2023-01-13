@@ -1,7 +1,7 @@
 function session_keepalive() {
     //document.getElementById("logout-timer").innerHTML= "Attention: déconnection du planning dans " + logout_timer + " secondes si inactivité.";
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", "../keepalive", false ); // false for synchronous request
+    xmlHttp.open( "GET", "./keepalive", false ); // false for synchronous request
     xmlHttp.send( null );
     setTimeout('session_keepalive()', 30000);
 }

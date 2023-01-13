@@ -1,11 +1,30 @@
-import sys, os, io
+import sys, os, io, re
 sys.path.append(os.path.join(os.path.split(__file__)[0], '../cell2mol'))
+
+from rdkit import Chem
+from rdkit.Chem.Draw import rdMolDraw2D
+
 import cell2mol
 from cell2mol.cif2info import cif_2_info
 from cell2mol.c2m_module import save_cell, cell2mol
 
-#import ase
-#import nglview as ngl
+
+
+ELEMENTS = [  # thanks pyscf
+    'X',  # Ghost
+    'H' , 'He', 'Li', 'Be', 'B' , 'C' , 'N' , 'O' , 'F' , 'Ne',
+    'Na', 'Mg', 'Al', 'Si', 'P' , 'S' , 'Cl', 'Ar', 'K' , 'Ca',
+    'Sc', 'Ti', 'V' , 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+    'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y' , 'Zr',
+    'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+    'Sb', 'Te', 'I' , 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd',
+    'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb',
+    'Lu', 'Hf', 'Ta', 'W' , 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn', 'Fr', 'Ra', 'Ac', 'Th',
+    'Pa', 'U' , 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm',
+    'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
+    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og',
+]
 
 class Capturing(list):
     def __enter__(self):
@@ -18,7 +37,23 @@ class Capturing(list):
         sys.stdout = self._stdout
 
 
-def view_cell(cell):
+
+def cell_cmp_lut(cell):
+    names = {}
+    for i_mol,mol in enumerate(cell.moleclist):
+        if mol.type == 'Complex':
+            for i_mtl, mtl in enumerate(mol.metalist):
+                names.setdefault(mtl.label, [])
+                names[mtl.label].append((i_mol,'m',i_mtl))
+            for i_lig, lig in enumerate(mol.ligandlist):
+                names.setdefault(lig.smiles, [])
+                names[lig.smiles].append((i_mol,'l',i_lig))
+        else:
+            names.setdefault(mol.smiles, [])
+            names[mol.smiles].append((i_mol,'t'))
+    return names
+        
+def cell_to_string_xsf(cell, cmplut=None):
     xsf = "CRYSTAL\nPRIMVEC\n"
     for vec in cell.cellvec:
         xsf += "{:f} {:f} {:f}\n".format(vec[0],vec[1],vec[2])
@@ -29,6 +64,81 @@ def view_cell(cell):
             xsf += "{:d} {:f} {:f} {:f}\n".format(Z,x,y,z)
     return xsf
 
+def cell_to_string_xyz(cell, cmplut=None):
+    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cellparam))
+    mols = []
+    # for mol in cell.moleclist:
+    #     atms = []
+    #     for Z,(x,y,z) in zip(mol.atnums, mol.coord):
+    #         atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
+    #     mols.append(
+    #         "{:d}\n{:s}\n".format(len(atms), mol.name) +
+    #         "".join(atms)
+    #     )
+    for name, elems in cmplut.items():
+        atms = []
+        for elem in elems:
+            mol = cell.moleclist[elem[0]]
+            if elem[1] == 't':
+                pass
+            elif elem[1] == 'l':
+                mol = mol.ligandlist[elem[2]]
+            elif elem[1] == 'm':
+                mol = mol.metalist[elem[2]]
+                x,y,z = mol.atom.coord
+                Z = mol.atom.atnum
+                atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
+                continue
+
+            for Z,(x,y,z) in zip(mol.atnums, mol.coord):
+                atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
+        mols.append(
+            "{:d}\n{:s}\n".format(len(atms), mol.name) +
+            "".join(atms)
+        )
+    return celldesc, "".join(mols)
+
+re__svghead = re.compile(r"<\?xml.*?\?>")
+rdMolDraw2D.MolDrawOptions.fixedScale = 1
+def cell_to_svgs(cell, cmplut):
+    res = []
+    for name, lst in cmplut.items():
+        tpl = lst[0]
+    #for mol in cell.moleclist:
+        mol = cell.moleclist[tpl[0]]
+        if tpl[1]=='m':
+            mol = mol.metalist[tpl[2]]
+            res.append(mol.name+','+mol.label)
+            continue
+        elif tpl[1]=='l':
+            mol = mol.ligandlist[tpl[2]]
+        elif tpl[1]=='t':
+            pass
+        drawer = rdMolDraw2D.MolDraw2DSVG(450,450)
+        rd = mol.rdkit_mol
+        Chem.rdDepictor.Compute2DCoords(rd)
+        drawer.DrawMolecule(rd)
+        # if mol.type == "Complex":
+        #     #for mtl in mol.metallist:
+        #         #rd = mtl.
+        #         #Chem.rdDepictor.Compute2DCoords(rd)
+        #         #drawer.DrawMolecule(rd)                
+        #     for lig in mol.ligandlist:
+        #         rd = lig.rdkit_mol
+        #         Chem.rdDepictor.Compute2DCoords(rd)
+        #         drawer.DrawMolecule(rd)
+        # else:
+        #     rd = mol.rdkit_mol
+        #     drawer.DrawMolecule(rd)
+        #     #res.append(repr((type(rd),rd)));continue
+        drawer.FinishDrawing()
+        svg = drawer.GetDrawingText().replace('svg:', '')
+        svg = re.sub(re__svghead, '', svg)
+        res.append(name+'   '+svg)
+
+
+    res.append(repr(cell.cellparam))
+    return res
 
 
 

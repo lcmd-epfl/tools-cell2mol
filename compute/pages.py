@@ -250,7 +250,11 @@ def process_structure_view():
                 output.append(celldata)
             with open(token.cell_path, 'rb') as f:
                 cell = pickle.load(f)
-            xsf = view_cell(cell)
+
+            cmp_lut = cell_cmp_lut(cell)
+            #xsf = cell_to_string_xsf(cell, cmp_lut)
+            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+            svgs = cell_to_svgs(cell, cmp_lut)
             
 
         else:
@@ -263,7 +267,11 @@ def process_structure_view():
             output_lines=output,
             infodata=infodata.strip(),
             celldata=celldata,
-            xsfdata=xsf,
+            #xsfdata=xsf,
+            ucellparams=ucellparams,
+            compound_names=cmp_lut.keys(),
+            xyzdata=xyzdata,
+            svg_list=svgs,
             enumerate=enumerate, len=len,  # why TF is this needed?????
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,
