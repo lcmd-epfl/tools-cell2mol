@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="../../static/css/jquery-ui.1.12.1.min.css"/>
     <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_base.min.css"/>
     <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_input.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../user_static/css/viewer.css"/>
     <link rel="stylesheet" type="text/css" href="../../user_static/css/custom-elements.css"/>
     <script src="../../user_static/js/keepalive.js"></script>
     <script src="../../static/js/jquery-3.1.0.min.js"></script>
@@ -149,7 +150,39 @@
      </div></div>
 
 
-    {% include 'user_templates/C-rendering.j2' %}
+    <div class="paneviewer">
+      <form class="pane" id="structure-chooser">
+	{% for cmp_name in compound_names -%}
+           <label>
+             <input style="margin-right:4px" type="checkbox"
+               onchange="cmpVisibilityUpdate();" checked> {{cmp_name}} </input>
+           </label>
+	{%- endfor %}
+      </form>
+      <div class="pane" id="structure-3D-viewer">
+	{% include 'user_templates/C-rendering.j2' %}
+      </div>
+      <div class="pane" id="compound-2D-viewer">
+	{% for svg in svg_list -%}
+	  {{svg|safe}}
+	{%- endfor %}
+      </div>
+    </div>
+    <script>
+      function cmpVisibilityUpdate() {
+        let visible_cmps = [];
+        let visible_cmps_str = "";
+	let x = document.getElementById("structure-chooser");
+	let i;
+        for (i = 0; i < x.length ;i++) {
+	  if (x.elements[i].checked) {
+            visible_cmps.push(i);
+	    visible_cmps_str += (" " + (i+1))
+	  }
+	}
+	showCompounds(jmolApplet, visible_cmps_str);
+      }
+    </script>
     
     <form action="./download-gmol">
       <button type="submit">Download structure</button>
