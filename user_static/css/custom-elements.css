@@ -23,7 +23,7 @@
     /*padding: 1rem;*/
     color: #fff;
     background: #007fff;
-    border-radius 3px;
+    border-radius: 3px;
     cursor: pointer;
     /*border-radius: 7px;*/
     transition: all 0.25s ease-out;
@@ -102,26 +102,31 @@
 }
 
 
-{#
-@media screen and (min-width:600px) {
+
 .paneviewer {
-    display: grid;
-    grid-template-columns: auto auto auto;
+    border: 3px solid #003eff;
+    /*border-radius: 3px;*/
+    padding: 2em 2em 2em 2em;
+    margin: 15px;
+    display: flex;
+}
+.text-center form{
+    display: inline-block;
 }
 
+
+/*@media screen and (min-width:600px) {
+
 .pane {
-    width: fit-content;
+    height: fit-content;
+    display: inline-block;
 }
 }
 
 @media screen and (max-width:600px) {
-.paneviewer {
-    display: grid;
-    grid-template-rows: auto auto auto;
-}
 
 .pane {
-    height: fit-content;
+    width: fit-content;
+    display: block;
 }
-}
-#}
+}*/

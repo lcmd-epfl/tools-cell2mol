@@ -148,45 +148,44 @@
      </p>
      {%- endfor %}
      </div></div>
+</div>
 
-
-    <div class="paneviewer">
-      <form class="pane" id="structure-chooser">
-	{% for cmp_name in compound_names -%}
-           <label>
-             <input style="margin-right:4px" type="checkbox"
-               onchange="cmpVisibilityUpdate();" checked> {{cmp_name}} </input>
-           </label>
-	{%- endfor %}
-      </form>
-      <div class="pane" id="structure-3D-viewer">
-	{% include 'user_templates/C-rendering.j2' %}
-      </div>
-      <div class="pane" id="compound-2D-viewer">
-	{% for svg in svg_list -%}
-	  {{svg|safe}}
-	{%- endfor %}
-      </div>
-    </div>
-    <script>
-      function cmpVisibilityUpdate() {
-        let visible_cmps = [];
-        let visible_cmps_str = "";
-	let x = document.getElementById("structure-chooser");
-	let i;
-        for (i = 0; i < x.length ;i++) {
-	  if (x.elements[i].checked) {
-            visible_cmps.push(i);
-	    visible_cmps_str += (" " + (i+1))
-	  }
-	}
-	showCompounds(jmolApplet, visible_cmps_str);
+<div class="paneviewer">
+  <form class="pane" id="structure-chooser" style="width=450px;">
+    {% for cmp_i,(cmp_name,svg) in enumerate(zip(compound_names, svg_list)) -%}
+       <div class="struct2d">
+	 <input style="margin-right:4px" type="checkbox" onchange="cmpVisibilityUpdate();" id="selectcmp-{{cmp_i}}" checked/>
+	 <label for="selectcmp-{{cmp_i}}">
+	   <strong class="text-center">{{cmp_name}}</strong> <br/>
+	   {{svg|safe}}
+	 </label>
+       </div>
+    {%- endfor %}
+  </form>
+  <div class="pane" id="structure-3D-viewer" style="width=100%;">
+    {% include 'user_templates/C-rendering.j2' %}
+  </div>
+</div>
+<script>
+  function cmpVisibilityUpdate() {
+    let visible_cmps = [];
+    let visible_cmps_str = "";
+    let x = document.getElementById("structure-chooser");
+    let i;
+    for (i = 0; i < x.length ;i++) {
+      if (x.elements[i].checked) {
+	visible_cmps.push(i);
+	visible_cmps_str += (" " + (i+1))
       }
-    </script>
-    
-    <form action="./download-gmol">
-      <button type="submit">Download structure</button>
-    </form>
+    }
+    showCompounds(jmolApplet, visible_cmps_str);
+  }
+</script>
+
+<div class="text-center">
+<form action="./download-gmol">
+  <button type="submit" style="height:50px;width:150px">Download structure</button>
+</form>
 </div>
 
 <!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->

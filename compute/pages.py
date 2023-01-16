@@ -272,7 +272,7 @@ def process_structure_view():
             compound_names=cmp_lut.keys(),
             xyzdata=xyzdata,
             svg_list=svgs,
-            enumerate=enumerate, len=len,  # why TF is this needed?????
+            enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,
         ))

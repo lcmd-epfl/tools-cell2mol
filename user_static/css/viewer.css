@@ -47,3 +47,16 @@
     top: 1ex;
     z-index:6;
 }
+
+.struct2d {
+    border: 2px solid #555;
+    border-radius: 8px;
+    margin: 2em;
+}
+
+.struct2d input + label {
+    background-color: #eee;
+}
+.struct2d input:checked + label {
+    background-color: #ccf;
+}

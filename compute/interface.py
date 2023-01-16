@@ -100,6 +100,7 @@ def cell_to_string_xyz(cell, cmplut=None):
 
 re__svghead = re.compile(r"<\?xml.*?\?>")
 rdMolDraw2D.MolDrawOptions.fixedScale = 1
+
 def cell_to_svgs(cell, cmplut):
     res = []
     for name, lst in cmplut.items():
@@ -108,33 +109,31 @@ def cell_to_svgs(cell, cmplut):
         mol = cell.moleclist[tpl[0]]
         if tpl[1]=='m':
             mol = mol.metalist[tpl[2]]
-            res.append(mol.name+','+mol.label)
-            continue
+            sm = mol.label
+            if mol.totcharge > 0:
+                sm += f'+{mol.totcharge:d}'
+            elif mol.totcharge < 0:
+                sm += f'-{-mol.totcharge:d}'
+            rd = Chem.MolFromSmiles('['+sm+']')
         elif tpl[1]=='l':
             mol = mol.ligandlist[tpl[2]]
+            rd = mol.rdkit_mol
         elif tpl[1]=='t':
-            pass
-        drawer = rdMolDraw2D.MolDraw2DSVG(450,450)
-        rd = mol.rdkit_mol
+            rd = mol.rdkit_mol
+        else:
+            raise ValueError("internal error juggling compounds")
         Chem.rdDepictor.Compute2DCoords(rd)
+        
+        drawer = rdMolDraw2D.MolDraw2DSVG(450,450)
         drawer.DrawMolecule(rd)
-        # if mol.type == "Complex":
-        #     #for mtl in mol.metallist:
-        #         #rd = mtl.
-        #         #Chem.rdDepictor.Compute2DCoords(rd)
-        #         #drawer.DrawMolecule(rd)                
-        #     for lig in mol.ligandlist:
-        #         rd = lig.rdkit_mol
-        #         Chem.rdDepictor.Compute2DCoords(rd)
-        #         drawer.DrawMolecule(rd)
-        # else:
-        #     rd = mol.rdkit_mol
-        #     drawer.DrawMolecule(rd)
-        #     #res.append(repr((type(rd),rd)));continue
         drawer.FinishDrawing()
-        svg = drawer.GetDrawingText().replace('svg:', '')
+        svg = drawer.GetDrawingText()
+        #svg = rdMolDraw2D.MolToSVG(rd)
+        svg = svg.replace('svg:', '')
         svg = re.sub(re__svghead, '', svg)
-        res.append(name+'   '+svg)
+        svg = svg.replace("<rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='450.0' height='450.0' x='0.0' y='0.0'> </rect>", '', 1)
+        #res.append(name+'   '+svg)
+        res.append(svg)
 
 
     res.append(repr(cell.cellparam))
