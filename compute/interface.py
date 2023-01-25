@@ -1,6 +1,7 @@
 import sys, os, io, re
 sys.path.append(os.path.join(os.path.split(__file__)[0], '../cell2mol'))
 
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
 
@@ -99,6 +100,7 @@ def cell_to_string_xyz(cell, cmplut=None):
     return celldesc, "".join(mols)
 
 re__svghead = re.compile(r"<\?xml.*?\?>")
+re__svgbackground = re.compile(r"<rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='[0-9.]+' height='[0-9.]+' x='[0-9.]+' y='[0-9.]+'> </rect>")
 rdMolDraw2D.MolDrawOptions.fixedScale = 1
 
 def cell_to_svgs(cell, cmplut):
@@ -122,16 +124,27 @@ def cell_to_svgs(cell, cmplut):
             rd = mol.rdkit_mol
         else:
             raise ValueError("internal error juggling compounds")
-        Chem.rdDepictor.Compute2DCoords(rd)
-        
-        drawer = rdMolDraw2D.MolDraw2DSVG(450,450)
+        try:
+            Chem.rdDepictor.Compute2DCoords(rd)
+        except Exception:
+            raise ValueError(repr(rd) +' '+ sm)
+
+        coords = rd.GetConformer(-1).GetPositions()
+        bbox = (coords.max(axis=0) - coords.min(axis=0))[:2]
+        size = (30*bbox+30).round()
+
+        try:
+            drawer = rdMolDraw2D.MolDraw2DSVG(int(size[0]), int(size[1]))
+        except Exception as err:
+            raise err
+            raise ValueError(repr(size), repr(coords))
         drawer.DrawMolecule(rd)
         drawer.FinishDrawing()
         svg = drawer.GetDrawingText()
         #svg = rdMolDraw2D.MolToSVG(rd)
         svg = svg.replace('svg:', '')
         svg = re.sub(re__svghead, '', svg)
-        svg = svg.replace("<rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='450.0' height='450.0' x='0.0' y='0.0'> </rect>", '', 1)
+        svg = re.sub(re__svgbackground, '', svg, 1)
         #res.append(name+'   '+svg)
         res.append(svg)
 

@@ -52,6 +52,11 @@
     border: 2px solid #555;
     border-radius: 8px;
     margin: 2em;
+    width: auto;
+}
+
+.struct2d label {
+    width: min-content;
 }
 
 .struct2d input + label {

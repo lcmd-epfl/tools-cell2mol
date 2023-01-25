@@ -62,10 +62,10 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
   //loadingScript += "; unitcell \""+ucell+"\"";
   loadingScript += "; frame all; hide none";
 
-  Jmol.script(jsmolStructureviewer, loadingScript)
+  //Jmol.script(jsmolStructureviewer, loadingScript)
     
   //draw x,y,z axes instead of a,b,c vectors as default
-  loadingScript =
+  loadingScript +=
     '; axes off; draw xaxis ">X" vector {0 0 0} {2 0 0} color red width 0.15; draw yaxis ">Y" vector {0 0 0} {0 2 0} color green width 0.15; draw zaxis ">Z" vector {0 0 0} {0 0 2} color blue width 0.15';
 
   //do not show info on top left
@@ -73,7 +73,7 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
   loadingScript += "; unitcell primitive";
 
   //Sets the unit cell line diameter in Angstroms
-  loadingScript += "; unitcell 2";  
+  loadingScript += "; unitcell 2";
 
   // antialiasDisplay ON
   loadingScript += "; set antialiasDisplay on";
@@ -236,49 +236,49 @@ function jsmolDrawAxes(viewer) {
   return jmolscript;
 }
 
-function jsmolSupercell(viewer) {
-  var nx = $("#nx").val();
-  var ny = $("#ny").val();
-  var nz = $("#nz").val();
-  $("#spin-input").prop("checked", false);
-  $("#spheres-input").prop("checked", false);
-  $("#packed-input").prop("checked", false);
-  var jmolscript =
-    "save orientation 0; load '' {" +
-    nx +
-    " " +
-    ny +
-    " " +
-    nz +
-    "}; unitcell primitive; restore orientation 0" +
-    jsmolDrawAxes(viewer) +
-    cellLine +
-    "; " +
-    showLabels(viewer) +
-    "; " +
-    showBonds(viewer);
-  Jmol.script(eval(viewer), jmolscript);
-}
+// function jsmolSupercell(viewer) {
+//   var nx = $("#nx").val();
+//   var ny = $("#ny").val();
+//   var nz = $("#nz").val();
+//   $("#spin-input").prop("checked", false);
+//   $("#spheres-input").prop("checked", false);
+//   $("#packed-input").prop("checked", false);
+//   var jmolscript =
+//     "save orientation 0; load '' {" +
+//     nx +
+//     " " +
+//     ny +
+//     " " +
+//     nz +
+//     "}; unitcell primitive; restore orientation 0" +
+//     jsmolDrawAxes(viewer) +
+//     cellLine +
+//     "; " +
+//     showLabels(viewer) +
+//     "; " +
+//     showBonds(viewer);
+//   Jmol.script(eval(viewer), jmolscript);
+// }
 
-function jsmol222cell(viewer) {
-  $("#spin-input").prop("checked", false);
-  $("#spheres-input").prop("checked", false);
-  $("#packed-input").prop("checked", false);
-  // reset nx, ny, nz to 2,2,2
-  $("#nx").val(2);
-  $("#ny").val(2);
-  $("#nz").val(2);
-  Jmol.script(
-    eval(viewer),
-    "save orientation 0; load '' {2 2 2}; unitcell primitive; restore orientation 0" +
-      jsmolDrawAxes(viewer) +
-      cellLine +
-      "; " +
-      showLabels(viewer) +
-      "; " +
-      showBonds(viewer)
-  );
-}
+// function jsmol222cell(viewer) {
+//   $("#spin-input").prop("checked", false);
+//   $("#spheres-input").prop("checked", false);
+//   $("#packed-input").prop("checked", false);
+//   // reset nx, ny, nz to 2,2,2
+//   $("#nx").val(2);
+//   $("#ny").val(2);
+//   $("#nz").val(2);
+//   Jmol.script(
+//     eval(viewer),
+//     "save orientation 0; load '' {2 2 2}; unitcell primitive; restore orientation 0" +
+//       jsmolDrawAxes(viewer) +
+//       cellLine +
+//       "; " +
+//       showLabels(viewer) +
+//       "; " +
+//       showBonds(viewer)
+//   );
+// }
 
 function centerXaxis(viewer) {
   Jmol.script(eval(viewer), "moveto 1 axis x");
@@ -292,8 +292,11 @@ function centerZaxis(viewer) {
   Jmol.script(eval(viewer), "moveto 1 axis z");
 }
 
+function viewerPostLoad(viewer) {
+    Jmol.script(eval(viewer), "set displayCellParameters FALSE; set antialiasDisplay on");
+}
 function showCompounds(viewer, visible) {
-    Jmol.script(eval(viewer), "frame [" + visible + "]")
+    Jmol.script(eval(viewer), "frame [" + visible + "]");
 }
 
 $.fn.bindFirst = function(name, fn) {

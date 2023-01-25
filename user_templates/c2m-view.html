@@ -151,7 +151,7 @@
 </div>
 
 <div class="paneviewer">
-  <form class="pane" id="structure-chooser" style="width=450px;">
+  <form class="pane" id="structure-chooser" style="width:fit-content;">
     {% for cmp_i,(cmp_name,svg) in enumerate(zip(compound_names, svg_list)) -%}
        <div class="struct2d">
 	 <input style="margin-right:4px" type="checkbox" onchange="cmpVisibilityUpdate();" id="selectcmp-{{cmp_i}}" checked/>
@@ -162,7 +162,7 @@
        </div>
     {%- endfor %}
   </form>
-  <div class="pane" id="structure-3D-viewer" style="width=100%;">
+  <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;">
     {% include 'user_templates/C-rendering.j2' %}
   </div>
 </div>
