@@ -252,9 +252,19 @@ def process_structure_view():
                 cell = pickle.load(f)
 
             cmp_lut = cell_cmp_lut(cell)
-            #xsf = cell_to_string_xsf(cell, cmp_lut)
-            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+            ht_descs = cell_get_metal_desc(cell, cmp_lut)
             svgs = cell_to_svgs(cell, cmp_lut)
+            compound_data = []
+            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+                if desc != "":
+                    compound_data.append((name, True, desc))
+                else:
+                    compound_data.append((name, False, svg))
+            
+
+            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
             
 
         else:
@@ -269,9 +279,8 @@ def process_structure_view():
             celldata=celldata,
             #xsfdata=xsf,
             ucellparams=ucellparams,
-            compound_names=cmp_lut.keys(),
+            compound_data=compound_data,
             xyzdata=xyzdata,
-            svg_list=svgs,
             enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,

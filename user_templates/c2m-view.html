@@ -152,12 +152,12 @@
 
 <div class="paneviewer">
   <form class="pane" id="structure-chooser" style="width:fit-content;">
-    {% for cmp_i,(cmp_name,svg) in enumerate(zip(compound_names, svg_list)) -%}
+    {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%}
        <div class="struct2d">
 	 <input style="margin-right:4px" type="checkbox" onchange="cmpVisibilityUpdate();" id="selectcmp-{{cmp_i}}" checked/>
 	 <label for="selectcmp-{{cmp_i}}">
 	   <strong class="text-center">{{cmp_name}}</strong> <br/>
-	   {{svg|safe}}
+	   {{desc|safe}}
 	 </label>
        </div>
     {%- endfor %}

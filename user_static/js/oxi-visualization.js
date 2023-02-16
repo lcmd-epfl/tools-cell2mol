@@ -68,7 +68,6 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
   loadingScript +=
     '; axes off; draw xaxis ">X" vector {0 0 0} {2 0 0} color red width 0.15; draw yaxis ">Y" vector {0 0 0} {0 2 0} color green width 0.15; draw zaxis ">Z" vector {0 0 0} {0 0 2} color blue width 0.15';
 
-  //do not show info on top left
   loadingScript += "; wireframe 0.15; spacefill 23%";
   loadingScript += "; unitcell primitive";
 

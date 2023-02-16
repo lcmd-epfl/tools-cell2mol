@@ -59,6 +59,10 @@
     width: min-content;
 }
 
+.struct2d p {
+    width: max-content;
+}
+
 .struct2d input + label {
     background-color: #eee;
 }

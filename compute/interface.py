@@ -44,8 +44,13 @@ def cell_cmp_lut(cell):
     for i_mol,mol in enumerate(cell.moleclist):
         if mol.type == 'Complex':
             for i_mtl, mtl in enumerate(mol.metalist):
-                names.setdefault(mtl.label, [])
-                names[mtl.label].append((i_mol,'m',i_mtl))
+                mlabel = mtl.label
+                if mtl.totcharge > 0:
+                    mlabel = f'[{mlabel:s}+{mtl.totcharge:d}]'
+                elif mtl.totcharge < 0:
+                    mlabel = f'[{mlabel:s}-{-mtl.totcharge:d}]'
+                names.setdefault(mlabel, [])
+                names[mlabel].append((i_mol,'m',i_mtl))
             for i_lig, lig in enumerate(mol.ligandlist):
                 names.setdefault(lig.smiles, [])
                 names[lig.smiles].append((i_mol,'l',i_lig))
@@ -53,17 +58,34 @@ def cell_cmp_lut(cell):
             names.setdefault(mol.smiles, [])
             names[mol.smiles].append((i_mol,'t'))
     return names
+
+def cell_get_metal_desc(cell, cmplut):
+    res = []
+    for name, lst in cmplut.items():
+        tpl = lst[0]
+    #for mol in cell.moleclist:
+        mol = cell.moleclist[tpl[0]]
+        if tpl[1]=='m':
+            mtl = mol.metalist[tpl[2]]
+            res.append('<p>Metal center: {0:s}<br/>predicted charge: {1:+d}</p>'.format(
+                mtl.label,
+                mtl.totcharge,
+            ))
+        else:
+            res.append("")
+    return res
+    
         
-def cell_to_string_xsf(cell, cmplut=None):
-    xsf = "CRYSTAL\nPRIMVEC\n"
-    for vec in cell.cellvec:
-        xsf += "{:f} {:f} {:f}\n".format(vec[0],vec[1],vec[2])
-    nat = sum(mol.natoms for mol in cell.moleclist)
-    xsf += "PRIMCOORD\n{:d} 1\n".format(nat)
-    for mol in cell.moleclist:
-        for Z,(x,y,z) in zip(mol.atnums, mol.coord):
-            xsf += "{:d} {:f} {:f} {:f}\n".format(Z,x,y,z)
-    return xsf
+# def cell_to_string_xsf(cell, cmplut=None):
+#     xsf = "CRYSTAL\nPRIMVEC\n"
+#     for vec in cell.cellvec:
+#         xsf += "{:f} {:f} {:f}\n".format(vec[0],vec[1],vec[2])
+#     nat = sum(mol.natoms for mol in cell.moleclist)
+#     xsf += "PRIMCOORD\n{:d} 1\n".format(nat)
+#     for mol in cell.moleclist:
+#         for Z,(x,y,z) in zip(mol.atnums, mol.coord):
+#             xsf += "{:d} {:f} {:f} {:f}\n".format(Z,x,y,z)
+#     return xsf
 
 def cell_to_string_xyz(cell, cmplut=None):
     celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cellparam))
@@ -99,11 +121,13 @@ def cell_to_string_xyz(cell, cmplut=None):
         )
     return celldesc, "".join(mols)
 
+
 re__svghead = re.compile(r"<\?xml.*?\?>")
 re__svgbackground = re.compile(r"<rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='[0-9.]+' height='[0-9.]+' x='[0-9.]+' y='[0-9.]+'> </rect>")
 rdMolDraw2D.MolDrawOptions.fixedScale = 1
 
 def cell_to_svgs(cell, cmplut):
+    """returns an svg image for every individual compound type in the cell"""
     res = []
     for name, lst in cmplut.items():
         tpl = lst[0]
