@@ -822,7 +822,7 @@ class metal(object):
 ##############
 #### CELL ####
 ##############
-class Cell(object):
+class cell(object):
     def __init__(self, refcode: str, labels: list, pos: list, cellvec: list, cellparam: list, warning_list: list) -> None:
 
         self.version = "V1.0"
@@ -831,8 +831,11 @@ class Cell(object):
         self.cellvec = cellvec
         self.cellparam = cellparam
 
-        self.labels = labels  # original_cell_labels
-        self.pos = pos  # original_cell_pos
+        self.labels = labels 
+        self.atom_coord = pos  # Atom cartesian coordinates from info file
+        
+        self.natoms = len(labels)
+        self.coord = [] 
 
         self.speclist = []
         self.refmoleclist = []
@@ -842,6 +845,17 @@ class Cell(object):
 
         self.charge_distribution_list = []
    
+    def arrange_cell_coord(self): 
+        ## Updates the cell coordinates preserving the original atom ordering
+        ## Do do so, it uses the variable atlist stored in each molecule
+        self.coord = np.zeros((self.natoms,3))
+        for mol in self.moleclist:
+            for z in zip(mol.atlist, mol.coord):
+                for i in range(0,3):
+                    self.coord[z[0]][i] = z[1][i]
+        self.coord = np.ndarray.tolist(self.coord)
+
+
     def data_for_postproc(self, molecules, indices, options):
         self.pp_molecules = molecules
         self.pp_indices = indices
