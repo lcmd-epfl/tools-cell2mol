@@ -8,6 +8,7 @@ from rdkit.Chem.Draw import rdMolDraw2D
 import cell2mol
 from cell2mol.cif2info import cif_2_info
 from cell2mol.c2m_module import save_cell, cell2mol
+from cell2mol.readwrite import readinfo, savemolecules
 
 
 
@@ -236,3 +237,5 @@ def printing_text(cell, output):
             output.extend([f"   smiles: {mol.smiles}"])
 
     return output
+
+

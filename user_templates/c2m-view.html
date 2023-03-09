@@ -41,7 +41,71 @@
 
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+
+
+      <style>                                                                                                                       
+      .c2minput {                                                                                                                   
+        box-sizing: border-box;                                                                                                     
+        -webkit-appearance: none;                                                                                                   
+        position: relative;                                                                                                         
+        display: block;                                                                                                             
+        width: 180px;                                                                                                               
+        height: 55px;                                                                                                               
+        margin: 50px auto;                                                                                                          
+        border: 5px solid #f7f7f5;                                                                                                  
+        border-radius: 17px;                                                                                                        
+        cursor: pointer;                                                                                                            
+        background: white; 
+      
+      }                                                                                                                             
+                                                                                                                                    
+      .c2minput:after,
+      .c2minput:before {
+      box-sizing: border-box;
+        position: absolute;                                                                                                         
+        left: 5px;                                                                                                                  
+        top: 5px;                                                                                                                   
+        width: 75px;                                                                                                                
+        height: 35px;                                                                                                               
+        border: 5px solid;                                                                                                          
+        border-radius: 12px;                                                                                                        
+        text-align: center;                                                                                                         
+        line-height: 22px;                                                                                                          
+        font-size: 32px;                                                                                                            
+        transition: all 0.3s ease-out;   
+        font-size: 25px;
+      }                                                                                                                             
+                                                                                                                                    
+      .c2minput:before {                                                                                                            
+        content: "cell";                                                                                                            
+        color: #ffddcc;                                                                                                             
+        border-color: #db473b;                                                                                                      
+        background: #db473b;                                                                                                        
+      }                                                                                                                             
+                                                                                                                                    
+      .c2minput:after {                                                                                                             
+        left: auto;                                                                                                                 
+        right: 5px;                                                                                                                 
+        content: "mol";                                                                                                             
+        border-color: #db473b;                                                                                                      
+        color: #ffddcc;                                                                                                             
+        background: #db473b;                                                                                                        
+        opacity: 0.4;                                                                                                               
+      }                                                                                                                             
+                                                                                                                                    
+      .c2minput:checked:after {                                                                                                     
+        opacity: 1;                                                                                                                 
+      }                                                                                                                             
+                                                                                                                                    
+      .c2minput:checked:before {                                                                                                    
+       opacity: 0.3;                                                                                                               
+      }                                                                                                                             
+      </style>                
+
+
+
 </head>
+
 
 <body>
 <div id='container'>
@@ -50,7 +114,6 @@
     </div>
     <div id="kal-warning"><h2 class="user-warn">WARNING: keepalive not active: this session will be lost 5 minutes after the last action. To avoid this, please allow the execution of javascript (more specifically this tool's "keepalive.js")<br/>Moreover, the JS-based compound renderer will not work.</h2></div>
     <h2>Structure {{struct_name}} on display</h2>
-
 
     <div class="collapsed-text-outer">
     <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
@@ -184,7 +247,7 @@
 
 <div class="text-center">
 <form action="./download-gmol">
-  <button type="submit" style="height:50px;width:150px">Download structure</button>
+  <button type="submit" style="height:50px;width:150px">Download cell (.gmol)</button>
 </form>
 </div>
 

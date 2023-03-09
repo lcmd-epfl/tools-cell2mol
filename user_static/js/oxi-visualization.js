@@ -43,7 +43,7 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
 
   if (supercellOptions === undefined) {
     var loadingScript =
-      'color cpk; load INLINE "' + data + '" centroid unitcell "' + ucell + '"';
+      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; select all; hideNotSelected = true; zoom 50;';
   } else {
     var loadingScript =
       'color cpk; load INLINE "' +
@@ -107,11 +107,37 @@ function toggleRotation(viewer) {
   return jmolscript;
 }
 
+function showUnpacked(viewer) {
+  var jmol_list_pos = document.getElementById("atm_pos").value;
+  if ($("#unpacked-input").is(":checked")) {
+    var jmolscript = jmol_list_pos+ "; unitcell false";
+  } else {
+    var jmolscript = "select all; unitcell true";
+  }
+  Jmol.script(eval(viewer), jmolscript);
+  return jmolscript;
+}
+
+function c2mButton(viewer) {
+  var jmol_list_pos = document.getElementById("atm_pos").value;
+  if ($("#unpacked-input").is(":checked")) {
+    document.getElementById("atm_pos").style.display="block";  
+    document.getElementById("label_pos").style.display="block";  
+    var jmolscript = jmol_list_pos+ "; unitcell false";
+  } else {
+    document.getElementById("atm_pos").style.display="none";
+    document.getElementById("label_pos").style.display="none";
+    var jmolscript = "select all; unitcell true";
+  }
+  Jmol.script(eval(viewer), jmolscript);
+  return jmolscript;
+}
+
 function showBonds(viewer) {
   if ($("#bonds-input").is(":checked")) {
-    var jmolscript = "select; wireframe 0.15";
+    var jmolscript = "wireframe 0.15";
   } else {
-    var jmolscript = "select; wireframe off";
+    var jmolscript = "wireframe off";
   }
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;
@@ -207,9 +233,9 @@ function labelOxStates(viewer, atom_indices, labeltext) {
 
 function showSpheres(viewer) {
   if ($("#spheres-input").is(":checked")) {
-    var jmolscript = "select; spacefill on";
+    var jmolscript = "spacefill on";
   } else {
-    var jmolscript = "select; spacefill 23%";
+    var jmolscript = "spacefill 23%";
   }
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;

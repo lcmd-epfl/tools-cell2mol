@@ -4,6 +4,7 @@ from tools_barebone.structure_importers import get_structure_tuple, UnknownForma
 import flask
 from .interface import *
 from .tokens import monitoring, Token
+from cell2mol.readwrite import savemolecules
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
     
@@ -118,6 +119,7 @@ def process_structure_analysis():
                 #    print(cell, dir(cell), type(cell))
                 #raise RuntimeError("unnamedrte")
                 save_cell(cell, 'gmol', token.get_path())
+                savemolecules(cell.moleclist, token.get_path(), 'xyz')
             # This line removes cell2mol output from printout, it should be extend not redefine
             #output += [f"For input {token.input_path}"]
             celldata = printing_text(cell, Capturing())
@@ -165,8 +167,10 @@ def process_structure_analysis():
         )
     
 
+
+
 @blueprint.route("/download-gmol", methods=["GET"])
-def process_structure_download():
+def process_structure_download_gmol():
 
     output = Capturing()
     try:
@@ -242,6 +246,7 @@ def process_structure_view():
         #def run_cell2mol(run=False, out=None):
 
         if os.path.exists(token.info_path):
+            labels, pos, lfracs, fracs, cellvec, cellparam = readinfo(token.info_path)
             with open(token.info_path, 'r') as f:
                 infodata = f.read()
                 output.append(infodata)
@@ -265,6 +270,32 @@ def process_structure_view():
 
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
+
+            totmol = len(cell.moleclist)
+            jmol_list_pos = {}
+            for mol in cell.moleclist:
+                jmol_list_pos[mol.name] = " select " 
+                cont=0
+                for a in mol.atoms:
+                    jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
+                    cont=cont+1
+                    if (cont < mol.natoms):
+                        jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " or "
+
+            #totmol = len(cell.moleclist)
+            #jmol_list_pos = " select " 
+            #cont=0
+            #for mol in cell.moleclist:
+            #    if "Complex" in mol.name:
+            #        for a in mol.atoms:
+            #            jmol_list_pos = jmol_list_pos + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
+            #            cont=cont+1
+            #            if (cont < mol.natoms):
+            #                jmol_list_pos = jmol_list_pos + " or "
+            #        break
+
+
+
             
 
         else:
@@ -281,6 +312,12 @@ def process_structure_view():
             ucellparams=ucellparams,
             compound_data=compound_data,
             xyzdata=xyzdata,
+            labels=labels,
+            pos=pos,
+            cellvec=cellvec,
+            cellparam=cellparam,
+            jmol_list_pos=jmol_list_pos,
+            totmol = totmol,
             enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,
