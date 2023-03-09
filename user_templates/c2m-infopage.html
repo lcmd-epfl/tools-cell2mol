@@ -32,10 +32,98 @@
 
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+
+    <script type="text/javascript" language="javascript">
+    window.onbeforeunload = function() {
+      window.location.reload(true);
+    }
+    </script>
+
+    <script type="text/javascript">
+        function DisplayProgressMessage() {
+            $("html").addClass("submit-progress-bg");
+            // Wrap in setTimeout so the UI
+            // can update the spinners
+            setTimeout(function () {
+                $(".submit-progress").removeClass("hidden");
+            }, 1);
+            return true;
+        }
+    </script>
+
+<script type="text/javascript">
+    function showHide() {
+            document.getElementById("hidden_div").style.display = "block";
+    }
+</script>
+
+
+    <style>
+    .submit-progress-bg {
+      background-color: lightgray;
+      opacity: 0.6;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 10;
+    }
+    </style>
+    
+    <style>
+    .submit-progress {
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      height: 8em;
+      padding-top: 1.5em;
+      width: 20em;
+      margin-left: -11.5em;
+      padding-left: 15px;
+      background-color: black;
+      color: white;
+      -webkit-border-radius: 0.4em;
+      -moz-border-radius: 0.4em;
+      border-radius: 0.4em;
+    }
+    </style>
+
+    <style>
+    .loader {
+      border: 10px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 10px solid #3498db;
+      width: 40px;
+      height: 40px;
+      margin-left: 7em;
+      -webkit-animation: spin 2s linear infinite; /* Safari */
+      animation: spin 2s linear infinite;
+    }
+    
+    /* Safari */
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    </style>
+
 </head>
 
 <body>
 <div id='container'>
+
+    <div style="padding: 15px;">                                                                                                  
+        <form action="/">                                                                                                         
+            <button type="submit" class="btn btn-primary">Compute other cif file</button>                                         
+        </form>                                                                                                                   
+    </div>               
+
     <div id='maintitle'>
         <h1 style="text-align: center;">Cell2Mol basic structure information</h1>
     </div>
@@ -91,9 +179,17 @@
     
     <div class="text-center">
     <form action="../analysis">
-        <button type="submit" style="height:50px;width:150px"> <font size="+0.5">Run cell2mol</font></button>
+        <button type="submit" style="height:50px;width:150px" onclick="DisplayProgressMessage()"> <font size="+0.5">Run cell2mol</font></button>
     </form>
     </div>
+
+    <div class="submit-progress hidden">                                                                                      
+        <div>                                                                                                                 
+            <label>Cell2Mol is running. Please wait ...</label>                                                             
+            <div  class="loader"></div>                                                                                       
+        </div>                                                                                                                
+    </div>                      
+
 </div>
 
 <!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->

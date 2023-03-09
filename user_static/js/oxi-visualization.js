@@ -1,3 +1,18 @@
+
+function cmpVisibilityUpdate() {                                                                                                
+  let visible_cmps = [];                                                                                                        
+  let visible_cmps_str = "";                                                                                                    
+  let x = document.getElementById("structure-chooser");                                                                         
+  let i;                                                                                                                        
+  for (i = 0; i < x.length ;i++) {                                                                                              
+    if (x.elements[i].checked) {                                                                                                
+  visible_cmps.push(i);                                                                                                         
+  visible_cmps_str += (" " + (i+1))                                                                                             
+    }                                                                                                                           
+  }                                                                                                                             
+  showCompounds(jmolApplet, visible_cmps_str);                                                                                  
+}                                                
+
 function toggleStrVisInteraction(enableStrInteraction) {
   if (enableStrInteraction) {
     // enable interaction here
@@ -398,3 +413,7 @@ function enableDoubleTap(element, callback, ignoreOnMove) {
     });
   }
 }
+
+
+
+

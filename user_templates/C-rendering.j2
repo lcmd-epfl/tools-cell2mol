@@ -134,7 +134,7 @@
                     <label id="label_pos" style="text-align:right" hidden> Choose one structure to visualize:    </label>
                 </div>
                 <div class='col-xs-12 col-sm-6'>
-                    <select id="atm_pos" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
+                    <select name="atm_pos" id="atm_pos" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
                         {% for molOption in jmol_list_pos.keys() %}
                             <option value='{{jmol_list_pos[molOption]}}'> 
                                 {% if myValue==molOption %} 
@@ -142,7 +142,6 @@
                                 {% endif %}>{{ molOption }}
                             </option>
                         {% endfor %}
-
                     </select>
                 </div>
             </div>

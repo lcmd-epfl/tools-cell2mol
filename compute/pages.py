@@ -168,7 +168,6 @@ def process_structure_analysis():
     
 
 
-
 @blueprint.route("/download-gmol", methods=["GET"])
 def process_structure_download_gmol():
 

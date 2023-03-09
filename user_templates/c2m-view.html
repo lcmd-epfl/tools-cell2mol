@@ -42,7 +42,7 @@
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
 
-
+<!-- Moved to custom-elements.css
       <style>                                                                                                                       
       .c2minput {                                                                                                                   
         box-sizing: border-box;                                                                                                     
@@ -101,6 +101,7 @@
        opacity: 0.3;                                                                                                               
       }                                                                                                                             
       </style>                
+-->
 
 
 
@@ -108,7 +109,15 @@
 
 
 <body>
+
 <div id='container'>
+
+    <div style="padding: 15px;">                                                                                                  
+        <form action="/">                                                                                                         
+            <button type="submit" class="btn btn-primary">Compute other cif file</button>                                                        
+        </form>                                                                                                                   
+    </div>                       
+
     <div id='maintitle'>
         <h1 style="text-align: center;">Cell2Mol Structure display</h1>
     </div>
@@ -229,6 +238,8 @@
     {% include 'user_templates/C-rendering.j2' %}
   </div>
 </div>
+
+<!-- Moved to oxi-visualization.js
 <script>
   function cmpVisibilityUpdate() {
     let visible_cmps = [];
@@ -244,12 +255,14 @@
     showCompounds(jmolApplet, visible_cmps_str);
   }
 </script>
+-->
 
 <div class="text-center">
 <form action="./download-gmol">
   <button type="submit" style="height:50px;width:150px">Download cell (.gmol)</button>
 </form>
 </div>
+
 
 <!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->
 <!-- It is needed to properly detect the size of the iframe -->
