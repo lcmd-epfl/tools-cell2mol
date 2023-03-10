@@ -38,7 +38,7 @@ function toggleStrVisInteraction(enableStrInteraction) {
 }
 
 //function jsmolCrystal(data, parentHtmlId, appletName, supercellOptions) {
-function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
+function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, atmCon) {
   var parentDiv = document.getElementById(parentHtmlId);
   var the_width = parentDiv.offsetWidth - 5;
   var the_height = parentDiv.offsetHeight - 5;
@@ -102,6 +102,11 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions) {
   loadingScript += "; set labeloffset 2 2";
   loadingScript += "; set fontSize 16";
 
+  loadingScript += "connect none ;"
+  loadingScript += atmCon
+  loadingScript += "select all"
+
+
   Jmol.script(jsmolStructureviewer, loadingScript);
 
   //parentDiv.innerHTML = Jmol.getAppletHtml(jsmolStructureviewer);
@@ -123,7 +128,7 @@ function toggleRotation(viewer) {
 }
 
 function showUnpacked(viewer) {
-  var jmol_list_pos = document.getElementById("atm_pos").value;
+  var jmol_list_pos = document.getElementById("atm_pos").value.split('$')[0];
   if ($("#unpacked-input").is(":checked")) {
     var jmolscript = jmol_list_pos+ "; unitcell false";
   } else {
@@ -138,10 +143,12 @@ function c2mButton(viewer) {
   if ($("#unpacked-input").is(":checked")) {
     document.getElementById("atm_pos").style.display="block";  
     document.getElementById("label_pos").style.display="block";  
+    document.getElementById("downloadBtn").style.display="block";  
     var jmolscript = jmol_list_pos+ "; unitcell false";
   } else {
     document.getElementById("atm_pos").style.display="none";
     document.getElementById("label_pos").style.display="none";
+    document.getElementById("downloadBtn").style.display="none";
     var jmolscript = "select all; unitcell true";
   }
   Jmol.script(eval(viewer), jmolscript);

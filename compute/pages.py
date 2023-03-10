@@ -167,6 +167,42 @@ def process_structure_analysis():
         )
     
 
+@blueprint.route("/download-xyzselected", methods=["GET", "POST"])
+def process_structure_download_xyzselected():
+    output = Capturing()
+    try:
+        tkn_path = flask.request.cookies.get('token_path', None)
+        if tkn_path is None:
+            raise ValueError("no token?")
+        token = Token.from_path(tkn_path)
+        if token is None:
+            raise ValueError("session expired")
+        output.append(token.cell_path)
+        token.keepalive()
+        #Get name from last part of atmPos
+        xyzfile = str(flask.request.form.get("atmPos","unknown")).split('$')[1]
+        #add the extension
+        xyzfile = xyzfile + ".xyz"
+        headers={'Content-disposition': 'attachment; filename='+ xyzfile}
+        #read from the tmp directory
+        with open(tkn_path+"/"+xyzfile, 'rb') as f:
+            body = f.read()
+        #return the file
+        return flask.make_response(body, headers)
+
+    except Exception as err:
+        msg = "Failure…"
+        output.append(repr(err))
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+    except:
+        msg = "Failure…"
+        output.append("unknown error")
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+
 
 @blueprint.route("/download-gmol", methods=["GET"])
 def process_structure_download_gmol():
@@ -269,7 +305,6 @@ def process_structure_view():
 
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
-
             totmol = len(cell.moleclist)
             jmol_list_pos = {}
             for mol in cell.moleclist:
@@ -280,6 +315,29 @@ def process_structure_view():
                     cont=cont+1
                     if (cont < mol.natoms):
                         jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " or "
+
+            atomList = cell.moleclist[0].conmat
+            a = cell.moleclist[0].atoms
+            jmolCon = " " 
+            for atomi, atomCon in enumerate(atomList):
+                #jmolCon = jmolCon + " select " #+ str(atomi) + " " +str(atomCon)
+                for atomj, conn in enumerate(atomCon):
+                    if (conn == 1.) :
+                        jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                        jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
+                        jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
+                        jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
+                        jmolCon = jmolCon + "}) or "
+                        jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                        #jmolCon = jmolCon + str(int(atomj))
+                        jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
+                        jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
+                        jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
+                        jmolCon = jmolCon + "}) ; connect ;"
+            #        jmolCon = jmolCon + " within " +"(0.1, {" +  str(atomList[atomi].coord[0]) + " " + str(atomList[atomi].coord[1]) + " " + str(atomList[atomi].coord[2]) + "})"
+            #        jmolCon = jmolCon + " or "
+            #        jmolCon = jmolCon + " within " +"(0.1, {" + str(atomList[atomj].coord[0]) + " " + str(atomList[atomj].coord[1]) + " " + str(atomList[atomj].coord[2]) + "})"
+            #        jmolCon = jmolCon + "; connect "
 
             #totmol = len(cell.moleclist)
             #jmol_list_pos = " select " 
@@ -316,6 +374,7 @@ def process_structure_view():
             cellvec=cellvec,
             cellparam=cellparam,
             jmol_list_pos=jmol_list_pos,
+            jmolCon = jmolCon,
             totmol = totmol,
             enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),

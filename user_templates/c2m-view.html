@@ -124,6 +124,7 @@
     <div id="kal-warning"><h2 class="user-warn">WARNING: keepalive not active: this session will be lost 5 minutes after the last action. To avoid this, please allow the execution of javascript (more specifically this tool's "keepalive.js")<br/>Moreover, the JS-based compound renderer will not work.</h2></div>
     <h2>Structure {{struct_name}} on display</h2>
 
+
     <div class="collapsed-text-outer">
     <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
     <label for="cifinfo-togg" class="lbl-toggle" id="c2m-lbl-info" aria-selected="false" aria-expanded="false">Structure information</label>
@@ -256,6 +257,13 @@
   }
 </script>
 -->
+
+<div class="text-center">
+<form action="./download-xyzselected">
+  <button type="submit" style="height:50px;width:150px">Download selected xyz</button>
+</form>
+</div>
+
 
 <div class="text-center">
 <form action="./download-gmol">
