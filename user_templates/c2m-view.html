@@ -16,6 +16,8 @@
     <script src="../../static/js/jquery-3.1.0.min.js"></script>
     <script src="../../static/js/jquery-ui.1.12.1.min.js"></script>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
 
       <!-- Styles used to show the Structure info (cif2cell results) -->                                                           
       <style type="text/css">                                                                                                      
@@ -257,19 +259,40 @@
   }
 </script>
 -->
+<!-- Predefined button styles
+<div>
+  <button class="btn btn-success" type="submit">success</button>
+  <button class="btn btn-default" type="submit">default</button>
+  <button class="btn btn-padding" type="submit">padding</button>
+  <button class="btn btn-group" type="submit">group</button>
+  <button class="btn btn-block" type="submit">block</button>
+  <button class="btn btn-link" type="submit">link</button>
+  <button class="btn btn-xs" type="submit">xs</button>
+  <button class="btn btn-sm" type="submit">sm</button>
+  <button class="btn btn-group-sm" type="submit">group sm</button>
+  <button class="btn btn-toolbar" type="submit">toolbar</button>
+  <button class="btn btn-primary" type="submit">primary</button>
+  <button class="btn btn-info" type="submit">info</button>
+  <button class="btn btn-warning" type="submit">warning</button>
+  <button class="btn btn-danger" type="submit">danger</button>
+  <button class="btn btn-lg" type="submit">lg</button>
+</div>
+-->
+
 
 <div class="text-center">
-<form action="./download-xyzselected">
-  <button type="submit" style="height:50px;width:150px">Download selected xyz</button>
+<form action="./download-gmol" target="_blank">
+  <button class="btn btn-default" type="submit">Download cell (.gmol)</button>
 </form>
 </div>
 
-
-<div class="text-center">
-<form action="./download-gmol">
-  <button type="submit" style="height:50px;width:150px">Download cell (.gmol)</button>
-</form>
-</div>
+<div id='container'>
+    <div style="padding: 15px; float: right;">                                                                                                  
+        <form action="/">                                                                                                         
+            <button type="submit" class="btn btn-primary">Compute other cif file</button>                                                        
+        </form>                                                                                                                   
+    </div>                       
+</div>                       
 
 
 <!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->

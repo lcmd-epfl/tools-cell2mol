@@ -139,7 +139,7 @@ function showUnpacked(viewer) {
 }
 
 function c2mButton(viewer) {
-  var jmol_list_pos = document.getElementById("atm_pos").value;
+  var jmol_list_pos = document.getElementById("atm_pos").value.split('$')[0];
   if ($("#unpacked-input").is(":checked")) {
     document.getElementById("atm_pos").style.display="block";  
     document.getElementById("label_pos").style.display="block";  
