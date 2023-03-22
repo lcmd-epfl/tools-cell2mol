@@ -204,6 +204,7 @@ def printing_text(cell, output):
         if mol.type == "Complex": 
             output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
             output.extend([f"   total charge : {mol.totcharge}"])
+            output.extend([f"   spin : {mol.spin}"])
             output.extend([""])
 
             if mol.hapticity == False :
@@ -224,6 +225,7 @@ def printing_text(cell, output):
             for lig in mol.ligandlist:
                 output.extend([f"   >> Ligand Formula : {lig.formula}"])
                 output.extend([f"   charge : {lig.totcharge}"])
+                output.extend([f"   spin : {lig.spin}"])
                 if lig.hapticity == True :
                     output.extend([f"   hapticity: {lig.hapttype}"])
                 else : 
