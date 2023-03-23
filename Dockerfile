@@ -34,6 +34,7 @@ COPY ./cell2mol/ /home/app/code/webservice/cell2mol/
 COPY ./compute/ /home/app/code/webservice/compute/
 #Needed to allow only .cif file formats in the upload_structure_block
 COPY ./web_module.py /home/app/code/webservice/ 
+COPY ./base.html /home/app/code/webservice/templates/
 
 # If you put any static file (CSS, JS, images),
 #create this folder and put them here
