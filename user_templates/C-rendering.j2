@@ -122,34 +122,42 @@
             </div>
 
             <!--
-            <select id="atm_pos" hidden><option value='{{jmol_list_pos['YOXKUS_Complex_0']}}' selected hidden></option> </select> 
+            <select name="prueba" id="prueba" hidden><option value=' molOption ' selected hidden></option> </select> 
             -->
+
             <div class="checkbox-option" id="unpacked">
                 <input class="c2minput" id="unpacked-input" style="margin:auto;" type="checkbox" onchange="c2mButton(jmolApplet);">
                 {# <input id="unpacked-input" style="margin-right:4px" type="checkbox" onchange="showUnpacked(jmolApplet);">unpacked #}
             </div>
 
-             <div class="row">
-                <div class='col-xs-12 col-sm-6'>
+            <div class="container" style="margin: 15px;">
+                <div style="margin-left: 30px; float:left; width: 33%;">
                     <label id="label_pos" style="text-align:right" hidden> Choose one structure to visualize:    </label>
                 </div>
-                <div class='col-xs-12 col-sm-6'>
-                    <select id="atm_pos" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
-                        {% for molOption in jmol_list_pos.keys() %}
-                            <option value='{{jmol_list_pos[molOption]}}'> 
-                                {% if myValue==molOption %} 
-                                    {{ molOption }}
-                                {% endif %}>{{ molOption }}
-                            </option>
-                        {% endfor %}
-
-                    </select>
-                </div>
+                <form action="./download-xyzselected" target="_blank" method="POST">                                                                                                   
+                    <div style="margin-left: 20px; float: left; width: 15%;">
+                        <select name="atmPos" id="atm_pos" if="atmPosValue" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
+                            {% for molOption in jmol_list_pos.keys() %}
+                                <option value='{{jmol_list_pos[molOption] +" $"+ molOption}}'> 
+                                    {% if myValue==molOption %} 
+                                        {{ molOption }}
+                                    {% endif %}>{{ molOption }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="margin-left: 40px; float: right; width: 33%;">
+                            <button style="padding: 5px" id="downloadBtn" type="submit" hidden><i class="fa fa-download"></i> Download selected mol (.xyz)</button>         
+                    </div>
+                </form>                                                                                                                           
             </div>
 
 
 
 
+    <!--
+    {{jmolCon}}
+    -->
 
 
         </div>
@@ -157,7 +165,8 @@
 
     <script>
         {#structureviewer = jsmolCrystal({{ xsfdata | tojson | safe }},"structure-content", "jmolApplet", "{1 1 1}");#}
-	structureviewer = jsmolCrystal("{{ xyzdata.replace('\n','\\n') }}", "{{ucellparams}}", "structure-content", "jmolApplet", undefined);
+	structureviewer = jsmolCrystal("{{ xyzdata.replace('\n','\\n') }}",
+"{{ucellparams}}", "structure-content", "jmolApplet", undefined,"{{jmolCon}}");
         {#var metal_indices = {{ metal_indices| tojson | safe }};
         var prediction_labels = {{ prediction_labels| tojson | safe }};#}
 

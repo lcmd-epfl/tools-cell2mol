@@ -6,6 +6,7 @@ import sys
 import os
 import copy
 from typing import Tuple
+import numpy as np
 # Import modules
 from cell2mol.cell_reconstruct import (getmolecs,identify_frag_molec_H,split_complexes_reassign_type,fragments_reconstruct,get_reference_molecules)#, compare_moleclist_refmoleclist)
 from cell2mol.cell_reconstruct import get_reference_molecules_simple
@@ -14,6 +15,7 @@ from cell2mol.missingH import check_missingH
 from cell2mol.tmcharge_common import cell
 from cell2mol.cellconversions import frac2cart_fromparam
 from cell2mol.readwrite import readinfo
+from cell2mol.spin import count_N, count_elec, predict_ground_state_spin, count_nitrosyl
 from typing import Tuple
 
 
@@ -213,6 +215,84 @@ def load_cell_reset_charges (cellpath: str, debug: int=0) -> object:
     return cell
 
 ##################################################################################
+def assign_spin (cell: object, debug: int=0) -> object:
+    if debug >= 1: 
+        print("#########################################")
+        print("Assigning spin multiplicity")
+        print("#########################################")    
+
+    for mol in cell.moleclist:
+        if mol.type == "Complex":
+            if len(mol.metalist) == 1: # mono-metallic complexes
+                N = count_N(mol)
+                met = mol.metalist[0]
+                
+                # count valence electrons
+                elec = count_elec(met.label, met.totcharge)
+                
+                # Count nitrosyl ligands               
+                arr = []
+                for lig in mol.ligandlist:
+                    arr.append(sorted(lig.labels))
+                    if count_N(lig) %2 == 0:
+                        lig.magnetism(1) 
+                    else:
+                        lig.magnetism(2) 
+                
+                nitrosyl = count_nitrosyl(np.array(arr, dtype=object))
+                if debug >= 2: print(np.array(arr, dtype=object))
+                if debug >= 2: print(f"{nitrosyl=}")
+                
+                # predict spin state            
+                if met.hapticity == False:
+                    spin = predict_ground_state_spin (met.label, elec, met.coordinating_atoms, met.geometry, met.coordination_number, N, nitrosyl)
+                    mol.magnetism(spin)
+                    if debug >= 1: print(f"{mol.type=}, {mol.formula=}, {mol.spin=}")
+                    if debug >= 1: print(f"{met.label=} {met.hapticity=} {met.geometry=} {met.coordination_number=} {met.coordinating_atoms=}")
+                    if debug >= 1: print(f"met_OS={met.totcharge} valence_{elec=} {N=} {nitrosyl=}\n")
+
+                else:
+                    if count_N(mol) % 2 == 0:
+                        mol.magnetism(1) # spin multiplicity = 1 Singlet
+                    else:
+                        mol.magnetism(2) # spin multiplicity = 2 Doublet
+
+            else : # Bi- & Poly-metallic complexes
+                if count_N(mol) % 2 == 0:
+                    mol.magnetism(1) 
+                else:
+                    mol.magnetism(2) 
+                
+                for lig in mol.ligandlist:
+                    if count_N(lig) %2 == 0:
+                        lig.magnetism(1) 
+                    else:
+                        lig.magnetism(2) 
+
+        else: # mol.type == "Other" or "Ligand"
+            if count_N(mol) % 2 == 0:
+                mol.magnetism(1) 
+            else:
+                mol.magnetism(2) 
+
+    if debug >= 1: 
+        for mol in cell.moleclist:
+            if mol.type == "Complex":
+                print(f"{mol.type=}, {mol.formula=}, {mol.spin=}")
+                for lig in mol.ligandlist:
+                    if lig.natoms != 1:
+                        print(f"\t{lig.formula=}, {lig.spin=}")
+                    else :
+                        print(f"\t{lig.formula=}")
+            else :
+                if mol.natoms != 1:
+                    print(f"{mol.type=}, {mol.formula=}, {mol.spin=}") 
+                else :
+                    print(f"{mol.type=}, {mol.formula=}")
+
+    return cell
+
+##################################################################################
 ################################## MAIN ##########################################
 ##################################################################################
 def cell2mol(infopath: str, refcode: str, output_dir: str, step: int=3, debug: int=1) -> object:
@@ -262,6 +342,10 @@ def cell2mol(infopath: str, refcode: str, output_dir: str, step: int=3, debug: i
 
             if not any(newcell.warning_list):
                 if debug >= 1: print("Charge Assignment successfully finished.\n")
+
+                # Spin state assignment
+                newcell = assign_spin(newcell, debug=debug)
+
                 if debug >= 1: newcell.print_charge_assignment()
                 if debug >= 1: newcell.print_Warning()
             else:

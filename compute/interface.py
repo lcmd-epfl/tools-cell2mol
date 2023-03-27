@@ -203,16 +203,17 @@ def printing_text(cell, output):
         mol=cell.moleclist[i]
         if mol.type == "Complex": 
             output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
-            output.extend([f"   total charge : {mol.totcharge}"])
+            output.extend([f"   Total charge : {mol.totcharge}"])
+            output.extend([f"   Spin : {mol.spin}"])
             output.extend([""])
 
             if mol.hapticity == False :
                 for met in mol.metalist:
                     output.extend([f"   >> Metal : {met.label}"])
                     output.extend([f"   Metal oxidation state : {met.totcharge}"])
-                    output.extend([f"   coordination number: {met.coordination_number}"])
-                    output.extend([f"   metal-coordinating atoms: {met.coordinating_atoms}"])
-                    output.extend([f"   coordination geometry: {met.geometry}\t(*deviation value : {met.deviation})"])
+                    output.extend([f"   Coordination number: {met.coordination_number}"])
+                    output.extend([f"   Metal-coordinating atoms: {met.coordinating_atoms}"])
+                    output.extend([f"   Coordination geometry: {met.geometry}\t(*deviation value : {met.deviation})"])
                     output.extend(["   *deviation value: closer to 0, less distortion in a given geometry"])           
             else :
                 for met in mol.metalist:
@@ -223,18 +224,18 @@ def printing_text(cell, output):
 
             for lig in mol.ligandlist:
                 output.extend([f"   >> Ligand Formula : {lig.formula}"])
-                output.extend([f"   charge : {lig.totcharge}"])
+                output.extend([f"   Charge : {lig.totcharge}"])
                 if lig.hapticity == True :
-                    output.extend([f"   hapticity: {lig.hapttype}"])
+                    output.extend([f"   Hapticity: {lig.hapttype}"])
                 else : 
-                    output.extend([f"   denticity: {lig.totmconnec}"])
-                output.extend([f"   smiles: {lig.smiles}"])
+                    output.extend([f"   Denticity: {lig.totmconnec}"])
+                output.extend([f"   Smiles: {lig.smiles}"])
                 output.extend([""])
 
         elif mol.type == "Other" :
             output.extend([f"[Other] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
-            output.extend([f"   charge: {mol.totcharge}"])
-            output.extend([f"   smiles: {mol.smiles}"])
+            output.extend([f"   Charge: {mol.totcharge}"])
+            output.extend([f"   Smiles: {mol.smiles}"])
 
     return output
 

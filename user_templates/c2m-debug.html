@@ -10,6 +10,8 @@
     <link rel="stylesheet" type="text/css" href="../../static/css/jquery-ui.1.12.1.min.css"/>
     <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_base.min.css"/>
     <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_input.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../user_static/css/custom-elements.css"/>
+    <script src="../../user_static/js/keepalive.js"></script>
     <script src="../../static/js/jquery-3.1.0.min.js"></script>
     <script src="../../static/js/jquery-ui.1.12.1.min.js"></script>
 
@@ -23,18 +25,49 @@
 
 <body>
 <div id='container'>
+
+
+    <div style="padding: 15px;">
+        <form action="/">
+            <button type="submit" class="btn btn-primary">Compute other cif file</button>
+        </form>
+    </div>
+
+
+
     <div id='maintitle'>
         <h1 style="text-align: center;">Cell2Mol debug output page</h1>
     </div>
 
     <h2>An error has ocured…</h2>
-    {% for line in output_lines -%}
-    <p>
-        <code>
-            {{- line -}}
-        </code>
-    </p>
-    {%- endfor %}
+
+                                                                                                                                   
+    <div class="collapsed-text-outer">                                                                                            
+        <input id="errorTraceback-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-errorTraceback" aria-controls="c2m-output-info">
+        <label for="errorTraceback-togg" class="lbl-toggle" id="c2m-lbl-errorTraceback" aria-selected="false" aria-expanded="false">
+            Error traceback                                                                                                       
+        </label>                                                                                                                  
+        <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">                                   
+            {% for line in output_lines -%}
+            <p>
+                <code>
+                    {{- line -}}
+                </code>
+            </p>
+            {%- endfor %}
+        </div>
+    </div>
+
+
+
+    <div id='container'>                                                                                                          
+        <div style="padding: 15px; float: right;">                                                                                
+            <form action="/">                                                                                                     
+                <button type="submit" class="btn btn-primary">Compute other cif file</button>                                     
+            </form>                                                                                                               
+        </div>                                                                                                                    
+    </div>            
+
 </div>
 
 <!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->
