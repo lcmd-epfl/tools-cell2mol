@@ -6,6 +6,8 @@ from .interface import *
 from .tokens import monitoring, Token
 from cell2mol.readwrite import savemolecules, writexyz
 
+import os
+
 import webbrowser
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
@@ -36,10 +38,10 @@ def process_structure_init():
     #if fileformat not in ('cif-pymatgen','cif-ase'):
     #    flask.flash("er… well we will interpret that a a cif file anyway >:)")
     structurefile = flask.request.files["structurefile"]
-    file_ext = structurefile.filename.split('.')[-1]
+    file_ext = os.path.splitext(structurefile.filename)[1]
 
     #Only accept files with cif extension
-    if file_ext != "cif":
+    if file_ext != ".cif":
         flask.flash("Please upload a file in format '{}' with the proper extension (.cif) ".format(fileformat))
         return flask.redirect(flask.url_for("input_data"))
 
