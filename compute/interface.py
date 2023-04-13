@@ -240,3 +240,72 @@ def printing_text(cell, output):
     return output
 
 
+
+def molecules_list(cell):                                                                                      
+    ''' Takes the cell2mol cell object and uses its information to make a list of all the molecules with its respectives
+    atomic coordinates in a compatible format for jsmol
+
+    Args:
+        cell: the output of cell2mol
+
+    Return:
+        A list containing all the molecules separeted and its respectives atoms coordinates in a string for jsmol
+    '''
+
+    totmol = len(cell.moleclist)                                                                                          
+    jmol_list_pos = {}                                                                                                    
+    for mol in cell.moleclist:                                                                                            
+        jmol_list_pos[mol.name] = " select "                                                                              
+        cont=0                                                                                                            
+        for a in mol.atoms:                                                                                               
+            jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
+            cont=cont+1                                                                                                   
+            if (cont < mol.natoms):                                                                                       
+                jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " or "                                                
+
+    return jmol_list_pos
+                                                                                
+
+def bond_order_connectivity(cell):
+    ''' Takes the cell object and returns a string containig the information needed by jsmol to generate the atomic bonds with 
+    the correct bond order
+
+    Args:
+        cell: the output of cell2mol
+        
+
+    Return:
+        A string with the jsmol instructions to select all bonded atoms within the same molecule and specify its bond order
+    '''
+
+    jmolCon = " "
+
+    for mol in cell.moleclist: #loop over all molecules
+        connectMat = mol.conmat #connectivity matrix
+        a = mol.atoms #list with all the atoms forming the molecule
+    
+        for atomi, atomCon in enumerate(connectMat): #loop over atoms 
+            for atomj, conn in enumerate(atomCon): #loop over atoms
+                if (conn == 1. and atomj > atomi): #check if there is a bond and avoid double counting
+                    atomiBonds = a[atomi].bond #all bonds of atomi
+                    for bonds in atomiBonds: #loop over all bonds (the first index is always < than the second)
+                        if (atomi == bonds[0] and atomj == bonds[1]): #if the bonded atoms matches
+                            #select atomi by its coordinates
+                            jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                            jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
+                            jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
+                            jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
+                            jmolCon = jmolCon + "}) or "
+                            #select atomj by its coordinates
+                            jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                            jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
+                            jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
+                            jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
+                            jmolCon = jmolCon + "}) ;"
+                            #bond order
+                            jmolCon = jmolCon + " bondorder " + str(bonds[2]) + " ; "
+    
+    return jmolCon
+
+
+

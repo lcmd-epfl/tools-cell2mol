@@ -35,8 +35,6 @@ def process_structure_init():
     # of a XYZ file)
     fileformat = flask.request.form.get("fileformat", "unknown")
     form_data = dict(flask.request.form)
-    #if fileformat not in ('cif-pymatgen','cif-ase'):
-    #    flask.flash("er… well we will interpret that a a cif file anyway >:)")
     structurefile = flask.request.files["structurefile"]
     file_ext = os.path.splitext(structurefile.filename)[1]
 
@@ -230,55 +228,9 @@ def process_structure_view():
 
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
-            totmol = len(cell.moleclist)
-            jmol_list_pos = {}
-            for mol in cell.moleclist:
-                jmol_list_pos[mol.name] = " select " 
-                cont=0
-                for a in mol.atoms:
-                    jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
-                    cont=cont+1
-                    if (cont < mol.natoms):
-                        jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " or "
-
-            atomList = cell.moleclist[0].conmat
-            a = cell.moleclist[0].atoms
-            jmolCon = " " 
-            for atomi, atomCon in enumerate(atomList):
-                #jmolCon = jmolCon + " select " #+ str(atomi) + " " +str(atomCon)
-                for atomj, conn in enumerate(atomCon):
-                    if (conn == 1.) :
-                        jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                        jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
-                        jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
-                        jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
-                        jmolCon = jmolCon + "}) or "
-                        jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                        #jmolCon = jmolCon + str(int(atomj))
-                        jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
-                        jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
-                        jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
-                        jmolCon = jmolCon + "}) ; connect ;"
-            #        jmolCon = jmolCon + " within " +"(0.1, {" +  str(atomList[atomi].coord[0]) + " " + str(atomList[atomi].coord[1]) + " " + str(atomList[atomi].coord[2]) + "})"
-            #        jmolCon = jmolCon + " or "
-            #        jmolCon = jmolCon + " within " +"(0.1, {" + str(atomList[atomj].coord[0]) + " " + str(atomList[atomj].coord[1]) + " " + str(atomList[atomj].coord[2]) + "})"
-            #        jmolCon = jmolCon + "; connect "
-
-            #totmol = len(cell.moleclist)
-            #jmol_list_pos = " select " 
-            #cont=0
-            #for mol in cell.moleclist:
-            #    if "Complex" in mol.name:
-            #        for a in mol.atoms:
-            #            jmol_list_pos = jmol_list_pos + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
-            #            cont=cont+1
-            #            if (cont < mol.natoms):
-            #                jmol_list_pos = jmol_list_pos + " or "
-            #        break
-
-
-
-            
+            #string used by jsmol to define the molecules/complexes, and the connectivity respectively
+            jmol_list_pos = molecules_list(cell)
+            jmolCon = bond_order_connectivity(cell)
 
         else:
             raise ValueError("plz")
@@ -300,7 +252,7 @@ def process_structure_view():
             cellparam=cellparam,
             jmol_list_pos=jmol_list_pos,
             jmolCon = jmolCon,
-            totmol = totmol,
+            totmol = len(cell.moleclist),
             enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,

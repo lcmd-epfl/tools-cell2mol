@@ -58,7 +58,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
 
   if (supercellOptions === undefined) {
     var loadingScript =
-      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; select all; hideNotSelected = true; zoom 50;';
+      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; select all; hideNotSelected = true; zoom 50;'
+      + ' set bondRadiusMilliAngstroms 100 ; ' + atmCon + ' select all ;';
   } else {
     var loadingScript =
       'color cpk; load INLINE "' +
@@ -102,8 +103,6 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
   loadingScript += "; set labeloffset 2 2";
   loadingScript += "; set fontSize 16";
 
-  loadingScript += "connect none ;"
-  loadingScript += atmCon
   loadingScript += "select all"
 
 
