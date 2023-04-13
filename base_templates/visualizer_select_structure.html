@@ -1,0 +1,115 @@
+
+
+
+<h2><a name="tool"></a>Upload your structure</h2>
+<div style="margin-left: 20px; margin-right: 20px">
+    <form action="compute/process_structure/" enctype="multipart/form-data" method="post">
+        <div class='alert alert-info'>
+            <div class='row'>
+                <div class='col-xs-12 col-sm-6'>
+                    <label for="file">Upload a crystal structure:</label>
+                </div>
+                <div class="col-xs-12 col-sm-6">
+                    <input type="file" name="structurefile" size="100">
+                </div>
+            </div>
+            <div class='row'>
+                <div class='col-sm-6'>
+                    <label for="fileformatSelect">Select here the file format:</label>
+                </div>
+                <div class='col-sm-6'>
+                    <select name="fileformat" id="fileformatSelect" onchange="formatInfo();" autocomplete="off">
+                        <option disabled selected value> -- select an option -- </option>
+                        {# First put the formats the user specified, if existing #}
+                        {% for parser_name in config.get('upload_structure_block_order', []) %}
+                            {% if parser_name in upload_structure_block_known_formats %}
+                            <option value="{{ parser_name }}">{{ upload_structure_block_known_formats[parser_name] }}</option>
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Then put any remaining format #}
+                        {% for parser_name in upload_structure_block_known_formats %}
+                            {% if parser_name not in config.get('upload_structure_block_order', []) %}
+                                <option value="{{ parser_name }}">{{ upload_structure_block_known_formats[parser_name] }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row col-sm-12" style="margin-top:10px; margin-bottom:-10px;">
+                <div id="cifImportantInfo" class="alert alert-warning" hidden>
+                    <i> <ul style="padding-left: 10px;">
+                            <li>
+                                cell2mol web interface incorporates cif2cell v2.0.0 instead of v1.2.10 
+                            </li>
+                            <li>
+                                To reproduce results reported on 
+                                <a href="https://doi.org/10.1038/s41524-022-00874-9 " target="_blank">doi: 10.1038/s41524-022-00874-9 </a>, 
+                                please use the cif2cell v1.2.10 output as input file with the <i>.info</i> extension.
+                            </li>
+                    </i></ul>
+                </div>
+                <div id="infoImportantInfo" class="alert alert-warning" hidden>
+                    <i> <ul style="padding-left: 10px;">
+                            <li>
+                                Please use use the flag <code>--cartesian</code> when generating the input file with cif2cell, and make sure
+                                it has the <i>.info</i> file extension.
+                            </li>
+                            <li>
+                                To reproduce results reported on 
+                                <a href="https://doi.org/10.1038/s41524-022-00874-9 " target="_blank">doi: 10.1038/s41524-022-00874-9 </a>,  
+                                please use cif2cell v1.2.10
+                            </li>
+                    </i></ul>
+                </div>
+            </div>
+            <div id="xyzFormatFields" class="row" style="display: none">
+                <div class='col-sm-6'>Cell vectors (&#x212B;)</div>
+                <div class='col-sm-6'>
+                    <div class='row'>
+                        <div class='col-xs-2'>A</div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecAx"></div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecAy"></div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecAz"></div>
+                    </div>
+                    <div class='row'>
+                        <div class='col-xs-2'>B</div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecBx"></div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecBy"></div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecBz"></div>
+                    </div>
+                    <div class='row'>
+                        <div class='col-xs-2'>C</div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecCx"></div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecCy"></div>
+                        <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecCz"></div>
+                    </div>
+                </div>
+            </div>
+            {% if include_pages['upload_structure_additional_content'] is not none %}
+            {% include include_pages['upload_structure_additional_content'] %}
+            {% endif %}
+            {% block structure_additional_content %}{% endblock %}
+            <div class='row' style="text-align:center">
+                <br/>
+                <input type="submit" value="Calculate my structure" class="btn btn-default">
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function formatInfo() {
+        var inputFileFormat = document.getElementById("fileformatSelect").value;
+        if (inputFileFormat == "cif") {                                                                                                 
+            document.getElementById("cifImportantInfo").style.display="block";                                                       
+            document.getElementById("infoImportantInfo").style.display="none";                                                           
+        } else if (inputFileFormat == "info") {                                                                                         
+            document.getElementById("cifImportantInfo").style.display="none";                                                       
+            document.getElementById("infoImportantInfo").style.display="block";                                                           
+        } else {                                                                                                                        
+            document.getElementById("cifImportantInfo").style.display="none";                                                            
+            document.getElementById("infoImportantInfo").style.display="none";                                                           
+        }                                                 
+    }
+</script>

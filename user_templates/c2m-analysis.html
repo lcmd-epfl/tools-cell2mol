@@ -33,6 +33,20 @@
 
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+
+                                                                                                                            
+    <script>                                                                                                                      
+        $( function() {                                                                                                           
+            $( "#accordion" ).accordion({                                                                                         
+                collapsible: true,                                                                                                
+                heightStyle: "content", // Avoid that all have the same height                                                    
+                active: false  // Start all closed                                                                                
+            });                                                                                                                   
+                                                                                                                                  
+        });                                                                                                                       
+    </script>                                                                                                                     
+                              
+
 </head>
 
 <body>
@@ -51,28 +65,63 @@
     <h2>Structure {{struct_name}} analized and converted successfully</h2>
 
 
-    <div class="collapsed-text-outer">
-    <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
-    <label for="cifinfo-togg" class="lbl-toggle" id="c2m-lbl-info" aria-selected="false" aria-expanded="false">Structure information</label>
-    <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">
+    <div id="accordion">
 
-    <!---
-    {% for paragraph in infodata.split('\n\n') -%}
-    {% set paragraph = paragraph.split('\n')-%}
-    <p style="font-family=mono;">
-      {% for line_id,line in enumerate(paragraph) -%}
-          {{- line -}}
-	  {%if line_id+1 < len(paragraph)-%}
-	    <br/>
-	  {%-endif%}
-      {%-endfor%}
+    <h2>Instructions</h2>
+    
+    <div>
+    </br>
+    
+    <ul style="color: DimGray; text-align: justify;">
+        <li>
+            Upload the input file, select its corresponding file format, and press <strong><samp>Calculate my structure</strong></samp>.
+        </li>
+    
+        </br>
+    
+        <li>
+            If the input file was imported and interpreted successfully, you will be able to view basic structure information under
+            the <strong><samp>Structure information</strong></samp> tab. Press <strong><samp>Run cell2mol</strong></samp> and wait.
+            The waiting time depends on the structure size and complexity.
+        </li>
+    </ul>
+    
+    </br>
+    
+    <ul style="color: blue; text-align: justify;">
+        <li>
+        <span style="color:black">
+            If the structure was analyzed successfully, you will be able to view its analysis under the <kbd>Structure analysis</kbd>
+            tab. You can download the cell object in <i>.gmol</i> format by pressing <kbd>Download cell (.gmol)</kbd>.
+            Press <kbd>View structure</kbd> to view, interact and download specific molecules or complexes.
+        </span>
+        </li>
+    </ul>
+    
+    </br>
+    
+    <ul style="color: Gray; text-align: justify;">
+        <li>
+            By double-clicking  on the 3d structure you will be able to zoom in, zoom out, and rotate the model. On the left column,
+            you can select which molecular components (ligands, molecules, or metals) are displayed. Below the 3d structure, you will find a toggle
+            button to select if you want to view the cell or one mol (molecule or complex). When mol is selected, you can use the
+            dropdown menu to choose one to visualize. The xyz file of the selected mol containing
+            charge, spin, and cartesian coordinates (ready for quantum chemical calculations), can be downloaded by clicking <strong><samp>Download selected
+            mol (.xyz)</strong></samp>.
+        </li>
+    </ul>
+    
+    <p style="text-align: justify;">
+    If one of the steps fail, please verify your input file or try to use a different cif2cell version if using info file as input.
     </p>
-    {%- endfor %}
-    </div></div>
-    --->
+    
+    </div>
+                                                                                                               
 
-     <br/>                                                                                                                         
+    
+    <h2>Structure information</h2>
                                                                                                                                    
+    <div>
      {% for paragraph_id,paragraph in enumerate(infodata.split('\n\n')) -%}                                                        
      {% set paragraph = paragraph.split('\n')-%}                                                                                   
                                                                                                                                    
@@ -103,40 +152,50 @@
      {%- endfor %}                                                                                                                 
      </p>                                                                                                                          
                                                                                                                                    
-     </div>                                                                                                                        
      </div>                                         
 
-    <div class="collapsed-text-outer">
-    <input id="ciflysi-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-lysi" aria-controls="c2m-output-lysi">
-    <label for="ciflysi-togg" class="lbl-toggle" id="c2m-lbl-lysi" aria-selected="false" aria-expanded="false">Structure analysis</label>
-    <div class="collapsed-text-inner" id="c2m-output-lysi" aria-labelledby="c2m-ctrl-lysi">
+    <h2>Structure analysis</h2>
 
+    <div>
     {% for paragraph in celldata.split('\n\n') -%}
-    {% set paragraph = paragraph.split('\n')-%}  
-    <p style="font-family=mono;" class="tab">
-      {% for line_id,line in enumerate(paragraph) -%}
-          {% if "Complex" in line %}
-            &nbsp;&nbsp;<span class="bolded"> {{- line -}} </span>
-          {% elif ">>" in line %}
-            &nbsp;&nbsp;<span class="bolded"> {{- line -}} </span>
-          {% else %}
-            {{- line -}}
-          {% endif %}
-	  {%if line_id+1 < len(paragraph)-%}
-	    <br/>
-	  {%-endif%}
-      {%-endfor%}
-    </p>
-    {%- endfor %}
-    </div></div>
+         {% set paragraph = paragraph.split('\n')-%}  
+         <p style="font-family=mono;" class="tab">
 
-    <div class="text-center">
-      <form action="./download-gmol">
-	<button class="btn btn-default" type="submit">Download cell (.gmol) </button>
-      </form>
-      <form action="./view-gmol">
-	<button class="btn btn-success" type="submit">View structure</button>
-      </form>
+         {% if ">>" in paragraph|join %}
+            {% for line_id,line in enumerate(paragraph) -%}
+            {% if ">>" in line %}
+                &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- line -}} </span> 
+            {% else %}
+                &numsp;&numsp;&numsp;&numsp;{{- line -}}
+            {%endif%}
+            <br/>
+            {%-endfor%}
+         {% else %}
+            {% for line_id,line in enumerate(paragraph) -%}
+            {% if "Complex" in line %}
+                <span class="bolded"> {{- line -}} </span>
+            {% elif "[Other]" in line %}
+                <span class="bolded"> {{- line -}} </span>
+            {% else %}
+                {{- line -}} 
+            {% endif %}
+            <br/>
+            {%-endfor%}
+         {%endif%}
+
+         </p>
+    {%- endfor %}
+
+    </div>
+    </div>
+
+    <div class="text-center" style="margin-top:1em">
+        <form action="./download-gmol">
+            <button class="btn btn-default" type="submit">Download cell (.gmol) </button>
+        </form>
+        <form action="./view-gmol">
+            <button class="btn btn-success" type="submit">View structure</button>
+        </form>
     </div>
 </div>
 

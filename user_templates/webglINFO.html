@@ -1,0 +1,58 @@
+<div id="webglcheckwrapper">                                                                                                  
+    <div id="support">                                                                                                    
+        <div class="webgl-hidden" id="have-javascript">                                                                   
+            <div class="webgl-hidden webgl-div" id="webgl-yes">                                                           
+                <div id="webgl-experimental">                                                                             
+                    <div class="alert alert-warning">                                                                     
+                        Your browser support for WebGL is marked as                                                       
+                        experimental. This means                                                                          
+                        3D content (crystal structure) may not be shown as expected.                                      
+                        <br />                                                                                            
+                        You may want to consider an <a href="http://get.webgl.org" target="_blank">upgrade of             
+                            your browser</a>.                                                                             
+                    </div>                                                                                                
+                </div>                                                                                                    
+                <!-- <div>                                                                                                
+                    WebGL detected, all good!                                                                             
+                </div> -->                                                                                                
+                <div id="logo-container">                                                                                 
+                    <!-- Placeholder needed for testing -->                                                               
+                    <canvas id="webgl-logo" style="width: 1px; height: 1px;"></canvas>                                    
+                </div>                                                                                                    
+            </div>                                                                                                        
+            <div class="webgl-hidden webgl-div" id="webgl-disabled">                                                      
+                <div class="alert alert-danger">                                                                          
+                    Your browser seems to support WebGL, but it is disabled or unavailable. If possible, please           
+                    ensure that you are running the latest drivers for your video card, or enable WebGL in your           
+                    browser settings.                                                                                     
+                    <br /><br />                                                                                          
+                    For more help, please visit <a href="http://get.webgl.org/troubleshooting"                            
+                        target="_blank">this page</a>.                                                                    
+                </div>                                                                                                    
+            </div>                                                                                                        
+            <div class="webgl-hidden webgl-div" id="webgl-no">                                                            
+                <div class="alert alert-danger">                                                                          
+                    <p>We are sorry, but your browser does not seem to support WebGL, so we cannot show 3D                
+                        objects like the crystal structure.</p>                                                           
+                    <p>You may want to visit <a href="http://get.webgl.org" target="_blank">this page</a> to get          
+                        a list of                                                                                         
+                        recent browsers that support WebGL.</p>                                                           
+                </div>                                                                                                    
+            </div>                                                                                                        
+        </div>                                                                                                            
+        <div id="no-javascript">                                                                                          
+            <div class="alert alert-danger">                                                                              
+                PROBLEM DETECTED! <br />                                                                                  
+                                                                                                                          
+                You must enable JavaScript to use this web service, otherwise the content will not render                 
+                properly.                                                                                                 
+            </div>                                                                                                        
+        </div>                                                                                                            
+        <script>                                                                                                          
+            // Hide div ASAP                                                                                              
+            element = document.getElementById('no-javascript');                                                           
+            element.innerHTML = ""; //className = element.className + " webgl-hidden";                                    
+        </script>                                                                                                         
+    </div>                                                                                                                
+</div>                                                                                                                    
+         
