@@ -95,7 +95,9 @@
                                 <a href="#" data-toggle="tooltip" title="Show bonds"><sup>[?]</sup></a>
                             </label>
                         </div>
-                        {#<div class="checkbox-option" id="oxlabels">
+
+                        <!--
+                        <div class="checkbox-option" id="oxlabels">
                             <label>
                                 <input id="labels-input" style="margin-right:4px" type="checkbox"
                                     onchange="labelOxStates(jmolApplet, metal_indices, prediction_labels);"
@@ -103,7 +105,9 @@
                                 <a href="#" data-toggle="tooltip"
                                     title="Display oxidation state assignments"><sup>[?]</sup></a>
                             </label>
-                        </div>#}
+                        </div>
+                        -->
+
                     </div>
                     <div class="row">
                         <div class="checkbox-option" id="sphere">
@@ -114,8 +118,10 @@
                             </label>
                         </div>
                         <div class="checkbox-option" id="spin">
-                            <label><input id="spin-input" style="margin-right:4px" type="checkbox"
-                                    onchange="toggleRotation(jmolApplet)">rotation</label>
+                            <label>
+                                <input id="spin-input" style="margin-right:4px" type="checkbox"
+                                    onchange="toggleRotation(jmolApplet)">rotation
+                            </label>
                         </div>
                     </div>
                 </div>
