@@ -208,7 +208,7 @@ function showPacked(viewer) {
 
 function showLabels(viewer) {
   if ($("#labels-input").is(":checked")) {
-    var jmolscript = "label %a";
+    var jmolscript = "label %e";
   } else {
     var jmolscript = "label off";
   }

@@ -48,24 +48,31 @@
     z-index:6;
 }
 
-.struct2d {
-    border: 2px solid #555;
-    border-radius: 8px;
-    margin: 2em;
-    width: auto;
+
+input.struct2d {
+  display: none;
 }
 
-.struct2d label {
-    width: min-content;
+input.struct2d + label {
+  border: 2px solid #eee;
+  background: #ffffff;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-radius: 5px;
+  width: 100%;
 }
 
-.struct2d p {
-    width: max-content;
+input.struct2d:not(:checked) + label:hover {
+  box-shadow: 0px 1px 3px;
+  border: 2px solid #db473b;
 }
 
-.struct2d input + label {
-    background-color: #eee;
+input.struct2d + label:active,
+
+input.struct2d:checked + label {
+  box-shadow: 0px 0px 3px inset;
+  background: #ffddcc;
+  border: 2px solid #db473b;
 }
-.struct2d input:checked + label {
-    background-color: #ccf;
-}
+
+

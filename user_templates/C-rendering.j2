@@ -78,7 +78,7 @@
                 </div>
             </div>
 
-            <div class="jsmol-options" style="margin-top: 20px">
+            <div class="jsmol-options" style="margin-top: 20px; margin-left: 20px;">
 
                 <div class="option-section">
                     <h4 class="inline-header">Camera:</h4>
@@ -107,6 +107,14 @@
                             </label>
                         </div>
                         -->
+
+                                                                                                            
+                    <div class="checkbox-option" id="labels">                                                                         
+                        <label>                                                                                                         
+                            <input id="labels-input" style='margin-right:4px' type="checkbox" onchange="showLabels(jmolApplet)">atom labels
+                            <a href="#" data-toggle="tooltip" title="Display element symbols"><sup>[?]</sup></a>                          
+                        </label>                                                                                                        
+                    </div>      
 
                     </div>
                     <div class="row">
@@ -160,7 +168,6 @@
 
         </div>
 
-
     <script>
         {#structureviewer = jsmolCrystal({{ xsfdata | tojson | safe }},"structure-content", "jmolApplet", "{1 1 1}");#}
 	structureviewer = jsmolCrystal("{{ xyzdata.replace('\n','\\n') }}",
@@ -205,6 +212,6 @@
 	$(window).on('resize', function () {
 	    var jsmolcontent = document.getElementById('jmolApplet_appletinfotablediv');
 	    jsmolcontent.style.height = "100%"
-	    jsmolcontent.style.width = "100%"
+	    jsmolcontent.style.width = "90%"
 	});
     </script>
