@@ -2,11 +2,6 @@ FROM materialscloud/tools-barebone:1.3.0
 
 LABEL maintainer="Developer Name <developer.email@xxx.yy>"
 
-# Python requirements
-COPY ./requirements.txt /home/app/code/requirements.txt
-COPY ./cell2mol/requirements.txt /home/app/code/compute-requirements.txt
-# Run this as sudo to replace the version of pip
-
 
 RUN pip3 install -U 'pip>=10' setuptools wheel
 # install packages as normal user (app, provided by passenger)
@@ -18,9 +13,7 @@ USER app
 WORKDIR /home/app/code
 # Install pinned versions of packages
 COPY ./requirements.txt /home/app/code/requirements.txt
-COPY ./cell2mol/requirements.txt /home/app/code/compute-requirements.txt
 RUN pip3 install --user -r requirements.txt
-RUN pip3 install --user -r compute-requirements.txt
 
 # Go back to root.
 # Also, it should remain as user root for startup
@@ -30,7 +23,6 @@ USER root
 COPY ./config.yaml /home/app/code/webservice/static/config.yaml
 COPY ./user_templates/ /home/app/code/webservice/templates/user_templates/
 COPY ./user_static/ /home/app/code/webservice/user_static/
-COPY ./cell2mol/ /home/app/code/webservice/cell2mol/
 COPY ./compute/ /home/app/code/webservice/compute/
 #Needed to allow only .cif file formats in the upload_structure_block
 COPY ./web_module.py /home/app/code/webservice/ 
@@ -49,7 +41,4 @@ RUN chown -R app:app /home/app/code/webservice/
 
 USER app
 WORKDIR /home/app/code/webservice/cell2mol/
-RUN python3 ./setup.py build
 USER root
-
-
