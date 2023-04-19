@@ -145,7 +145,6 @@
      </div></div>
 </div>
 
-
 <div class="paneviewer">
     <form class="pane" id="structure-chooser" style="width: min-content;">
         <h2>Mol components</h2>
@@ -153,7 +152,7 @@
         <div class="row" style="margin-right: 2em">
             {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%}
                 <div class=" col-sm text-center res-pad" style="text-align:center;float:none ">
-                    <input class="struct2d" type="checkbox" onchange="cmpVisibilityUpdate();" id="selectcmp-{{cmp_i}}" checked/>
+                    <input class="struct2d" value='{{jmol_list_species[cmp_name]}}' type="checkbox" onchange="cmpVisibilityUpdate(jmolApplet);" id="selectcmp-{{cmp_i}}" checked/>
                     <label for="selectcmp-{{cmp_i}}">
                         <strong class="text-center">{{cmp_name}}</strong> <br/>
                         {{desc|safe}}

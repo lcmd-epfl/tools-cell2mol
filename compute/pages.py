@@ -214,6 +214,7 @@ def process_structure_view():
             with open(token.cell_path, 'rb') as f:
                 cell = pickle.load(f)
 
+
             cmp_lut = cell_cmp_lut(cell)
             ht_descs = cell_get_metal_desc(cell, cmp_lut)
             svgs = cell_to_svgs(cell, cmp_lut)
@@ -226,11 +227,13 @@ def process_structure_view():
                     compound_data.append((name, False, svg))
             
 
+            #ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
             #string used by jsmol to define the molecules/complexes, and the connectivity respectively
             jmol_list_pos = molecules_list(cell)
             jmolCon = bond_order_connectivity(cell)
+            jmol_list_species =species_list(cell) 
 
         else:
             raise ValueError("plz")
@@ -245,12 +248,14 @@ def process_structure_view():
             #xsfdata=xsf,
             ucellparams=ucellparams,
             compound_data=compound_data,
+            #xyzdata=xyzdata,
             xyzdata=xyzdata,
             labels=labels,
             pos=pos,
             cellvec=cellvec,
             cellparam=cellparam,
             jmol_list_pos=jmol_list_pos,
+            jmol_list_species = jmol_list_species,
             jmolCon = jmolCon,
             totmol = len(cell.moleclist),
             enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????

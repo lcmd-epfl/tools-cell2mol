@@ -1,17 +1,4 @@
 
-function cmpVisibilityUpdate() {                                                                                                
-  let visible_cmps = [];                                                                                                        
-  let visible_cmps_str = "";                                                                                                    
-  let x = document.getElementById("structure-chooser");                                                                         
-  let i;                                                                                                                        
-  for (i = 0; i < x.length ;i++) {                                                                                              
-    if (x.elements[i].checked) {                                                                                                
-  visible_cmps.push(i);                                                                                                         
-  visible_cmps_str += (" " + (i+1))                                                                                             
-    }                                                                                                                           
-  }                                                                                                                             
-  showCompounds(jmolApplet, visible_cmps_str);                                                                                  
-}                                                
 
 function toggleStrVisInteraction(enableStrInteraction) {
   if (enableStrInteraction) {
@@ -126,12 +113,31 @@ function toggleRotation(viewer) {
   return jmolscript;
 }
 
+function cmpVisibilityUpdate(viewer) {                                                                                                
+  let visible_cmps = [];                                                                                                        
+  let visible_cmps_str = "";                                                                                                    
+  let x = document.getElementById("structure-chooser");                                                                         
+  let i;                                                                                                                        
+  visible_cmps_str += "select   ";
+  for (i = 0; i < x.length ;i++) {                                                                                              
+    if (x.elements[i].checked) {                                                                                                
+      visible_cmps.push(i);                                                                                                         
+      visible_cmps_str += (" " + x.elements[i].value + " or");                                                                                             
+    }                                                                                                                           
+  }                                                                                                                             
+  let jmolscript = visible_cmps_str.slice(0,-2);
+  Jmol.script(eval(viewer), jmolscript);
+  return jmolscript;
+}                                                
+
 function showUnpacked(viewer) {
   var jmol_list_pos = document.getElementById("atm_pos").value.split('$')[0];
   if ($("#unpacked-input").is(":checked")) {
-    var jmolscript = jmol_list_pos+ "; unitcell false";
+    //var jmolscript = jmol_list_pos+ "; unitcell false";
+    var jmolscript = "model " + jmol_list_pos + "; unitcell false";
   } else {
-    var jmolscript = "select all; unitcell true";
+    //var jmolscript = "select all; unitcell true";
+    var jmolscript = "model 0; unitcell true";
   }
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;
@@ -143,12 +149,13 @@ function c2mButton(viewer) {
     document.getElementById("atm_pos").style.display="block";  
     document.getElementById("label_pos").style.display="block";  
     document.getElementById("downloadBtn").style.display="block";  
-    var jmolscript = jmol_list_pos+ "; unitcell false";
+    var jmolscript = "model " + jmol_list_pos + "; unitcell false";
   } else {
     document.getElementById("atm_pos").style.display="none";
     document.getElementById("label_pos").style.display="none";
     document.getElementById("downloadBtn").style.display="none";
-    var jmolscript = "select all; unitcell true";
+    //var jmolscript = "select all; unitcell true";
+    var jmolscript = "model 0; unitcell true";
   }
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;

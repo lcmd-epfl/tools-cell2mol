@@ -88,39 +88,54 @@ def cell_get_metal_desc(cell, cmplut):
 #             xsf += "{:d} {:f} {:f} {:f}\n".format(Z,x,y,z)
 #     return xsf
 
+#def cell_to_string_xyz(cell, cmplut=None):
+#    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cellparam))
+#    mols = []
+#    # for mol in cell.moleclist:
+#    #     atms = []
+#    #     for Z,(x,y,z) in zip(mol.atnums, mol.coord):
+#    #         atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
+#    #     mols.append(
+#    #         "{:d}\n{:s}\n".format(len(atms), mol.name) +
+#    #         "".join(atms)
+#    #     )
+#    for name, elems in cmplut.items():
+#        atms = []
+#        for elem in elems:
+#            mol = cell.moleclist[elem[0]]
+#            if elem[1] == 't':
+#                pass
+#            elif elem[1] == 'l':
+#                mol = mol.ligandlist[elem[2]]
+#            elif elem[1] == 'm':
+#                mol = mol.metalist[elem[2]]
+#                x,y,z = mol.atom.coord
+#                Z = mol.atom.atnum
+#                atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
+#                continue
+#
+#            for Z,(x,y,z) in zip(mol.atnums, mol.coord):
+#                atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
+#        mols.append(
+#            "{:d}\n{:s}\n".format(len(atms), mol.name) +
+#            "".join(atms)
+#        )
+#    return celldesc, "".join(mols)
+
 def cell_to_string_xyz(cell, cmplut=None):
     celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cellparam))
-    mols = []
-    # for mol in cell.moleclist:
-    #     atms = []
-    #     for Z,(x,y,z) in zip(mol.atnums, mol.coord):
-    #         atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
-    #     mols.append(
-    #         "{:d}\n{:s}\n".format(len(atms), mol.name) +
-    #         "".join(atms)
-    #     )
-    for name, elems in cmplut.items():
-        atms = []
-        for elem in elems:
-            mol = cell.moleclist[elem[0]]
-            if elem[1] == 't':
-                pass
-            elif elem[1] == 'l':
-                mol = mol.ligandlist[elem[2]]
-            elif elem[1] == 'm':
-                mol = mol.metalist[elem[2]]
-                x,y,z = mol.atom.coord
-                Z = mol.atom.atnum
-                atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
-                continue
 
-            for Z,(x,y,z) in zip(mol.atnums, mol.coord):
-                atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(ELEMENTS[Z],x,y,z))
-        mols.append(
-            "{:d}\n{:s}\n".format(len(atms), mol.name) +
-            "".join(atms)
-        )
-    return celldesc, "".join(mols)
+    allmols = []
+    for mols in cell.moleclist:                                                                                                   
+        atms = []
+        for atoms in mols.atoms:                                                                                                  
+            x,y,z = atoms.coord
+            Z = atoms.label
+            atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(Z,x,y,z))
+        allmols.append( "{:d}\n{:s}\n".format(mols.natoms, mols.name) + "".join(atms) )
+
+    return celldesc, "".join(allmols)
+
 
 
 re__svghead = re.compile(r"<\?xml.*?\?>")
@@ -307,5 +322,56 @@ def bond_order_connectivity(cell):
     
     return jmolCon
 
+
+def species_list(cell):
+    ''' Takes the cell2mol cell object and uses its information to make a list of all the species(metals, ligands, and others) 
+    with its respectives atomic coordinates in a compatible format for jsmol
+
+    Args:
+        cell: the output of cell2mol
+
+    Return:
+        A dictionary containing all the speciess separeted and its respectives atoms coordinates in a string for jsmol
+    '''
+
+    jmol_list_species = {}
+    for mol in cell.moleclist:
+        if mol.type == 'Other':
+            if mol.smiles not in jmol_list_species:
+                jmol_list_species[mol.smiles] = " "
+            else:
+                jmol_list_species[mol.smiles] += " or "
+            for nat, atms in enumerate(mol.atoms):
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[1]) + " "
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[2]) + "})"
+                if nat+1 < len(mol.atoms):
+                    jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " or "
+        elif mol.type == 'Complex' :
+            for ligand in mol.ligandlist:
+                if ligand.smiles not in jmol_list_species:
+                    jmol_list_species[ligand.smiles] = " "
+                else:
+                    jmol_list_species[ligand.smiles] += " or "
+                for nat, atms in enumerate(ligand.atoms):
+                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[1]) + " "
+                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[2]) + "})"
+                    if nat+1 < len(ligand.atoms):
+                        jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " or "
+            for metal in mol.metalist:
+                if metal.totcharge > 0:
+                    metalName = f'[{metal.label:s}+{metal.totcharge:d}]'
+                elif mtl.totcharge < 0: 
+                    metalName = f'[{metal.label:s}-{metal.totcharge:d}]'
+                if metalName not in jmol_list_species:
+                    jmol_list_species[metalName] = " "
+                else:
+                    jmol_list_species[metalName] += " or "
+                jmol_list_species[metalName] += " within (0.1, {" + str(metal.coord[0]) + " "
+                jmol_list_species[metalName] += str(metal.coord[1]) + " "
+                jmol_list_species[metalName] += str(metal.coord[2]) + "}) "
+    
+    return jmol_list_species
 
 
