@@ -1,0 +1,103 @@
+
+
+{% if step==1 %}
+    {% set kbdVar="auto" %}
+    {% set ssVar="hidden" %}
+    <ul style="color: black; text-align: justify;">
+{% else %}
+    {% set kbdVar="hidden" %}
+    {% set ssVar="auto" %}
+    <ul style="color: Gray; text-align: justify;">
+{% endif %}
+        <li>
+            Upload the input file, select its corresponding file format, and press 
+            <kbd {{kbdVar}}>Calculate my structure</kbd>
+            <strong {{ssVar}}><samp {{ssVar}}>Calculate my structure</samp></strong>
+            .
+        </li>
+    </ul>
+
+</br>
+
+{% if step==2 %}
+    {% set kbdVar="auto" %}
+    {% set ssVar="hidden" %}
+    <ul style="color: black; text-align: justify;">
+{% else %}
+    {% set kbdVar="hidden" %}
+    {% set ssVar="auto" %}
+    <ul style="color: Gray; text-align: justify;">
+{% endif %}
+        <li>
+            If the input file was imported and interpreted successfully, you will be able to view basic structure information under 
+            the 
+            <kbd {{kbdVar}}>Structure information</kbd>
+            <strong {{ssVar}}><samp {{ssVar}}>Structure information</samp></strong> 
+            tab. Press 
+            <kbd {{kbdVar}}>Run cell2mol</kbd> 
+            <strong {{ssVar}}><samp {{ssVar}}>Run cell2mol</samp></strong> 
+            and wait. 
+            The waiting time depends on the structure size and complexity. 
+        </li>
+    </ul>
+
+</br>
+
+
+{% if step==3 %}
+    {% set kbdVar="auto" %}
+    {% set ssVar="hidden" %}
+    <ul style="color: black; text-align: justify;">
+{% else %}
+    {% set kbdVar="hidden" %}
+    {% set ssVar="auto" %}
+    <ul style="color: Gray; text-align: justify;">
+{% endif %}
+        <li>
+            If the structure was analyzed successfully, you will be able to view its analysis under the 
+            <kbd {{kbdVar}}>Structure analysis</kbd>
+            <strong {{ssVar}}><samp {{ssVar}}>Structure analysis</strong></samp>
+            tab. You can download the cell object in <i>.gmol</i> format by pressing 
+            <kbd {{kbdVar}}>Download cell (.gmol)</kbd>
+            <strong {{ssVar}}><samp {{ssVar}}>Download cell (.gmol)</strong></samp>
+            . Press 
+            <kbd {{kbdVar}}>View structure</kbd> 
+            <strong {{ssVar}}><samp {{ssVar}}>View structure</strong></samp> 
+            to view, interact and download specific molecules or complexes.
+        </li>
+    </ul>
+
+</br>
+
+{% if step==4 %}
+    {% set kbdVar="auto" %}
+    {% set ssVar="hidden" %}
+    <ul style="color: black; text-align: justify;">
+{% else %}
+    {% set kbdVar="hidden" %}
+    {% set ssVar="auto" %}
+    <ul style="color: Gray; text-align: justify;">
+{% endif %}
+    <li>
+        By double-clicking  on the 3d structure you will be able to zoom in, zoom out, and rotate the model. On the left column,  
+        you can select which molecular components (ligands, molecules, or metals) are displayed. Below the 3d structure, you will find a toggle 
+        button to select if you want to view the cell or one mol (molecule or complex). When mol is selected, you can use the 
+        dropdown menu to choose one to visualize. The xyz file of the selected mol containing
+        charge, spin, and cartesian coordinates (ready for quantum chemical calculations), can be downloaded by clicking 
+        <kbd {{kbdVar}}>Download selected mol (.xyz)</kbd>
+        <strong {{ssVar}}><samp {{ssVar}}>Download selected mol (.xyz)</strong></samp>
+        .
+    </li>
+</ul>
+
+<p style="text-align: justify;">
+    {% if step==-1 %}
+        <span style="color:red">
+    {% else %}
+        <span>
+    {% endif %}
+            If one of the steps fail, please verify your input file or try to use a different cif2cell version if using info file as input. 
+        </span>
+</p>
+
+

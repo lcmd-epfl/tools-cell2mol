@@ -61,48 +61,10 @@
 
 
         <div>
-            </br>
             
-            <ul style="color: black; text-align: justify;">
-                <li>
-                    Upload the input file, select its corresponding file format, and press <strong><samp>Calculate my structure</strong></samp>.
-                </li>
-            
-            </br>
-            
-                <li>
-                    If the input file was imported and interpreted successfully, you will be able to view basic structure information under
-                    the <strong><samp>Structure information</strong></samp> tab. Press <strong><samp>Run cell2mol</strong></samp> and wait.
-                    The waiting time depends on the structure size and complexity.
-                </li>
-            
-                </br>
-            
-                <li>
-                    If the structure was analyzed successfully, you will be able to view its analysis under the <strong><samp>Structure analysis</strong></samp>
-                    tab. You can download the cell object in <i>.gmol</i> format by pressing <strong><samp>Download cell (.gmol)</strong></samp>.
-                    Press <strong><samp>View structure</strong></samp> to view, interact and download specific molecules or complexes.
-                </li>
-            
-                </br>
-            
-                <li>
-                    By double-clicking  on the 3d structure you will be able to zoom in, zoom out, and rotate the model. On the left column,
-                    you can select which molecular components (ligands, molecules, or metals) are displayed. Below the 3d structure, you will find a toggle
-                    button to select if you want to view the cell or one mol (molecule or complex). When mol is selected, you can use the
-                    dropdown menu to choose one to visualize. The xyz file of the selected mol containing
-                    charge, spin, and cartesian coordinates (ready for quantum chemical calculations), can be downloaded by clicking <strong><samp>Download selected
-                    mol (.xyz)</strong></samp>.
-                </li>
-            </ul>
-            
-            <p style="text-align: justify;">
-            <span style="color:red">
-            <strong>
-                If one of the steps fail, please verify your input file or try to use a different cif2cell version if using info file as input.
-            </strong>
-            </span>
-            </p>
+            {% with step=-1 %}                                                                                                                
+                {% include 'user_templates/INST.j2' %}                                                                                        
+            {% endwith %}              
         
         </div>
 
