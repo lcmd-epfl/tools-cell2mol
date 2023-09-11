@@ -239,7 +239,7 @@ def process_structure_view():
             jmol_list_species =species_list(cell) 
 
         else:
-            raise ValueError("plz")
+            raise ValueError("Please wait until cell2info finishes.")
             #output.extend([f"Please, wait until cell2info has finished for this input. Could not find {token.info_path}."])
 
         #token.remove()
@@ -248,10 +248,8 @@ def process_structure_view():
             output_lines=output,
             infodata=infodata.strip(),
             celldata=celldata,
-            #xsfdata=xsf,
             ucellparams=ucellparams,
             compound_data=compound_data,
-            #xyzdata=xyzdata,
             xyzdata=xyzdata,
             labels=labels,
             pos=pos,
@@ -261,7 +259,7 @@ def process_structure_view():
             jmol_list_species = jmol_list_species,
             jmolCon = jmolCon,
             totmol = len(cell.moleclist),
-            enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
+            enumerate=enumerate, len=len, zip=zip, # needed
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,
         ))

@@ -1,11 +1,10 @@
 FROM materialscloud/tools-barebone:1.3.0
 
-LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellarh@epfl.ch>, Liam O. Marsh <liam.marsh@epfl.ch>, and Ruben Laplaza <ruben.laplazasolanas@epfl.ch>"
+LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, Liam O. Marsh <liam.marsh@epfl.ch>, and Ruben Laplaza <ruben.laplazasolanas@epfl.ch>"
 
 # Python requirements
 COPY ./requirements.txt /home/app/code/requirements.txt
 # Run this as sudo to replace the version of pip
-
 
 RUN pip3 install -U 'pip>=10' setuptools wheel
 # install packages as normal user (app, provided by passenger)
