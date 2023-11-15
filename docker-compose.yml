@@ -3,6 +3,6 @@ services:
   cell2mol:
     build: .
     ports:
-     - "8090:80"
+      - "5000"
     container_name: cell2mol-instance
     image: cell2mol
