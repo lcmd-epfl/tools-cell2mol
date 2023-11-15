@@ -57,6 +57,17 @@
     }
 </script>
 
+    <script>
+        $( function() {
+            $( "#accordion" ).accordion({
+                collapsible: true,
+                heightStyle: "content", // Avoid that all have the same height
+                active: false  // Start all closed
+            });
+
+        });
+    </script>
+
 
     <style>
     .submit-progress-bg {
@@ -116,6 +127,7 @@
 </head>
 
 <body>
+
 <div id='container'>
 
     <div style="padding: 15px;">                                                                                                  
@@ -127,23 +139,26 @@
     <div id='maintitle'>
         <h1 style="text-align: center;">cell2mol basic structure information</h1>
     </div>
+
+
     <div id="kal-warning"><h2 class="user-warn">WARNING: keepalive not active: this session will be lost 5 minutes after the last action. To avoid this, please allow the execution of javascript (more specifically this tool's "keepalive.js")</h2></div>
     <h2>Structure {{struct_name}} imported successfully</h2>
 
+    <div id="accordion">
 
-    <div class="collapsed-text-outer">
-    <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
-    <label for="cifinfo-togg" class="lbl-toggle" id="c2m-lbl-info" aria-selected="false" aria-expanded="false">Structure information</label>
-    <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">
-    
-    <!--<div class="ui-accordion ui-widget ui-helper-reset">
-    <h2 class="ui-accordion-header ui-corner-top ui-state-default ui-accordion-icons ui-accordion-header-collapsed ui-corner-all" role="tab" id="c2m-ctrl-info" aria-controls="c2m-output-info" aria-selected="false" aria-expanded="false" tabindex="-1">
-    <span class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"/>
-      Structure Information
-    </h2>
-    <div style="display: none;" class="ui-accordion-content ui-corner-bottom ui-helper-reset ui-widget-content" id="c2m-output-info" aria-labelledby="c2m-ctrl-info" role="tabpanel" aria-hidden="true">-->
-    <br/>
+        <h2>Instructions</h2>
 
+        <div>
+
+            {% with step=2 %}                                                                                                                 
+                {% include 'user_templates/INST.j2' %}                                                                                        
+            {% endwith %}       
+                                                                                                                                          
+        </div>
+
+
+        <h2>Structure information</h2>
+        <div>
     {% for paragraph_id,paragraph in enumerate(infodata.split('\n\n')) -%}
     {% set paragraph = paragraph.split('\n')-%}
 
@@ -177,7 +192,9 @@
     </div>
     </div>
     
-    <div class="text-center">
+  
+
+    <div class="text-center" style="margin-top:1em">
     <form action="../analysis">
         <button class="btn btn-success" type="submit" onclick="DisplayProgressMessage()"> <font size="+0.5">Run cell2mol</font></button>
     </form>

@@ -20,8 +20,8 @@ from conf import (
 # Key: internal value; value: string to show
 upload_structure_block_known_formats = OrderedDict(
     {
-        "cif-ase": "CIF File (.cif) [parser: ase]",
-        "cif-pymatgen": "CIF File (.cif) [parser: pymatgen]",
+        "cif": "CIF File (.cif)",
+        "info": "cif2cell output (.info)",
     }
 )
 

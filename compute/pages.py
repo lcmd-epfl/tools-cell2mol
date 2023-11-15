@@ -6,6 +6,8 @@ from .interface import *
 from .tokens import monitoring, Token
 from cell2mol.readwrite import savemolecules, writexyz
 
+import os
+
 import webbrowser
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
@@ -14,15 +16,7 @@ blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
 def process_structure_init():
     """Example view to process a crystal structure."""
 
-    # check if the post request has the file part,
-    # otherwise redirect to first page
-
     output = Capturing()
-    #try:
-    #if "structurefile" not in flask.request.files:
-    #    # This will redirect the user to the selection page,
-    #    # that is called `input_data` in tools-barebone
-    #    return flask.redirect(flask.url_for("input_data"))
     if flask.request.files["structurefile"].filename == '':
         flask.flash("Please upload a file")
         return flask.redirect(flask.url_for("input_data"))
@@ -33,71 +27,80 @@ def process_structure_init():
     # of a XYZ file)
     fileformat = flask.request.form.get("fileformat", "unknown")
     form_data = dict(flask.request.form)
-    #if fileformat not in ('cif-pymatgen','cif-ase'):
-    #    flask.flash("er… well we will interpret that a a cif file anyway >:)")
     structurefile = flask.request.files["structurefile"]
-    file_ext = structurefile.filename.split('.')[-1]
+    file_ext = os.path.splitext(structurefile.filename)[1]
 
-    #Only accept files with cif extension
-    if file_ext != "cif":
-        flask.flash("Please upload a file in format '{}' with the proper extension (.cif) ".format(fileformat))
+    #Only accept files whose extension is equal to the option extension selected
+    if fileformat in file_ext:
+
+        token = Token(structurefile)        
+        output += [
+            "structure_file: "+ repr(dir(structurefile)),
+            "form_data: "+ repr(form_data),
+            "file_format: "+ repr(fileformat),
+            "code: " + token.refcode,
+            'req: '+ repr((flask.request, dir(flask.request))),
+        ]
+
+
+        if fileformat == "cif":
+            #############################
+            # STEP 2: Run cell2info
+            #############################
+            with output as _out:
+                cif_2_info(token.input_path, token.info_path, token.error_path)
+            error = False
+            with open(token.error_path, 'r') as err:
+                for line in err.readlines():
+                    if "Error" in line:
+                        output.append(line)
+                        error = True
+            if error :
+                output.append(f"Parsing of .cif file {token.input_path} failed due to the error above.")
+            else :
+                output.append(f"Infofile {token.info_path} generated from {token.input_path} succesfully.")
+
+        elif fileformat == "info":
+            #############################
+            # STEP 2: Rename input file as info file
+            #############################
+            os.rename(token.input_path, token.info_path)
+
+        elif fileformat =="unknown":
+            flask.flash("Please select a file fomrat and upload a file ")
+            return flask.redirect(flask.url_for("input_data"))
+
+        else :
+            flask.flash("Please upload a file in the selected format with the proper extension (.'{}') ".format(fileformat))
+            return flask.redirect(flask.url_for("input_data"))
+
+
+        with open(token.info_path, 'r') as f:
+            infodata = f.read()
+            output.append(infodata)
+        
+        tkn_path = token.get_path()
+
+        resp = flask.make_response(flask.render_template(
+            "user_templates/c2m-infopage.html",
+            output_lines=output,
+            infodata=infodata,
+            enumerate=enumerate, len=len,  # why is this needed?
+            #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
+            struct_name=token.refcode,
+        ))
+        resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
+        return resp
+
+    elif fileformat =="unknown":
+        flask.flash("Please select a file format.")
         return flask.redirect(flask.url_for("input_data"))
 
+    else:
 
-    token = Token(structurefile)        
-    output += [
-        "structure_file: "+ repr(dir(structurefile)),
-        "form_data: "+ repr(form_data),
-        "file_format: "+ repr(fileformat),
-        "code: " + token.refcode,
-        'req: '+ repr((flask.request, dir(flask.request))),
-    ]
+        flask.flash("Please upload a file in format '{}' with the proper extension (.'{}') ".format(fileformat, fileformat))
+        return flask.redirect(flask.url_for("input_data"))
 
-    
-    #############################
-    # STEP 2: Run cell2info
-    #############################
-    #def run_cell2info(run=False, out=None):
-    with output as _out:
-        cif_2_info(token.input_path, token.info_path, token.error_path)
-    error = False
-    with open(token.error_path, 'r') as err:
-        for line in err.readlines():
-            if "Error" in line:
-                output.append(line)
-                error = True
-    if error :
-        output.append(f"Parsing of .cif file {token.input_path} failed due to the error above.")
-    else :
-        output.append(f"Infofile {token.info_path} generated from {token.input_path} succesfully.")
-
-    with open(token.info_path, 'r') as f:
-        infodata = f.read()
-        output.append(infodata)
-    
-    tkn_path = token.get_path()
-
-    resp = flask.make_response(flask.render_template(
-        "user_templates/c2m-infopage.html",
-        output_lines=output,
-        infodata=infodata,
-        enumerate=enumerate, len=len,  # why is this needed?
-        #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
-        struct_name=token.refcode,
-    ))
-    resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
-    return resp
-    #return flask.redirect(flask.url_for('process_structure/info', token=tkn_path))
-    #except Exception as err:
-    #    output += traceback.format_tb(err.__traceback__)
-    #    output.append(repr(err))
-    #    return flask.render_template(
-    #        "user_templates/c2m-debug.html", msg="Failure…", output_lines=output,
-    #    )        
-    #except:
-    #    return flask.render_template(
-    #        "user_templates/c2m-debug.html", msg="Unknown Failure…", output_lines=output,
-    #    )        
 
 
 @blueprint.route("/analysis", methods=["GET"])
@@ -214,6 +217,7 @@ def process_structure_view():
             with open(token.cell_path, 'rb') as f:
                 cell = pickle.load(f)
 
+
             cmp_lut = cell_cmp_lut(cell)
             ht_descs = cell_get_metal_desc(cell, cmp_lut)
             svgs = cell_to_svgs(cell, cmp_lut)
@@ -226,60 +230,16 @@ def process_structure_view():
                     compound_data.append((name, False, svg))
             
 
+            #ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
-            totmol = len(cell.moleclist)
-            jmol_list_pos = {}
-            for mol in cell.moleclist:
-                jmol_list_pos[mol.name] = " select " 
-                cont=0
-                for a in mol.atoms:
-                    jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
-                    cont=cont+1
-                    if (cont < mol.natoms):
-                        jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " or "
-
-            atomList = cell.moleclist[0].conmat
-            a = cell.moleclist[0].atoms
-            jmolCon = " " 
-            for atomi, atomCon in enumerate(atomList):
-                #jmolCon = jmolCon + " select " #+ str(atomi) + " " +str(atomCon)
-                for atomj, conn in enumerate(atomCon):
-                    if (conn == 1.) :
-                        jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                        jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
-                        jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
-                        jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
-                        jmolCon = jmolCon + "}) or "
-                        jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                        #jmolCon = jmolCon + str(int(atomj))
-                        jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
-                        jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
-                        jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
-                        jmolCon = jmolCon + "}) ; connect ;"
-            #        jmolCon = jmolCon + " within " +"(0.1, {" +  str(atomList[atomi].coord[0]) + " " + str(atomList[atomi].coord[1]) + " " + str(atomList[atomi].coord[2]) + "})"
-            #        jmolCon = jmolCon + " or "
-            #        jmolCon = jmolCon + " within " +"(0.1, {" + str(atomList[atomj].coord[0]) + " " + str(atomList[atomj].coord[1]) + " " + str(atomList[atomj].coord[2]) + "})"
-            #        jmolCon = jmolCon + "; connect "
-
-            #totmol = len(cell.moleclist)
-            #jmol_list_pos = " select " 
-            #cont=0
-            #for mol in cell.moleclist:
-            #    if "Complex" in mol.name:
-            #        for a in mol.atoms:
-            #            jmol_list_pos = jmol_list_pos + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
-            #            cont=cont+1
-            #            if (cont < mol.natoms):
-            #                jmol_list_pos = jmol_list_pos + " or "
-            #        break
-
-
-
-            
+            #string used by jsmol to define the molecules/complexes, and the connectivity respectively
+            jmol_list_pos = molecules_list(cell)
+            jmolCon = bond_order_connectivity(cell)
+            jmol_list_species =species_list(cell) 
 
         else:
-            raise ValueError("plz")
+            raise ValueError("Please wait until cell2info finishes.")
             #output.extend([f"Please, wait until cell2info has finished for this input. Could not find {token.info_path}."])
 
         #token.remove()
@@ -288,7 +248,6 @@ def process_structure_view():
             output_lines=output,
             infodata=infodata.strip(),
             celldata=celldata,
-            #xsfdata=xsf,
             ucellparams=ucellparams,
             compound_data=compound_data,
             xyzdata=xyzdata,
@@ -297,9 +256,10 @@ def process_structure_view():
             cellvec=cellvec,
             cellparam=cellparam,
             jmol_list_pos=jmol_list_pos,
+            jmol_list_species = jmol_list_species,
             jmolCon = jmolCon,
-            totmol = totmol,
-            enumerate=enumerate, len=len, zip=zip, # why TF is this needed?????
+            totmol = len(cell.moleclist),
+            enumerate=enumerate, len=len, zip=zip, # needed
             #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
             struct_name=token.refcode,
         ))
@@ -339,7 +299,6 @@ def process_structure_download_gmol():
 
     output = Capturing()
     try:
-        #tkn_path = flask.request.args['token'].replace('_','/')
         tkn_path = flask.request.cookies.get('token_path', None)
         if tkn_path is None:
             raise ValueError("no token?")
@@ -347,23 +306,8 @@ def process_structure_download_gmol():
         if token is None:
             raise ValueError("session expired")
         output.append(token.cell_path)
-        #output.append(str(os.listdir(tkn_path)))
-        #output.append(str((TOKENS, TOKEN_LOCK, MONITOR_THR, thr_iters)))
-        #output.append(repr(time.monotonic() - token.last_alive ))
-        #output.append(os.path.relpath(token.cell_path, '/tmp/cell2mol'))
-        #output.append(repr(os.stat(token.cell_path)))
         token.keepalive()
                 
-#        res= flask.send_from_directory(
-#            '/tmp/cell2mol',
-#            os.path.relpath(token.cell_path, '/tmp/cell2mol'),
-#        res = flask.send_file(
-#            token.cell_path,
-            #etag=True,
-            #as_attachment=True,
-            #            conditional=True,
-#        )
-
         headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.gmol"}
         with open(token.cell_path, 'rb') as f:
             body = f.read()

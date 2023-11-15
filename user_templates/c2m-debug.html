@@ -21,6 +21,20 @@
 
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+
+
+    <script>
+        $( function() {
+            $( "#accordion" ).accordion({
+                collapsible: true,
+                heightStyle: "content", // Avoid that all have the same height
+                active: false  // Start all closed
+            });
+    
+        });
+    </script>
+    
+
 </head>
 
 <body>
@@ -42,12 +56,20 @@
     <h2>An error has ocured…</h2>
 
                                                                                                                                    
-    <div class="collapsed-text-outer">                                                                                            
-        <input id="errorTraceback-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-errorTraceback" aria-controls="c2m-output-info">
-        <label for="errorTraceback-togg" class="lbl-toggle" id="c2m-lbl-errorTraceback" aria-selected="false" aria-expanded="false">
-            Error traceback                                                                                                       
-        </label>                                                                                                                  
-        <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">                                   
+    <div id="accordion">                                                                                            
+        <h2>Instructions</h2>
+
+
+        <div>
+            
+            {% with step=-1 %}                                                                                                                
+                {% include 'user_templates/INST.j2' %}                                                                                        
+            {% endwith %}              
+        
+        </div>
+
+        <h2>Error traceback</h2>                                                                                                       
+        <div id="c2m-output-info" aria-labelledby="c2m-ctrl-info">                                   
             {% for line in output_lines -%}
             <p>
                 <code>

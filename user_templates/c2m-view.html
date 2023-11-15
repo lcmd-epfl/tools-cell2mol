@@ -44,68 +44,18 @@
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
 
-<!-- Moved to custom-elements.css
-      <style>                                                                                                                       
-      .c2minput {                                                                                                                   
-        box-sizing: border-box;                                                                                                     
-        -webkit-appearance: none;                                                                                                   
-        position: relative;                                                                                                         
-        display: block;                                                                                                             
-        width: 180px;                                                                                                               
-        height: 55px;                                                                                                               
-        margin: 50px auto;                                                                                                          
-        border: 5px solid #f7f7f5;                                                                                                  
-        border-radius: 17px;                                                                                                        
-        cursor: pointer;                                                                                                            
-        background: white; 
-      
-      }                                                                                                                             
-                                                                                                                                    
-      .c2minput:after,
-      .c2minput:before {
-      box-sizing: border-box;
-        position: absolute;                                                                                                         
-        left: 5px;                                                                                                                  
-        top: 5px;                                                                                                                   
-        width: 75px;                                                                                                                
-        height: 35px;                                                                                                               
-        border: 5px solid;                                                                                                          
-        border-radius: 12px;                                                                                                        
-        text-align: center;                                                                                                         
-        line-height: 22px;                                                                                                          
-        font-size: 32px;                                                                                                            
-        transition: all 0.3s ease-out;   
-        font-size: 25px;
-      }                                                                                                                             
-                                                                                                                                    
-      .c2minput:before {                                                                                                            
-        content: "cell";                                                                                                            
-        color: #ffddcc;                                                                                                             
-        border-color: #db473b;                                                                                                      
-        background: #db473b;                                                                                                        
-      }                                                                                                                             
-                                                                                                                                    
-      .c2minput:after {                                                                                                             
-        left: auto;                                                                                                                 
-        right: 5px;                                                                                                                 
-        content: "mol";                                                                                                             
-        border-color: #db473b;                                                                                                      
-        color: #ffddcc;                                                                                                             
-        background: #db473b;                                                                                                        
-        opacity: 0.4;                                                                                                               
-      }                                                                                                                             
-                                                                                                                                    
-      .c2minput:checked:after {                                                                                                     
-        opacity: 1;                                                                                                                 
-      }                                                                                                                             
-                                                                                                                                    
-      .c2minput:checked:before {                                                                                                    
-       opacity: 0.3;                                                                                                               
-      }                                                                                                                             
-      </style>                
--->
-
-
+                                                                                                                                      
+    <script>                                                                                                                      
+        $( function() {                                                                                                           
+            $( "#accordion" ).accordion({                                                                                         
+                collapsible: true,                                                                                                
+                heightStyle: "content", // Avoid that all have the same height                                                    
+                active: false  // Start all closed                                                                                
+            });                                                                                                                   
+                                                                                                                                  
+        });                                                                                                                       
+    </script>                                                                                                                     
+                      
 
 </head>
 
@@ -127,28 +77,22 @@
     <h2>Structure {{struct_name}} on display</h2>
 
 
-    <div class="collapsed-text-outer">
-    <input id="cifinfo-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-info" aria-controls="c2m-output-info">
-    <label for="cifinfo-togg" class="lbl-toggle" id="c2m-lbl-info" aria-selected="false" aria-expanded="false">Structure information</label>
-    <div class="collapsed-text-inner" id="c2m-output-info" aria-labelledby="c2m-ctrl-info">
+    <div id="accordion">
+    
+    <h2>Instructions</h2>
+    
+    <div>
+   
+        {% with step=4 %}                                                                                                                 
+            {% include 'user_templates/INST.j2' %}                                                                                        
+        {% endwith %}   
+    
+    </div>
+    
+    
+    <h2>Structure information</h2>
 
-    <!---
-    {% for paragraph in infodata.split('\n\n') -%}
-    {% set paragraph = paragraph.split('\n')-%}
-    <p style="font-family=mono;">
-      {% for line_id,line in enumerate(paragraph) -%}
-          {{- line -}}
-	  {%if line_id+1 < len(paragraph)-%}
-	    <br/>
-	  {%-endif%}
-      {%-endfor%}
-    </p>
-    {%- endfor %}
-    </div></div>
-    --->
-
-
-      <br/>                                                                                                                        
+    <div>
                                                                                                                                    
       {% for paragraph_id,paragraph in enumerate(infodata.split('\n\n')) -%}                                                       
       {% set paragraph = paragraph.split('\n')-%}                                                                                  
@@ -181,104 +125,66 @@
       </p>                                                                                                                         
                                                                                                                                    
       </div>                                                                                                                       
-      </div>                                                     
+
+    
+      <h2>Structure analysis</h2>
+
+      <div>                                                                                                                        
+    {% for paragraph in celldata.split('\n\n') -%}                                                                                
+         {% set paragraph = paragraph.split('\n')-%}                                                                              
+         <p style="font-family=mono;" class="tab">                                                                                
+                                                                                                                                  
+         {% if ">>" in paragraph|join %}                                                                                          
+            {% for line_id,line in enumerate(paragraph) -%}                                                                       
+            {% if ">>" in line %}                                                                                                 
+                &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- line -}} </span>                                                
+            {% else %}                                                                                                            
+                &numsp;&numsp;&numsp;&numsp;{{- line -}}                                                                              
+            {%endif%}                                                                                                             
+            <br/>                                                                                                                 
+            {%-endfor%}                                                                                                           
+         {% else %}                                                                                                               
+            {% for line_id,line in enumerate(paragraph) -%}                                                                       
+            {% if "Complex" in line %}                                                                                            
+                <span class="bolded"> {{- line -}} </span>                                                                        
+            {% elif "[Other]" in line %}                                                                                          
+                <span class="bolded"> {{- line -}} </span>                                                                        
+            {% else %}                                                                                                            
+                {{- line -}}                                                                                                      
+            {% endif %}                                                                                                           
+            <br/>                                                                                                                 
+            {%-endfor%}                                                                                                           
+         {%endif%}                                                                                                                
+                                                                                                                                  
+         </p>                                                                                                                          
+    {%- endfor %}                 
 
 
-    <div class="collapsed-text-outer">
-    <input id="ciflysi-togg" class="toggle hidden" type="checkbox" id="c2m-ctrl-lysi" aria-controls="c2m-output-lysi">
-    <label for="ciflysi-togg" class="lbl-toggle" id="c2m-lbl-lysi" aria-selected="false" aria-expanded="false">Structure analysis</label>
-    <div class="collapsed-text-inner" id="c2m-output-lysi" aria-labelledby="c2m-ctrl-lysi">
-
-    <!---
-    {% for paragraph in celldata.split('\n\n') -%}
-    {% set paragraph = paragraph.split('\n')-%}  
-    <p style="font-family=mono;">
-      {% for line_id,line in enumerate(paragraph) -%}
-          {{- line -}}
-	  {%if line_id+1 < len(paragraph)-%}
-	    <br/>
-	  {%-endif%}
-      {%-endfor%}
-    </p>
-    {%- endfor %}
-    </div></div>
-    --->
-
-
-     {% for paragraph in celldata.split('\n\n') -%}
-     {% set paragraph = paragraph.split('\n')-%}
-     <p style="font-family=mono;" class="tab">
-       {% for line_id,line in enumerate(paragraph) -%}
-           {% if "Complex" in line %}
-             &nbsp;&nbsp;<span class="bolded"> {{- line -}} </span>
-           {% elif ">>" in line %}
-             &nbsp;&nbsp;<span class="bolded"> {{- line -}} </span>
-           {% else %}
-             {{- line -}}
-           {% endif %}
-       {%if line_id+1 < len(paragraph)-%}
-         <br/>
-       {%-endif%}
-       {%-endfor%}
-     </p>
-     {%- endfor %}
-     </div></div>
+     </div>
+    </div>
 </div>
 
 <div class="paneviewer">
-  <form class="pane" id="structure-chooser" style="width:fit-content;">
-    {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%}
-       <div class="struct2d">
-	 <input style="margin-right:4px" type="checkbox" onchange="cmpVisibilityUpdate();" id="selectcmp-{{cmp_i}}" checked/>
-	 <label for="selectcmp-{{cmp_i}}">
-	   <strong class="text-center">{{cmp_name}}</strong> <br/>
-	   {{desc|safe}}
-	 </label>
-       </div>
-    {%- endfor %}
-  </form>
-  <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;">
-    {% include 'user_templates/C-rendering.j2' %}
-  </div>
+    <form class="pane" id="structure-chooser" style="width: min-content;">
+        <h2>Mol components</h2>
+        <p><em>Select mol components to visualize/hide.</em></p>
+        <div class="row" style="margin-right: 2em">
+            {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%}
+                <div class=" col-sm text-center res-pad" style="text-align:center;float:none ">
+                    <input class="struct2d" value='{{jmol_list_species[cmp_name]}}' type="checkbox" onchange="cmpVisibilityUpdate(jmolApplet);" id="selectcmp-{{cmp_i}}" checked/>
+                    <label for="selectcmp-{{cmp_i}}">
+                        <strong class="text-center">{{cmp_name}}</strong> <br/>
+                        {{desc|safe}}
+                    </label>
+                </div>
+            {%- endfor %}
+        </div>
+    </form>
+    
+    <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;margin-left:2px;">
+        {% include 'user_templates/C-rendering.j2' %}
+    </div>
 </div>
-
-<!-- Moved to oxi-visualization.js
-<script>
-  function cmpVisibilityUpdate() {
-    let visible_cmps = [];
-    let visible_cmps_str = "";
-    let x = document.getElementById("structure-chooser");
-    let i;
-    for (i = 0; i < x.length ;i++) {
-      if (x.elements[i].checked) {
-	visible_cmps.push(i);
-	visible_cmps_str += (" " + (i+1))
-      }
-    }
-    showCompounds(jmolApplet, visible_cmps_str);
-  }
-</script>
--->
-<!-- Predefined button styles
-<div>
-  <button class="btn btn-success" type="submit">success</button>
-  <button class="btn btn-default" type="submit">default</button>
-  <button class="btn btn-padding" type="submit">padding</button>
-  <button class="btn btn-group" type="submit">group</button>
-  <button class="btn btn-block" type="submit">block</button>
-  <button class="btn btn-link" type="submit">link</button>
-  <button class="btn btn-xs" type="submit">xs</button>
-  <button class="btn btn-sm" type="submit">sm</button>
-  <button class="btn btn-group-sm" type="submit">group sm</button>
-  <button class="btn btn-toolbar" type="submit">toolbar</button>
-  <button class="btn btn-primary" type="submit">primary</button>
-  <button class="btn btn-info" type="submit">info</button>
-  <button class="btn btn-warning" type="submit">warning</button>
-  <button class="btn btn-danger" type="submit">danger</button>
-  <button class="btn btn-lg" type="submit">lg</button>
-</div>
--->
-
 
 <div class="text-center">
 <form action="./download-gmol" target="_blank">
