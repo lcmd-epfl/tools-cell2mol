@@ -1,0 +1,152 @@
+        {# {% include 'user_templates/webglINFO.html' %} #}
+
+        <div id="structuretitle">
+            <h2> Structure</h2>
+            <p><em>Drag to rotate, scroll to zoom, double-click to enable/disable interaction</em></p>
+        </div>
+        <div id="structure">
+            <div class="shadow-box">
+                <div class="plot-diagram">
+                    <div class="structure-container" id="structure-content">
+                        <div id="crystal" ondblclick="toggleStrVisInteraction(false);"></div>
+                        <div id="str-overlay" class="overlay-div" ondblclick="toggleStrVisInteraction(true);">
+                            <span id="str-overlay-span"
+                                style="display: table-cell; vertical-align: middle; text-align: center;">
+                                Double click to toggle interaction
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="jsmol-options" style="margin-top: 20px; margin-left: 20px;">
+
+                <div class="option-section">
+                    <h4 class="inline-header">Camera:</h4>
+                    <button id="centerX" onclick="centerXaxis(jmolApplet)">x</button>
+                    <button id="centerY" onclick="centerYaxis(jmolApplet)">y</button>
+                    <button id="centerZ" onclick="centerZaxis(jmolApplet)">z</button>
+                </div>
+                <div class="option-section">
+                    <div class="row">
+                        <div class="checkbox-option" id="bonds">
+                            <label>
+                                <input id="bonds-input" style="margin-right:4px" type="checkbox"
+                                    onchange="showBonds(jmolApplet);" checked>bonds
+                                <a href="#" data-toggle="tooltip" title="Show bonds"><sup>[?]</sup></a>
+                            </label>
+                        </div>
+
+                        <!--
+                        <div class="checkbox-option" id="oxlabels">
+                            <label>
+                                <input id="labels-input" style="margin-right:4px" type="checkbox"
+                                    onchange="labelOxStates(jmolApplet, metal_indices, prediction_labels);"
+                                    checked>oxidation state labels
+                                <a href="#" data-toggle="tooltip"
+                                    title="Display oxidation state assignments"><sup>[?]</sup></a>
+                            </label>
+                        </div>
+                        -->
+
+                                                                                                            
+                    </div>
+                    <div class="row">
+                        <div class="checkbox-option" id="sphere">
+                            <label>
+                                <input id="spheres-input" style="margin-right:4px" type="checkbox"
+                                    onchange="showSpheres(jmolApplet)">space-filling
+                                <a href="#" data-toggle="tooltip" title="Show atoms as spheres"><sup>[?]</sup></a>
+                            </label>
+                        </div>
+                        <div class="checkbox-option" id="spin">
+                            <label>
+                                <input id="spin-input" style="margin-right:4px" type="checkbox"
+                                    onchange="toggleRotation(jmolApplet)">rotation
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--
+            <select name="prueba" id="prueba" hidden><option value=' molOption ' selected hidden></option> </select> 
+            -->
+
+            <div class="checkbox-option" id="unpacked">
+                <input class="c2minput" id="unpacked-input" style="margin:auto;" type="checkbox" onchange="c2mButton(jmolApplet);">
+                {# <input id="unpacked-input" style="margin-right:4px" type="checkbox" onchange="showUnpacked(jmolApplet);">unpacked #}
+            </div>
+
+            <div class="container" style="margin: 15px;">
+                <div style="margin-left: 30px; float:left; width: 33%;">
+                    <label id="label_pos" style="text-align:right" hidden> Choose one structure to visualize:    </label>
+                </div>
+                <form action="./download-xyzselected-YOXKUS" target="_blank" method="POST">                                                                                                   
+                    <div style="margin-left: 20px; float: left; width: 15%;">
+                        <select name="atmPos" id="atm_pos" if="atmPosValue" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
+                            {% for num, molOption in enumerate(jmol_list_pos.keys()) %}
+                                {# in option value, before $ is the model to visualize(mol), and after the name for download#}
+                                <option value='{{ (num+1)|string + "$"+ molOption}}'> 
+                                    {% if myValue==molOption %} 
+                                        {{ molOption }}
+                                    {% endif %}>{{ molOption }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="margin-left: 40px; float: right; width: 33%;">
+                            <button style="padding: 5px" id="downloadBtn" type="submit" hidden><i class="fa fa-download"></i> Download selected mol (.xyz)</button>         
+                    </div>
+                </form>                                                                                                                           
+            </div>
+
+        </div>
+
+    <script>
+        {#structureviewer = jsmolCrystal({{ xsfdata | tojson | safe }},"structure-content", "jmolApplet", "{1 1 1}");#}
+	structureviewer = jsmolCrystal("{{ xyzdata.replace('\n','\\n') }}",
+"{{ucellparams}}", "structure-content", "jmolApplet", undefined,"{{jmolCon}}");
+        {#var metal_indices = {{ metal_indices| tojson | safe }};
+        var prediction_labels = {{ prediction_labels| tojson | safe }};#}
+
+        $(window).on('load', function () {
+            var divjsmol = document.getElementById('crystal');
+            var jsmolcontent = document.getElementById('jmolApplet_appletinfotablediv');
+            divjsmol.appendChild(jsmolcontent);
+            $('[data-toggle="tooltip"]').tooltip({
+                placement: "top"
+            });
+
+            {#labelOxStates(jmolApplet, metal_indices, prediction_labels);#}
+
+            enableDoubleTap(structureviewer['_mouseInterface'], function () {
+                toggleStrVisInteraction(false);
+            }, ignoreOnMove = true);
+
+            var stroverlay = document.getElementById('str-overlay');
+            stroverlay.onmouseenter = function () {
+                this.style.backgroundColor = "rgba(230,230,230,0.5)";
+                document.getElementById('str-overlay-span').innerText =
+                    "Double click to toggle interaction";
+                console.log(this, 'enter');
+            }
+            stroverlay.onmouseleave = function () {
+                // 0.0 for alpha doesn't work properly, apparently
+                this.style.backgroundColor = "rgba(255,255,255,0.01)";
+                document.getElementById('str-overlay-span').innerText = "";
+                console.log(this, 'leave');
+            }
+
+            // Enable double-tap events for phones
+            enableDoubleTap(stroverlay, function () {
+                toggleStrVisInteraction(true);
+            });
+            setTimeout(function(){viewerPostLoad(structureviewer)}, 500);
+        });
+	$(window).on('resize', function () {
+	    var jsmolcontent = document.getElementById('jmolApplet_appletinfotablediv');
+	    jsmolcontent.style.height = "100%"
+	    jsmolcontent.style.width = "90%"
+	});
+    </script>

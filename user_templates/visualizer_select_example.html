@@ -1,0 +1,54 @@
+
+<form action="compute/process_example_structure/" method="post">
+   <div style="margin-left: 20px; margin-right: 20px;">
+         <h2 style="margin-left: -15px;"> Otherwise, pick an example</h2>
+     <div class='alert alert-info'>
+       <div class="row">
+     <div class="col-xs-12 col-sm-6">
+       <label for="modelValue">Select an example:</label>
+     </div>
+     <div class="col-xs-12 col-sm-6">
+       <select name="modelValue">
+             <option value='YOXKUS'>YOXKUS.cif</option>
+         <!--
+         <optgroup label="previously computed">
+             <option value='Cucurbit_8_uril_bfdb_HCNO'>Cucurbit-8-uril with SA-GPR/BFDB</option>
+         </optgroup>
+         -->
+       </select>
+     </div>
+       </div>
+       <div style="margin-top: 10px;">
+        <center>
+            <input type="submit" value="Calculate the example" class="btn btn-default" onclick="DisplayProgressMessage()">
+        </center>
+       </div>
+     </div>
+   </div>
+
+     <div class="submit-progress hidden">
+         <div>
+             <label>Making the prediction. Please wait ...</label>
+             <div  class="loader"></div>
+         </div>
+     </div>
+ </form>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
