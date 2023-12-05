@@ -362,15 +362,20 @@ def species_list(cell):
             for metal in mol.metalist:
                 if metal.totcharge > 0:
                     metalName = f'[{metal.label:s}+{metal.totcharge:d}]'
-                elif mtl.totcharge < 0: 
+                elif metal.totcharge < 0:  #elif mtl.totcharge < 0: 
                     metalName = f'[{metal.label:s}-{metal.totcharge:d}]'
+                else:
+                    metalName = f'{metal.label:s}'
                 if metalName not in jmol_list_species:
                     jmol_list_species[metalName] = " "
                 else:
                     jmol_list_species[metalName] += " or "
-                jmol_list_species[metalName] += " within (0.1, {" + str(metal.coord[0]) + " "
-                jmol_list_species[metalName] += str(metal.coord[1]) + " "
-                jmol_list_species[metalName] += str(metal.coord[2]) + "}) "
+                for nat in range(metal.natom):
+                    jmol_list_species[metalName] += " within (0.1, {" + str(metal.coord[0]) + " "
+                    jmol_list_species[metalName] += str(metal.coord[1]) + " "
+                    jmol_list_species[metalName] += str(metal.coord[2]) + "}) "
+                    if nat+1 < metal.natom:
+                        jmol_list_species[metalName] += " or "
     
     return jmol_list_species
 
