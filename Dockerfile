@@ -6,7 +6,7 @@ LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, 
 COPY ./requirements.txt /home/app/code/requirements.txt
 # Run this as sudo to replace the version of pip
 
-RUN pip3 install -U 'pip>=10' setuptools wheel
+RUN pip3 install -U 'pip>=10' setuptools==65.4.1 wheel
 # install packages as normal user (app, provided by passenger)
 
 RUN apt-get update
@@ -15,7 +15,7 @@ RUN apt-get install -y libxrender-dev libxext-dev
 USER app
 WORKDIR /home/app/code
 # Install pinned versions of packages
-COPY ./requirements.txt /home/app/code/requirements.txt
+#COPY ./requirements.txt /home/app/code/requirements.txt
 RUN pip3 install --user -r requirements.txt
 
 # Go back to root.

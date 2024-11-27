@@ -1,5 +1,19 @@
-nglview
-cell2mol @ https://github.com/lcmd-epfl/cell2mol/archive/5e6bc19.zip
+#nglview
+##cell2mol @ https://github.com/lcmd-epfl/cell2mol/archive/5e6bc19.zip
+#ipython==8.3.0
+#ipywidgets==8.0.2
+#markdown==3.3.4
+#networkx==2.8.7
+#numpy==1.23.1
+#pandas==1.5.0
+#py3dmol==1.8.1
+#pycifrw==4.4.3
+#pytest==7.1.3
+#rdkit==2022.3.5
+#scipy==1.9.1
+#setuptools==65.4.1
+#cosymlib==0.10.9
+
 ipython==8.3.0
 ipywidgets==8.0.2
 markdown==3.3.4
@@ -7,9 +21,7 @@ networkx==2.8.7
 numpy==1.23.1
 pandas==1.5.0
 py3dmol==1.8.1
-pycifrw==4.4.3
 pytest==7.1.3
 rdkit==2022.3.5
 scipy==1.9.1
-setuptools==65.4.1
 cosymlib==0.10.9
