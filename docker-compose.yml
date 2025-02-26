@@ -1,6 +1,15 @@
 version: '3'
 services:
   cell2mol:
+    volumes:
+      - "./compute/__init__.py:/home/app/code/webservice/compute/__init__.py:rw"
+      - "./compute/pages.py:/home/app/code/webservice/compute/pages.py:rw"
+      - "./compute/interface.py:/home/app/code/webservice/compute/interface.py:rw"
+      - "./user_templates/test.html:/home/app/code/webservice/templates/user_templates/test.html:rw"
+      - "./user_templates/c2m-analysis.html:/home/app/code/webservice/templates/user_templates/c2m-analysis.html:rw"
+      - "./user_templates/c2m-view.html:/home/app/code/webservice/templates/user_templates/c2m-view.html.py:rw"
+      - "./user_templates/C-rendering.j2:/home/app/code/webservice/templates/user_templates/C-rendering.j2:rw"
+      - "./user_templates/INST.j2:/home/app/code/webservice/templates/user_templates/INST.j2:rw"
     build: .
     ports:
      - "8090:80"

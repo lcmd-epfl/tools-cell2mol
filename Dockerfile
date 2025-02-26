@@ -1,4 +1,4 @@
-FROM materialscloud/tools-barebone:1.3.0
+FROM materialscloud/tools-barebone:1.4.0
 
 LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, Liam O. Marsh <liam.marsh@epfl.ch>, and Ruben Laplaza <ruben.laplazasolanas@epfl.ch>"
 
@@ -30,6 +30,7 @@ COPY ./compute/ /home/app/code/webservice/compute/
 #Needed to allow only .cif file formats in the upload_structure_block
 COPY ./web_module.py /home/app/code/webservice/ 
 COPY ./base_templates/* /home/app/code/webservice/templates/
+COPY ./toolsbarebone_mod/__init__.py /home/app/code/tools_barebone/structure_importers/
 
 # If you put any static file (CSS, JS, images),
 #create this folder and put them here

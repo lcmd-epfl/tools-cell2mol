@@ -13,6 +13,7 @@
                     <input type="file" name="structurefile" size="100">
                 </div>
             </div>
+
             <div class='row'>
                 <div class='col-sm-6'>
                     <label for="fileformatSelect">Select here the file format:</label>
@@ -36,33 +37,85 @@
                     </select>
                 </div>
             </div>
-            <div class="row col-sm-12" style="margin-top:10px; margin-bottom:-10px;">
-                <div id="cifImportantInfo" class="alert alert-warning" hidden>
-                    <i> <ul style="padding-left: 10px;">
-                            <li>
-                                cell2mol web interface incorporates cif2cell v2.0.0 instead of v1.2.10 
-                            </li>
-                            <li>
-                                To reproduce results reported on 
-                                <a href="https://doi.org/10.1038/s41524-022-00874-9 " target="_blank">doi: 10.1038/s41524-022-00874-9 </a>, 
-                                please use the cif2cell v1.2.10 output as input file with the <i>.info</i> extension.
-                            </li>
-                    </i></ul>
+
+            <div class='row'>
+            <div id="systemTypeBlock" hidden>
+                <div class='col-sm-6'>
+                    <label for="systemtypeSelect">Select here the system type:</label>
                 </div>
-                <div id="infoImportantInfo" class="alert alert-warning" hidden>
-                    <i> <ul style="padding-left: 10px;">
-                            <li>
-                                Please use use the flag <code>--cartesian</code> when generating the input file with cif2cell, and make sure
-                                it has the <i>.info</i> file extension.
-                            </li>
-                            <li>
-                                To reproduce results reported on 
-                                <a href="https://doi.org/10.1038/s41524-022-00874-9 " target="_blank">doi: 10.1038/s41524-022-00874-9 </a>,  
-                                please use cif2cell v1.2.10
-                            </li>
-                    </i></ul>
+                <div class='col-sm-6'>
+                    <select name="systemtype" id="systemtypeSelect" onchange="formatInfo();" autocomplete="off">
+                        <option disabled selected value> -- select an option -- </option>
+                        {# First put the formats the user specified, if existing #}
+                        {% for parser_name in config.get('upload_structure_block_known_system_type', []) %}
+                            {% if parser_name in upload_structure_block_known_system_type %}
+                            <option value="{{ parser_name }}">{{ upload_structure_block_known_system_type[parser_name] }}</option>
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Then put any remaining format #}
+                        {% for parser_name in upload_structure_block_known_system_type %}
+                            {% if parser_name not in config.get('upload_structure_block_known_system_type', []) %}
+                                <option value="{{ parser_name }}">{{ upload_structure_block_known_system_type[parser_name] }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
+            </div>
+
+            <div class="row" style="margin-top:1px; margin-bottom:4px;">
+
+                <div id="cifImportantInfo"  hidden>
+                    <div class='col-sm-6'>
+                        <label for="systemtypeSelect">Select here the system type:</label>
+                    </div>
+                    <div class='col-sm-6'>
+                        <select name="systemtype" id="systemtypeSelect" onchange="formatInfo();" autocomplete="off">
+                            <option disabled selected value> -- select an option -- </option>
+                            {# First put the formats the user specified, if existing #}
+                            {% for parser_name in config.get('upload_structure_block_known_system_type_CIF', []) %}
+                                {% if parser_name in upload_structure_block_known_system_type_CIF %}
+                                <option value="{{ parser_name }}">{{ upload_structure_block_known_system_type_CIF[parser_name] }}</option>
+                                {% endif %}
+                            {% endfor %}
+
+                            {# Then put any remaining format #}
+                            {% for parser_name in upload_structure_block_known_system_type_CIF %}
+                                {% if parser_name not in config.get('upload_structure_block_known_system_type_CIF', []) %}
+                                    <option value="{{ parser_name }}">{{ upload_structure_block_known_system_type_CIF[parser_name] }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div id="xyzImportantInfo" hidden>
+                    <div class='col-sm-6'>
+                        <label for="systemtypeSelect">Select here the system type:</label>
+                    </div>
+                    <div class='col-sm-6'>
+                        <select name="systemtype" id="systemtypeSelect" onchange="formatInfo();" autocomplete="off">
+                            <option disabled selected value> -- select an option -- </option>
+                            {# First put the formats the user specified, if existing #}
+                            {% for parser_name in config.get('upload_structure_block_known_system_type_XYZ', []) %}
+                                {% if parser_name in upload_structure_block_known_system_type_XYZ %}
+                                <option value="{{ parser_name }}">{{ upload_structure_block_known_system_type_XYZ[parser_name] }}</option>
+                                {% endif %}
+                            {% endfor %}
+
+                            {# Then put any remaining format #}
+                            {% for parser_name in upload_structure_block_known_system_type_XYZ %}
+                                {% if parser_name not in config.get('upload_structure_block_known_system_type_XYZ', []) %}
+                                    <option value="{{ parser_name }}">{{ upload_structure_block_known_system_type_XYZ[parser_name] }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+
             <div id="xyzFormatFields" class="row" style="display: none">
                 <div class='col-sm-6'>Cell vectors (&#x212B;)</div>
                 <div class='col-sm-6'>
@@ -103,13 +156,13 @@
         var inputFileFormat = document.getElementById("fileformatSelect").value;
         if (inputFileFormat == "cif") {                                                                                                 
             document.getElementById("cifImportantInfo").style.display="block";                                                       
-            document.getElementById("infoImportantInfo").style.display="none";                                                           
-        } else if (inputFileFormat == "info") {                                                                                         
+            document.getElementById("xyzImportantInfo").style.display="none";                                                           
+        } else if (inputFileFormat == "xyz") {                                                                                         
             document.getElementById("cifImportantInfo").style.display="none";                                                       
-            document.getElementById("infoImportantInfo").style.display="block";                                                           
+            document.getElementById("xyzImportantInfo").style.display="block";                                                           
         } else {                                                                                                                        
             document.getElementById("cifImportantInfo").style.display="none";                                                            
-            document.getElementById("infoImportantInfo").style.display="none";                                                           
+            document.getElementById("xyzImportantInfo").style.display="none";                                                           
         }                                                 
     }
 </script>

@@ -22,7 +22,7 @@ templates:
 
 # Add here more sections to the accordion shown on the top of the selection page
 additional_accordion_entries:
-  - header: "Instructions"
-    template_page: instructions.html
+  #- header: "Instructions"
+  #  template_page: instructions.html
   - header: "Acknowledgements"
     template_page: ack.html

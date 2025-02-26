@@ -4,12 +4,78 @@ sys.path.append(os.path.join(os.path.split(__file__)[0], '../cell2mol'))
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
-
 import cell2mol
-from cell2mol.cif2info import cif_2_info
-from cell2mol.c2m_module import save_cell, cell2mol
-from cell2mol.readwrite import readinfo, savemolecules
+from cell2mol.refcell import process_refcell
+from cell2mol.unitcell import process_unitcell
+from cell2mol.xyz_molecule import get_molecule
+from cell2mol.read_write import print_molecule
 
+#from cell2mol.read_write import savemolecules
+#from cell2mol.readwrite import readinfo, savemolecules
+
+#from cell2mol.final_c2m_driver import handle_cif_file
+#from cell2mol.cif2info import cif_2_info
+#from cell2mol.c2m_module import save_cell, cell2mol
+
+def savemolecules_tools(moleclist, output_dir, print_types, option_print_repeated=True):
+    # DEFAULTS
+    print_xyz = True
+    print_gmol = True
+    print_npy = False
+    print_mol = False
+    print_txt = False
+    print_dict = False
+
+    if "xyz" not in print_types:
+        print_xyz = False
+    if "gmol" not in print_types:
+        print_gmol = False
+    if "npy" in print_types:
+        print_npy = True
+    if "mol" in print_types:
+        print_mol = True
+    if "txt" in print_types:
+        print_txt = True
+    if "dict" in print_types:
+        print_dict = True
+
+    printedmolecs = []
+
+    for idx, mol in enumerate(moleclist):
+
+        if mol.iscomplex:
+            molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
+        else:
+            molName = mol.get_parent("reference").name + "_Other_"+ str(idx)
+        #return molName
+
+        #shalliprint = False
+
+        #if any((mol.elemcountvec == pmol.elemcountvec).all() for pmol in printedmolecs):
+        #    shalliprint = False
+        #else:
+        #    shalliprint = True
+        #if option_print_repeated:  # Overwrites decision if the user decides so
+        #    shalliprint = True
+
+        #if shalliprint:
+        #    printedmolecs.append(mol)
+
+        if print_xyz:
+            print_molecule(mol, molName, "xyz", output_dir)
+        if print_gmol:
+            print_molecule(mol, molName, "gmol", output_dir)
+        if print_npy:
+            print_molecule(mol, molName, "npy", output_dir)
+        if print_txt:
+            print_molecule(mol, molName, "txt", output_dir)
+        if print_dict:
+            print_molecule(mol, molName, "dict", output_dir)
+        if hasattr(mol, "object"):
+            if print_mol:
+                print_molecule(mol, molName, "mol", output_dir)
+
+    
 
 
 ELEMENTS = [  # thanks pyscf

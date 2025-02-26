@@ -1,10 +1,12 @@
 import traceback
 import pickle
 from tools_barebone.structure_importers import get_structure_tuple, UnknownFormatError
+import io
 import flask
 from .interface import *
 from .tokens import monitoring, Token
-from cell2mol.readwrite import savemolecules, writexyz
+#from cell2mol.read_write import savemolecules, writexyz
+from cell2mol.unitcell import process_unitcell
 
 import os
 
@@ -31,66 +33,188 @@ def process_structure_init():
     file_ext = os.path.splitext(structurefile.filename)[1]
 
     #Only accept files whose extension is equal to the option extension selected
-    if fileformat in file_ext:
+    #if fileformat in file_ext:
 
-        token = Token(structurefile)        
-        output += [
-            "structure_file: "+ repr(dir(structurefile)),
-            "form_data: "+ repr(form_data),
-            "file_format: "+ repr(fileformat),
-            "code: " + token.refcode,
-            'req: '+ repr((flask.request, dir(flask.request))),
-        ]
+    token = Token(structurefile)        
+    output += [
+        "structure_file: "+ repr(dir(structurefile)),
+        "form_data: "+ repr(form_data),
+        "file_format: "+ repr(fileformat),
+        "code: " + token.refcode,
+        'req: '+ repr((flask.request, dir(flask.request))),
+    ]
 
 
-        if fileformat == "cif":
+
+    #resp = flask.make_response(flask.render_template(
+    #    "user_templates/test.html", struct_name=file_ext
+    #))
+    #return resp
+
+    # The fileformat and the extension are consistent 
+    if fileformat == "cif-pymatgen" and file_ext == ".cif":
+            
+        #tkn_path = flask.request.cookies.get('token_path', None)
+        #if tkn_path is None:
+        #    raise ValueError("not token?")
+        #
+        #token = Token.from_path(tkn_path)
+        #if token is None:
+        #    raise ValueError("session expired")
+        #token.keepalive()
+
+        ##################
+        ## Run cell2mol ##
+        ##################
+
+        #system_type ==  "unitcell"
+        #cell = process_refcell(token.input_path, token.refcode, token.get_path())
+
+        #system_type ==  "unitcell"
+        try:
+            cell = process_unitcell(token.input_path, token.refcode, token.get_path())
+        except Exception as e:
+            exit_with_error_exception(e)
+
+        #save_cell(cell, 'gmol', token.get_path())
+        savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
+        savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
+        celldata = printing_text(cell, Capturing()) #empty
+
+        #output = infodata
+        #infodata = info file
+        resp = flask.make_response(flask.render_template(
+            "user_templates/test.html", struct_name=token.analysis_path
+        ))
+        return resp
+
+
+
+        #    
+        #    #############################
+        #    # STEP 3: Run cell2mol on infofile
+        #    #############################
+        #    #def run_cell2mol(run=False, out=None):
+        #    cell = process_unitcell(input_path, name,token.refcode, token.get_path())
+        #    #cell = process_unitcell(token.input_path, token.info_path, token.error_path)
+        #    #cell = cell2mol(token.info_path, token.refcode, token.get_path(), 3)
+        #    #with output as outt:
+        #    #    print(cell, dir(cell), type(cell))
+        #    #raise RuntimeError("unnamedrte")
+        #    save_cell(cell, 'gmol', token.get_path())
+        #    savemolecules(cell.moleclist, token.get_path(), 'xyz')
+        #    savemolecules(cell.moleclist, token.get_path(), 'gmol')
+
+        #    resp = flask.make_response(flask.render_template(
+        #        "user_templates/test.html",
+        #    ))
+        #    return resp
+
+
+            #if os.path.exists(token.info_path):
+            #    labels, pos, lfracs, fracs, cellvec, cellparam = readinfo(token.info_path)
+            #    with open(token.info_path, 'r') as f:
+            #        infodata = f.read()
+            #        output.append(infodata)
+            #    with open(token.analysis_path, 'r') as f:
+            #        celldata = f.read()
+            #        output.append(celldata)
+            #    with open(token.cell_path, 'rb') as f:
+            #        cell = pickle.load(f)
+
+
+            #    cmp_lut = cell_cmp_lut(cell)
+            #    ht_descs = cell_get_metal_desc(cell, cmp_lut)
+            #    svgs = cell_to_svgs(cell, cmp_lut)
+            #    compound_data = []
+            #    for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+            #        # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+            #        if desc != "":
+            #            compound_data.append((name, True, desc))
+            #        else:
+            #            compound_data.append((name, False, svg))
+            #    
+
+            #    #ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+            #    ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
+            #    #string used by jsmol to define the molecules/complexes, and the connectivity respectively
+            #    jmol_list_pos = molecules_list(cell)
+            #    jmolCon = bond_order_connectivity(cell)
+            #    jmol_list_species =species_list(cell) 
+
+            #    
+            #resp = flask.make_response(flask.render_template(
+            #    "user_templates/c2m-view.html",
+            #    output_lines=output,
+            #    infodata=infodata.strip(),
+            #    celldata=celldata,
+            #    ucellparams=ucellparams,
+            #    compound_data=compound_data,
+            #    xyzdata=xyzdata,
+            #    labels=labels,
+            #    pos=pos,
+            #    cellvec=cellvec,
+            #    cellparam=cellparam,
+            #    jmol_list_pos=jmol_list_pos,
+            #    jmol_list_species = jmol_list_species,
+            #    jmolCon = jmolCon,
+            #    totmol = len(cell.moleclist),
+            #    enumerate=enumerate, len=len, zip=zip, # needed
+            #    #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
+            #    struct_name=token.refcode,
+            #))
+            #return resp
+
+
+
             #############################
             # STEP 2: Run cell2info
             #############################
-            with output as _out:
-                cif_2_info(token.input_path, token.info_path, token.error_path)
-            error = False
-            with open(token.error_path, 'r') as err:
-                for line in err.readlines():
-                    if "Error" in line:
-                        output.append(line)
-                        error = True
-            if error :
-                output.append(f"Parsing of .cif file {token.input_path} failed due to the error above.")
-            else :
-                output.append(f"Infofile {token.info_path} generated from {token.input_path} succesfully.")
+            #with output as _out:
+            #    cif_2_info(token.input_path, token.info_path, token.error_path)
+            #error = False
+            #with open(token.error_path, 'r') as err:
+            #    for line in err.readlines():
+            #        if "Error" in line:
+            #            output.append(line)
+            #            error = True
+            #if error :
+            #    output.append(f"Parsing of .cif file {token.input_path} failed due to the error above.")
+            #else :
+            #    output.append(f"Infofile {token.info_path} generated from {token.input_path} succesfully.")
 
-        elif fileformat == "info":
-            #############################
-            # STEP 2: Rename input file as info file
-            #############################
-            os.rename(token.input_path, token.info_path)
+        #elif fileformat == "info":
+        #    #############################
+        #    # STEP 2: Rename input file as info file
+        #    #############################
+        #    os.rename(token.input_path, token.info_path)
 
-        elif fileformat =="unknown":
-            flask.flash("Please select a file fomrat and upload a file ")
-            return flask.redirect(flask.url_for("input_data"))
+        #elif fileformat =="unknown":
+        #    flask.flash("Please select a file fomrat and upload a file ")
+        #    return flask.redirect(flask.url_for("input_data"))
 
-        else :
-            flask.flash("Please upload a file in the selected format with the proper extension (.'{}') ".format(fileformat))
-            return flask.redirect(flask.url_for("input_data"))
+        #else :
+        #    flask.flash("Please upload a file in the selected format with the proper extension (.'{}') ".format(fileformat))
+        #    return flask.redirect(flask.url_for("input_data"))
 
 
-        with open(token.info_path, 'r') as f:
-            infodata = f.read()
-            output.append(infodata)
-        
-        tkn_path = token.get_path()
+        #with open(token.info_path, 'r') as f:
+        #    infodata = f.read()
+        #    output.append(infodata)
+        #
+        #tkn_path = token.get_path()
 
-        resp = flask.make_response(flask.render_template(
-            "user_templates/c2m-infopage.html",
-            output_lines=output,
-            infodata=infodata,
-            enumerate=enumerate, len=len,  # why is this needed?
-            #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
-            struct_name=token.refcode,
-        ))
-        resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
-        return resp
+        #resp = flask.make_response(flask.render_template(
+        #    "user_templates/c2m-infopage.html",
+        #    output_lines=output,
+        #    infodata=infodata,
+        #    enumerate=enumerate, len=len,  # why is this needed?
+        #    #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
+        #    struct_name=token.refcode,
+        #))
+        #resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
+        #return resp
 
     elif fileformat =="unknown":
         flask.flash("Please select a file format.")
