@@ -81,10 +81,75 @@ def process_structure_init():
         savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
         celldata = printing_text(cell, Capturing()) #empty
 
+        cmp_lut = cell_cmp_lut(cell)
+        ht_descs = cell_get_metal_desc(cell, cmp_lut)
+        svgs = cell_to_svgs(cell, cmp_lut)
+        compound_data = []
+        for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+            # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+            if desc != "":
+                compound_data.append((name, True, desc))
+            else:
+                compound_data.append((name, False, svg))
+
+
+        ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
+        labels = []
+        for mol in cell.moleclist:
+            for atm in mol.atoms:
+                labels.append(atm.label)
+
+
+        jmol_list_pos = molecules_list(cell)
+        jmolCon = bond_order_connectivity(cell)
+        jmol_list_species =species_list(cell) 
+
+        output="Output try"
+        infodata = "info data try"
+
+
+        #resp = flask.make_response(flask.render_template(
+        #    "user_templates/c2m-view.html",
+        #    output_lines=output,
+        #    #infodata=infodata.strip(),
+        #    celldata=celldata,
+        #    #ucellparams=ucellparams,
+        #    compound_data=compound_data,
+        #    xyzdata=xyzdata,
+        #    labels=labels,
+        #    pos=pos,
+        #    cellvec=cellvec,
+        #    cellparam=cellparam,
+        #    jmol_list_pos=jmol_list_pos,
+        #    jmol_list_species = jmol_list_species,
+        #    jmolCon = jmolCon,
+        #    totmol = len(cell.moleclist),
+        #    enumerate=enumerate, len=len, zip=zip, # needed
+        #    struct_name=token.refcode,
+        #))
+
         #output = infodata
         #infodata = info file
         resp = flask.make_response(flask.render_template(
-            "user_templates/test.html", struct_name=token.analysis_path
+            "user_templates/c2m-view.html",
+        #    "user_templates/test.html",
+        #    output_lines=output,
+        #    #infodata=infodata.strip(),
+            celldata=celldata,
+            ucellparams=ucellparams,
+            compound_data=compound_data,
+            xyzdata=xyzdata,
+            labels=labels,
+        #    pos=pos,
+        #    cellvec=cellvec,
+        #    cellparam=cellparam,
+            jmol_list_pos=jmol_list_pos,
+            jmol_list_species = jmol_list_species,
+            jmolCon = jmolCon,
+            totmol = len(cell.moleclist),
+            enumerate=enumerate, len=len, zip=zip, # needed
+            struct_name=token.refcode,
         ))
         return resp
 
@@ -227,191 +292,191 @@ def process_structure_init():
 
 
 
-@blueprint.route("/analysis", methods=["GET"])
-def process_structure_analysis():
-
-    output = Capturing()
-    try:
-        #tkn_path = flask.request.args['token'].replace('_','/')
-        tkn_path = flask.request.cookies.get('token_path', None)
-        if tkn_path is None:
-            raise ValueError("not token?")
-        
-        token = Token.from_path(tkn_path)
-        if token is None:
-            raise ValueError("session expired")
-        token.keepalive()
-        
-        #############################
-        # STEP 3: Run cell2mol on infofile
-        #############################
-        #def run_cell2mol(run=False, out=None):
-
-        if os.path.exists(token.info_path):
-            with open(token.info_path, 'r') as f:
-                infodata = f.read()
-                output.append(infodata)
-
-            with output as _out:
-                cell = cell2mol(token.info_path, token.refcode, token.get_path(), 3)
-                #with output as outt:
-                #    print(cell, dir(cell), type(cell))
-                #raise RuntimeError("unnamedrte")
-                save_cell(cell, 'gmol', token.get_path())
-                savemolecules(cell.moleclist, token.get_path(), 'xyz')
-                savemolecules(cell.moleclist, token.get_path(), 'gmol')
-            # This line removes cell2mol output from printout, it should be extend not redefine
-            #output += [f"For input {token.input_path}"]
-            celldata = printing_text(cell, Capturing())
-            with open(token.analysis_path, 'w') as f:
-                for line in celldata:
-                    f.write(line+"\n")
-        else:
-            raise ValueError("plz")
-            #output.extend([f"Please, wait until cell2info has finished for this input. Could not find {token.info_path}."])
-
-        #token.remove()
-        resp = flask.make_response(flask.render_template(
-            "user_templates/c2m-analysis.html",
-            output_lines=output,
-            infodata=infodata.strip(),
-            celldata='\n'.join(celldata).strip(),
-            enumerate=enumerate, len=len,  # why TF is this needed?????
-            #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
-            struct_name=token.refcode,
-        ))
-        return resp
-        #############################
-        # STEP 4: Display structures
-        #############################    
-        #def display_mol(run=False, out=None):
-
-        #with output as _out:
-        #    path = find_gmol(run=run)
-        #    cell = pickle.load(open(path, "rb"))
-        #with out:
-        #    printing_structure_cell(cell)
-    
-    except Exception as err:
-        msg = "Failure…"
-        output += traceback.format_tb(err.__traceback__)
-        output.append(repr(err))
-        return flask.render_template(
-            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-        )
-    except:
-        msg = "Failure…"
-        output.append("unknown error")
-        return flask.render_template(
-            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-        )
-    
-
-
+#@blueprint.route("/analysis", methods=["GET"])
+#def process_structure_analysis():
+#
+#    output = Capturing()
+#    try:
+#        #tkn_path = flask.request.args['token'].replace('_','/')
+#        tkn_path = flask.request.cookies.get('token_path', None)
+#        if tkn_path is None:
+#            raise ValueError("not token?")
+#        
+#        token = Token.from_path(tkn_path)
+#        if token is None:
+#            raise ValueError("session expired")
+#        token.keepalive()
+#        
+#        #############################
+#        # STEP 3: Run cell2mol on infofile
+#        #############################
+#        #def run_cell2mol(run=False, out=None):
+#
+#        if os.path.exists(token.info_path):
+#            with open(token.info_path, 'r') as f:
+#                infodata = f.read()
+#                output.append(infodata)
+#
+#            with output as _out:
+#                cell = cell2mol(token.info_path, token.refcode, token.get_path(), 3)
+#                #with output as outt:
+#                #    print(cell, dir(cell), type(cell))
+#                #raise RuntimeError("unnamedrte")
+#                save_cell(cell, 'gmol', token.get_path())
+#                savemolecules(cell.moleclist, token.get_path(), 'xyz')
+#                savemolecules(cell.moleclist, token.get_path(), 'gmol')
+#            # This line removes cell2mol output from printout, it should be extend not redefine
+#            #output += [f"For input {token.input_path}"]
+#            celldata = printing_text(cell, Capturing())
+#            with open(token.analysis_path, 'w') as f:
+#                for line in celldata:
+#                    f.write(line+"\n")
+#        else:
+#            raise ValueError("plz")
+#            #output.extend([f"Please, wait until cell2info has finished for this input. Could not find {token.info_path}."])
+#
+#        #token.remove()
+#        resp = flask.make_response(flask.render_template(
+#            "user_templates/c2m-analysis.html",
+#            output_lines=output,
+#            infodata=infodata.strip(),
+#            celldata='\n'.join(celldata).strip(),
+#            enumerate=enumerate, len=len,  # why TF is this needed?????
+#            #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
+#            struct_name=token.refcode,
+#        ))
+#        return resp
+#        #############################
+#        # STEP 4: Display structures
+#        #############################    
+#        #def display_mol(run=False, out=None):
+#
+#        #with output as _out:
+#        #    path = find_gmol(run=run)
+#        #    cell = pickle.load(open(path, "rb"))
+#        #with out:
+#        #    printing_structure_cell(cell)
+#    
+#    except Exception as err:
+#        msg = "Failure…"
+#        output += traceback.format_tb(err.__traceback__)
+#        output.append(repr(err))
+#        return flask.render_template(
+#            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+#        )
+#    except:
+#        msg = "Failure…"
+#        output.append("unknown error")
+#        return flask.render_template(
+#            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+#        )
+#    
 
 
-@blueprint.route("/view-gmol", methods=["GET"])
-def process_structure_view():
-
-    output = Capturing()
-    try:
-        #tkn_path = flask.request.args['token'].replace('_','/')
-        tkn_path = flask.request.cookies.get('token_path', None)
-        if tkn_path is None:
-            raise ValueError("not token?")
-        
-        token = Token.from_path(tkn_path)
-        if token is None:
-            raise ValueError("session expired")
-        token.keepalive()
-        
-        #############################
-        # STEP 3: Run cell2mol on infofile
-        #############################
-        #def run_cell2mol(run=False, out=None):
-
-        if os.path.exists(token.info_path):
-            labels, pos, lfracs, fracs, cellvec, cellparam = readinfo(token.info_path)
-            with open(token.info_path, 'r') as f:
-                infodata = f.read()
-                output.append(infodata)
-            with open(token.analysis_path, 'r') as f:
-                celldata = f.read()
-                output.append(celldata)
-            with open(token.cell_path, 'rb') as f:
-                cell = pickle.load(f)
 
 
-            cmp_lut = cell_cmp_lut(cell)
-            ht_descs = cell_get_metal_desc(cell, cmp_lut)
-            svgs = cell_to_svgs(cell, cmp_lut)
-            compound_data = []
-            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-                # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
-                if desc != "":
-                    compound_data.append((name, True, desc))
-                else:
-                    compound_data.append((name, False, svg))
-            
-
-            #ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
-            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
-
-            #string used by jsmol to define the molecules/complexes, and the connectivity respectively
-            jmol_list_pos = molecules_list(cell)
-            jmolCon = bond_order_connectivity(cell)
-            jmol_list_species =species_list(cell) 
-
-        else:
-            raise ValueError("Please wait until cell2info finishes.")
-            #output.extend([f"Please, wait until cell2info has finished for this input. Could not find {token.info_path}."])
-
-        #token.remove()
-        resp = flask.make_response(flask.render_template(
-            "user_templates/c2m-view.html",
-            output_lines=output,
-            infodata=infodata.strip(),
-            celldata=celldata,
-            ucellparams=ucellparams,
-            compound_data=compound_data,
-            xyzdata=xyzdata,
-            labels=labels,
-            pos=pos,
-            cellvec=cellvec,
-            cellparam=cellparam,
-            jmol_list_pos=jmol_list_pos,
-            jmol_list_species = jmol_list_species,
-            jmolCon = jmolCon,
-            totmol = len(cell.moleclist),
-            enumerate=enumerate, len=len, zip=zip, # needed
-            #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
-            struct_name=token.refcode,
-        ))
-        return resp
-        #############################
-        # STEP 4: Display structures
-        #############################    
-        #def display_mol(run=False, out=None):
-
-        #with output as _out:
-        #    path = find_gmol(run=run)
-        #    cell = pickle.load(open(path, "rb"))
-        #with out:
-        #    printing_structure_cell(cell)
-    
-    except Exception as err:
-        msg = "Failure…"
-        output += traceback.format_tb(err.__traceback__)
-        output.append(repr(err))
-        return flask.render_template(
-            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-        )
-    except:
-        msg = "Failure…"
-        output.append("unknown error")
-        return flask.render_template(
-            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-        )
+#@blueprint.route("/view-gmol", methods=["GET"])
+#def process_structure_view():
+#
+#    output = Capturing()
+#    try:
+#        #tkn_path = flask.request.args['token'].replace('_','/')
+#        tkn_path = flask.request.cookies.get('token_path', None)
+#        if tkn_path is None:
+#            raise ValueError("not token?")
+#        
+#        token = Token.from_path(tkn_path)
+#        if token is None:
+#            raise ValueError("session expired")
+#        token.keepalive()
+#        
+#        #############################
+#        # STEP 3: Run cell2mol on infofile
+#        #############################
+#        #def run_cell2mol(run=False, out=None):
+#
+#        if os.path.exists(token.info_path):
+#            labels, pos, lfracs, fracs, cellvec, cellparam = readinfo(token.info_path)
+#            with open(token.info_path, 'r') as f:
+#                infodata = f.read()
+#                output.append(infodata)
+#            with open(token.analysis_path, 'r') as f:
+#                celldata = f.read()
+#                output.append(celldata)
+#            with open(token.cell_path, 'rb') as f:
+#                cell = pickle.load(f)
+#
+#
+#            cmp_lut = cell_cmp_lut(cell)
+#            ht_descs = cell_get_metal_desc(cell, cmp_lut)
+#            svgs = cell_to_svgs(cell, cmp_lut)
+#            compound_data = []
+#            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+#                # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+#                if desc != "":
+#                    compound_data.append((name, True, desc))
+#                else:
+#                    compound_data.append((name, False, svg))
+#            
+#
+#            #ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+#            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+#
+#            #string used by jsmol to define the molecules/complexes, and the connectivity respectively
+#            jmol_list_pos = molecules_list(cell)
+#            jmolCon = bond_order_connectivity(cell)
+#            jmol_list_species =species_list(cell) 
+#
+#        else:
+#            raise ValueError("Please wait until cell2info finishes.")
+#            #output.extend([f"Please, wait until cell2info has finished for this input. Could not find {token.info_path}."])
+#
+#        #token.remove()
+#        resp = flask.make_response(flask.render_template(
+#            "user_templates/c2m-view_OLD.html",
+#            output_lines=output,
+#            infodata=infodata.strip(),
+#            celldata=celldata,
+#            ucellparams=ucellparams,
+#            compound_data=compound_data,
+#            xyzdata=xyzdata,
+#            labels=labels,
+#            pos=pos,
+#            cellvec=cellvec,
+#            cellparam=cellparam,
+#            jmol_list_pos=jmol_list_pos,
+#            jmol_list_species = jmol_list_species,
+#            jmolCon = jmolCon,
+#            totmol = len(cell.moleclist),
+#            enumerate=enumerate, len=len, zip=zip, # needed
+#            #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
+#            struct_name=token.refcode,
+#        ))
+#        return resp
+#        #############################
+#        # STEP 4: Display structures
+#        #############################    
+#        #def display_mol(run=False, out=None):
+#
+#        #with output as _out:
+#        #    path = find_gmol(run=run)
+#        #    cell = pickle.load(open(path, "rb"))
+#        #with out:
+#        #    printing_structure_cell(cell)
+#    
+#    except Exception as err:
+#        msg = "Failure…"
+#        output += traceback.format_tb(err.__traceback__)
+#        output.append(repr(err))
+#        return flask.render_template(
+#            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+#        )
+#    except:
+#        msg = "Failure…"
+#        output.append("unknown error")
+#        return flask.render_template(
+#            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+#        )
 
 
 

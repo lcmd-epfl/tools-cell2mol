@@ -109,16 +109,21 @@ class Capturing(list):
 def cell_cmp_lut(cell):
     names = {}
     for i_mol,mol in enumerate(cell.moleclist):
-        if mol.type == 'Complex':
-            for i_mtl, mtl in enumerate(mol.metalist):
+        #if mol.type == 'Complex':
+        if mol.iscomplex :
+            #for i_mtl, mtl in enumerate(mol.metalist):
+            for i_mtl, mtl in enumerate(mol.metals):
                 mlabel = mtl.label
-                if mtl.totcharge > 0:
-                    mlabel = f'[{mlabel:s}+{mtl.totcharge:d}]'
-                elif mtl.totcharge < 0:
-                    mlabel = f'[{mlabel:s}-{-mtl.totcharge:d}]'
+                #if mtl.totcharge > 0:
+                if mtl.charge > 0:
+                    mlabel = f'[{mlabel:s}+{mtl.charge:d}]'
+                #elif mtl.totcharge < 0:
+                elif mtl.charge < 0:
+                    mlabel = f'[{mlabel:s}-{-mtl.charge:d}]'
                 names.setdefault(mlabel, [])
                 names[mlabel].append((i_mol,'m',i_mtl))
-            for i_lig, lig in enumerate(mol.ligandlist):
+            #for i_lig, lig in enumerate(mol.ligandlist):
+            for i_lig, lig in enumerate(mol.ligands):
                 names.setdefault(lig.smiles, [])
                 names[lig.smiles].append((i_mol,'l',i_lig))
         else:
@@ -133,10 +138,10 @@ def cell_get_metal_desc(cell, cmplut):
     #for mol in cell.moleclist:
         mol = cell.moleclist[tpl[0]]
         if tpl[1]=='m':
-            mtl = mol.metalist[tpl[2]]
+            mtl = mol.metals[tpl[2]]
             res.append('<p>Metal center: {0:s}<br/>predicted charge: {1:+d}</p>'.format(
                 mtl.label,
-                mtl.totcharge,
+                mtl.charge,
             ))
         else:
             res.append("")
@@ -189,19 +194,24 @@ def cell_get_metal_desc(cell, cmplut):
 #    return celldesc, "".join(mols)
 
 def cell_to_string_xyz(cell, cmplut=None):
-    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cellparam))
+    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cell_param))
 
     allmols = []
-    for mols in cell.moleclist:                                                                                                   
+    for idx, mols in enumerate(cell.moleclist):                                                                                                   
+
+        if mols.iscomplex:
+            molName = mols.get_parent("reference").name + "_Complex_"+str(idx) 
+        else:
+            molName = mols.get_parent("reference").name + "_Other_"+ str(idx)
+
         atms = []
         for atoms in mols.atoms:                                                                                                  
             x,y,z = atoms.coord
             Z = atoms.label
-            atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(Z,x,y,z))
-        allmols.append( "{:d}\n{:s}\n".format(mols.natoms, mols.name) + "".join(atms) )
+            atms.append(" {:s}    {:8f} {:8f} {:8f}\\n".format(Z,x,y,z))
+        allmols.append( "{:d}\\n {:s}\\n ".format(mols.natoms, molName) + "".join(atms) )
 
     return celldesc, "".join(allmols)
-
 
 
 re__svghead = re.compile(r"<\?xml.*?\?>")
@@ -213,21 +223,21 @@ def cell_to_svgs(cell, cmplut):
     res = []
     for name, lst in cmplut.items():
         tpl = lst[0]
-    #for mol in cell.moleclist:
+        #for mol in cell.moleclist:
         mol = cell.moleclist[tpl[0]]
         if tpl[1]=='m':
-            mol = mol.metalist[tpl[2]]
+            mol = mol.metals[tpl[2]]
             sm = mol.label
-            if mol.totcharge > 0:
-                sm += f'+{mol.totcharge:d}'
-            elif mol.totcharge < 0:
-                sm += f'-{-mol.totcharge:d}'
+            if mol.charge > 0:
+                sm += f'+{mol.charge:d}'
+            elif mol.charge < 0:
+                sm += f'-{-mol.charge:d}'
             rd = Chem.MolFromSmiles('['+sm+']')
         elif tpl[1]=='l':
-            mol = mol.ligandlist[tpl[2]]
-            rd = mol.rdkit_mol
+            mol = mol.ligands[tpl[2]]
+            rd = mol.rdkit_obj
         elif tpl[1]=='t':
-            rd = mol.rdkit_mol
+            rd = mol.rdkit_obj
         else:
             raise ValueError("internal error juggling compounds")
         try:
@@ -255,7 +265,7 @@ def cell_to_svgs(cell, cmplut):
         res.append(svg)
 
 
-    res.append(repr(cell.cellparam))
+    res.append(repr(cell.cell_param))
     return res
 
 
@@ -335,17 +345,24 @@ def molecules_list(cell):
 
     totmol = len(cell.moleclist)                                                                                          
     jmol_list_pos = {}                                                                                                    
-    for mol in cell.moleclist:                                                                                            
-        jmol_list_pos[mol.name] = " select "                                                                              
+    for idx, mol in enumerate(cell.moleclist):                                                                                            
+
+        if mol.iscomplex:
+            molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
+        else:
+            molName = mol.get_parent("reference").name + "_Other_"+ str(idx)
+
+        jmol_list_pos[molName] = " select "                                                                              
         cont=0                                                                                                            
         for a in mol.atoms:                                                                                               
-            jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
+            jmol_list_pos[molName] = jmol_list_pos[molName] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
             cont=cont+1                                                                                                   
             if (cont < mol.natoms):                                                                                       
-                jmol_list_pos[mol.name] = jmol_list_pos[mol.name] + " or "                                                
+                jmol_list_pos[molName] = jmol_list_pos[molName] + " or "                                                
 
     return jmol_list_pos
-                                                                                
+
+
 
 def bond_order_connectivity(cell):
     ''' Takes the cell object and returns a string containig the information needed by jsmol to generate the atomic bonds with 
@@ -361,30 +378,91 @@ def bond_order_connectivity(cell):
 
     jmolCon = " "
 
-    for mol in cell.moleclist: #loop over all molecules
-        connectMat = mol.conmat #connectivity matrix
-        a = mol.atoms #list with all the atoms forming the molecule
-    
-        for atomi, atomCon in enumerate(connectMat): #loop over atoms 
-            for atomj, conn in enumerate(atomCon): #loop over atoms
-                if (conn == 1. and atomj > atomi): #check if there is a bond and avoid double counting
-                    atomiBonds = a[atomi].bond #all bonds of atomi
-                    for bonds in atomiBonds: #loop over all bonds (the first index is always < than the second)
-                        if (atomi == bonds[0] and atomj == bonds[1]): #if the bonded atoms matches
-                            #select atomi by its coordinates
-                            jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                            jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
-                            jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
-                            jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
-                            jmolCon = jmolCon + "}) or "
-                            #select atomj by its coordinates
-                            jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                            jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
-                            jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
-                            jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
-                            jmolCon = jmolCon + "}) ;"
-                            #bond order
-                            jmolCon = jmolCon + " bondorder " + str(bonds[2]) + " ; "
+    #for mol in cell.moleclist: #loop over all molecules
+    #    connectMat = mol.conmat #connectivity matrix
+    #    a = mol.atoms #list with all the atoms forming the molecule
+    #
+    #    for atomi, atomCon in enumerate(connectMat): #loop over atoms 
+    #        for atomj, conn in enumerate(atomCon): #loop over atoms
+    #            if (conn == 1. and atomj > atomi): #check if there is a bond and avoid double counting
+    #                atomiBonds = a[atomi].bond #all bonds of atomi
+    #                for bonds in atomiBonds: #loop over all bonds (the first index is always < than the second)
+    #                    if (atomi == bonds[0] and atomj == bonds[1]): #if the bonded atoms matches
+    #                        #select atomi by its coordinates
+    #                        jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+    #                        jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
+    #                        jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
+    #                        jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
+    #                        jmolCon = jmolCon + "}) or "
+    #                        #select atomj by its coordinates
+    #                        jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+    #                        jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
+    #                        jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
+    #                        jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
+    #                        jmolCon = jmolCon + "}) ;"
+    #                        #bond order
+    #                        jmolCon = jmolCon + " bondorder " + str(bonds[2]) + " ; "
+
+
+
+    #for mol in cell.moleclist: #loop over all molecules
+    #    
+    #    #connectMat = cell.moleclist[0].get_adjmatrix()[0] #connectivity matrix
+    #    connectMat = mol.get_adjmatrix()[0] #connectivity matrix
+    #    atm = mol.atoms
+    #        
+    #    for atomi, atomCon in enumerate(connectMat): #loop over atoms
+    #        for atomj, conn in enumerate(atomCon[atomi:]): #loop over connectivity of each not repeated atom of previous loop
+    #            if (conn == 1): #if there is a bond
+    #                #select atomi by its coordinates
+    #                jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+    #                jmolCon = jmolCon + str(atm[atomi].coord[0]) + " "
+    #                jmolCon = jmolCon + str(atm[atomi].coord[1]) + " "
+    #                jmolCon = jmolCon + str(atm[atomi].coord[2]) + " "
+    #                jmolCon = jmolCon + "}) or "
+    #                #select atomj by its coordinates
+    #                jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+    #                jmolCon = jmolCon + str(atm[atomj].coord[0]) + " "
+    #                jmolCon = jmolCon + str(atm[atomj].coord[1]) + " "
+    #                jmolCon = jmolCon + str(atm[atomj].coord[2]) + " "
+    #                jmolCon = jmolCon + "}) ;"
+    #                for bond in atm[atomi].bonds: #loop ovre all bonds of atomi
+    #                    if (bond.atom2.coord[0] == atm[atomj].coord[0] and
+    #                        bond.atom2.coord[1] == atm[atomj].coord[1] and
+    #                        bond.atom2.coord[2] == atm[atomj].coord[2]): #if the bond is with atomj
+
+    #                        #jmolCon = str( bond.atom2.coord.all() == atm[atomj].coord.all() ) #if the bond is with atomj
+    #                        #jmolCon = str(bond.order)
+    #                        #bond order
+    #                        jmolCon = jmolCon + " bondorder " + str(bond.order) + " ; "
+    #                        break
+
+
+    #Double looping. atom1-atom2 = atom2-atom1. Can be improved            
+    for mol in cell.moleclist:
+        for atm in mol.atoms:
+            for bond in atm.bonds: #loop over all atoms
+                #select atom 1 by its coordinates
+                jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                jmolCon = jmolCon + str(bond.atom1.coord[0]) + " "
+                jmolCon = jmolCon + str(bond.atom1.coord[1]) + " "
+                jmolCon = jmolCon + str(bond.atom1.coord[2]) + " "
+                jmolCon = jmolCon + "}) or "
+                #select atom 2 by its coordinates
+                jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                jmolCon = jmolCon + str(bond.atom2.coord[0]) + " "
+                jmolCon = jmolCon + str(bond.atom2.coord[1]) + " "
+                jmolCon = jmolCon + str(bond.atom2.coord[2]) + " "
+                #bond order
+                jmolCon = jmolCon + " bondorder " + str(bond.order) + " ; "
+
+
+
+
+
+
+
+
     
     return jmolCon
 
@@ -402,19 +480,8 @@ def species_list(cell):
 
     jmol_list_species = {}
     for mol in cell.moleclist:
-        if mol.type == 'Other':
-            if mol.smiles not in jmol_list_species:
-                jmol_list_species[mol.smiles] = " "
-            else:
-                jmol_list_species[mol.smiles] += " or "
-            for nat, atms in enumerate(mol.atoms):
-                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
-                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[1]) + " "
-                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[2]) + "})"
-                if nat+1 < len(mol.atoms):
-                    jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " or "
-        elif mol.type == 'Complex' :
-            for ligand in mol.ligandlist:
+        if mol.iscomplex :
+            for ligand in mol.ligands:
                 if ligand.smiles not in jmol_list_species:
                     jmol_list_species[ligand.smiles] = " "
                 else:
@@ -425,23 +492,34 @@ def species_list(cell):
                     jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[2]) + "})"
                     if nat+1 < len(ligand.atoms):
                         jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " or "
-            for metal in mol.metalist:
-                if metal.totcharge > 0:
-                    metalName = f'[{metal.label:s}+{metal.totcharge:d}]'
-                elif metal.totcharge < 0:  #elif mtl.totcharge < 0: 
-                    metalName = f'[{metal.label:s}-{metal.totcharge:d}]'
+            for metal in mol.metals:
+                if metal.charge > 0:
+                    metalName = f'[{metal.label:s}+{metal.charge:d}]'
+                elif metal.charge < 0:  #elif mtl.totcharge < 0: 
+                    metalName = f'[{metal.label:s}-{metal.charge:d}]'
                 else:
                     metalName = f'{metal.label:s}'
                 if metalName not in jmol_list_species:
                     jmol_list_species[metalName] = " "
                 else:
                     jmol_list_species[metalName] += " or "
-                for nat in range(metal.natom):
-                    jmol_list_species[metalName] += " within (0.1, {" + str(metal.coord[0]) + " "
-                    jmol_list_species[metalName] += str(metal.coord[1]) + " "
-                    jmol_list_species[metalName] += str(metal.coord[2]) + "}) "
-                    if nat+1 < metal.natom:
-                        jmol_list_species[metalName] += " or "
+                #for nat in range(metal.natom):
+                jmol_list_species[metalName] += " within (0.1, {" + str(metal.coord[0]) + " "
+                jmol_list_species[metalName] += str(metal.coord[1]) + " "
+                jmol_list_species[metalName] += str(metal.coord[2]) + "}) "
+                #    if nat+1 < metal.natom:
+                #        jmol_list_species[metalName] += " or "
+        else:
+            if mol.smiles not in jmol_list_species:
+                jmol_list_species[mol.smiles] = " "
+            else:
+                jmol_list_species[mol.smiles] += " or "
+            #for nat, atms in enumerate(mol.atoms):
+            jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+            jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[1]) + " "
+            jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[2]) + "})"
+            #    if nat+1 < len(mol.atoms):
+            #        jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " or "
     
     return jmol_list_species
 

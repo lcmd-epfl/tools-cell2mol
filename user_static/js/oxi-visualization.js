@@ -36,8 +36,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
     debug: false,
     color: "#FFFFFF",
     use: "HTML5",
-    j2sPath: "../user_static/js/jsmol/j2s",
-    serverURL: "../user_static/js/jsmol/php/jsmol.php",
+    j2sPath: "../../user_static/js/jsmol/j2s",
+    serverURL: "../../user_static/js/jsmol/php/jsmol.php",
     console: "jmolApplet_infodiv"
   };
 
