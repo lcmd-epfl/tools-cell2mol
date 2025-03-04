@@ -7,7 +7,7 @@ services:
       - "./compute/interface.py:/home/app/code/webservice/compute/interface.py:rw"
       - "./user_templates/test.html:/home/app/code/webservice/templates/user_templates/test.html:rw"
       - "./user_templates/c2m-analysis.html:/home/app/code/webservice/templates/user_templates/c2m-analysis.html:rw"
-      - "./user_templates/c2m-view.html:/home/app/code/webservice/templates/user_templates/c2m-view.html.py:rw"
+      - "./user_templates/c2m-view.html:/home/app/code/webservice/templates/user_templates/c2m-view.html:rw"
       - "./user_templates/C-rendering.j2:/home/app/code/webservice/templates/user_templates/C-rendering.j2:rw"
       - "./user_templates/INST.j2:/home/app/code/webservice/templates/user_templates/INST.j2:rw"
     build: .

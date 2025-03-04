@@ -442,19 +442,26 @@ def bond_order_connectivity(cell):
     for mol in cell.moleclist:
         for atm in mol.atoms:
             for bond in atm.bonds: #loop over all atoms
-                #select atom 1 by its coordinates
-                jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                jmolCon = jmolCon + str(bond.atom1.coord[0]) + " "
-                jmolCon = jmolCon + str(bond.atom1.coord[1]) + " "
-                jmolCon = jmolCon + str(bond.atom1.coord[2]) + " "
-                jmolCon = jmolCon + "}) or "
-                #select atom 2 by its coordinates
-                jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                jmolCon = jmolCon + str(bond.atom2.coord[0]) + " "
-                jmolCon = jmolCon + str(bond.atom2.coord[1]) + " "
-                jmolCon = jmolCon + str(bond.atom2.coord[2]) + " "
-                #bond order
-                jmolCon = jmolCon + " bondorder " + str(bond.order) + " ; "
+                if (bond.order > 1.0):
+                    #select atom 1 by its coordinates
+                    jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                    jmolCon = jmolCon + str(bond.atom1.coord[0]) + " "
+                    jmolCon = jmolCon + str(bond.atom1.coord[1]) + " "
+                    jmolCon = jmolCon + str(bond.atom1.coord[2]) + " "
+                    jmolCon = jmolCon + "}) or "
+                    #select atom 2 by its coordinates
+                    jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                    jmolCon = jmolCon + str(bond.atom2.coord[0]) + " "
+                    jmolCon = jmolCon + str(bond.atom2.coord[1]) + " "
+                    jmolCon = jmolCon + str(bond.atom2.coord[2]) + " "
+                    jmolCon = jmolCon + "}) ; "
+                    #bond order
+                    if (bond.order == 2.0):
+                        jmolCon = jmolCon + " bondOrder 2 ; "
+                    elif (bond.order == 3.0):
+                        jmolCon = jmolCon + " bondOrder 3 ; "
+                    else:
+                        jmolCon = jmolCon + " bondOrder " + str(bond.order) + " ; "
 
 
 

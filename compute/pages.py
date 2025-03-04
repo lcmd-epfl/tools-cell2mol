@@ -129,6 +129,8 @@ def process_structure_init():
         #    struct_name=token.refcode,
         #))
 
+        #xyzdata = "1 \\n try \\n H 0.0 0.0 0.0 \\n"
+
         #output = infodata
         #infodata = info file
         resp = flask.make_response(flask.render_template(
