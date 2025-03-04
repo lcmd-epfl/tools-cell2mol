@@ -272,10 +272,67 @@ def cell_to_svgs(cell, cmplut):
 
 
 def printing_text(cell, output):
+    #dicts = {}
+    #list_show = []
+    #for idx, mol in enumerate(cell.moleclist):
+    #    if mol.type == "Complex":        
+    #        if mol.formula in dicts.keys():
+    #            dicts[mol.formula] +=1 
+    #        else:
+    #            dicts[mol.formula] = 1
+    #            list_show.append(idx)
+
+    #for idx, mol in enumerate(cell.moleclist):
+    #    if mol.type == "Other":     
+    #        if mol.formula in dicts.keys():
+    #            dicts[mol.formula] +=1 
+    #        else:
+    #            dicts[mol.formula] = 1
+    #            list_show.append(idx)
+
+    #for i in list_show:
+    #    mol=cell.moleclist[i]
+    #    if mol.type == "Complex": 
+    #        output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
+    #        output.extend([f"   Total charge : {mol.totcharge}"])
+    #        output.extend([f"   Spin : {mol.spin}"])
+    #        output.extend([""])
+
+    #        if mol.hapticity == False :
+    #            for met in mol.metalist:
+    #                output.extend([f"   >> Metal : {met.label}"])
+    #                output.extend([f"   Metal oxidation state : {met.totcharge}"])
+    #                output.extend([f"   Coordination number: {met.coordination_number}"])
+    #                output.extend([f"   Metal-coordinating atoms: {met.coordinating_atoms}"])
+    #                output.extend([f"   Coordination geometry: {met.geometry}\t(*deviation value : {met.deviation})"])
+    #                output.extend(["   *deviation value: closer to 0, less distortion in a given geometry"])           
+    #        else :
+    #            for met in mol.metalist:
+    #                output.extend([f"   >> Metal : {met.label}"])
+    #                output.extend([f"   Metal oxidation state : {met.totcharge}"])
+    #                output.extend([f"   Haptic ligand(s) bound to metal. Coordination number and geometry not shown"])
+    #        output.extend([""])
+
+    #        for lig in mol.ligandlist:
+    #            output.extend([f"   >> Ligand Formula : {lig.formula}"])
+    #            output.extend([f"   Charge : {lig.totcharge}"])
+    #            if lig.hapticity == True :
+    #                output.extend([f"   Hapticity: {lig.hapttype}"])
+    #            else : 
+    #                output.extend([f"   Denticity: {lig.totmconnec}"])
+    #            output.extend([f"   Smiles: {lig.smiles}"])
+    #            output.extend([""])
+
+    #    elif mol.type == "Other" :
+    #        output.extend([f"[Other] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
+    #        output.extend([f"   Charge: {mol.totcharge}"])
+    #        output.extend([f"   Smiles: {mol.smiles}"])
+    #output = "OK"
+
     dicts = {}
     list_show = []
     for idx, mol in enumerate(cell.moleclist):
-        if mol.type == "Complex":        
+        if mol.iscomplex:        
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
             else:
@@ -283,7 +340,7 @@ def printing_text(cell, output):
                 list_show.append(idx)
 
     for idx, mol in enumerate(cell.moleclist):
-        if mol.type == "Other":     
+        if mol.iscomplex == False:     
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
             else:
@@ -292,41 +349,54 @@ def printing_text(cell, output):
 
     for i in list_show:
         mol=cell.moleclist[i]
-        if mol.type == "Complex": 
+        if mol.iscomplex: 
             output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
             output.extend([f"   Total charge : {mol.totcharge}"])
             output.extend([f"   Spin : {mol.spin}"])
-            output.extend([""])
 
-            if mol.hapticity == False :
-                for met in mol.metalist:
-                    output.extend([f"   >> Metal : {met.label}"])
-                    output.extend([f"   Metal oxidation state : {met.totcharge}"])
-                    output.extend([f"   Coordination number: {met.coordination_number}"])
-                    output.extend([f"   Metal-coordinating atoms: {met.coordinating_atoms}"])
-                    output.extend([f"   Coordination geometry: {met.geometry}\t(*deviation value : {met.deviation})"])
-                    output.extend(["   *deviation value: closer to 0, less distortion in a given geometry"])           
-            else :
-                for met in mol.metalist:
-                    output.extend([f"   >> Metal : {met.label}"])
-                    output.extend([f"   Metal oxidation state : {met.totcharge}"])
-                    output.extend([f"   Haptic ligand(s) bound to metal. Coordination number and geometry not shown"])
-            output.extend([""])
+            for metal in mol.metals:
+                output.extend([f"   >> Metal : {metal.label}"])
+                output.extend([f"   Oxidation state : {metal.charge}"])
+                output.extend([f"   Spin : {metal.spin}"])
+                output.extend([f"   Coordination number: {metal.coord_nr}"])
+                output.extend([f"   Coordination geometry: {metal.coord_geometry}"])
+                output.extend([f"   Coordination sphere formula: {metal.coord_sphere_formula}"])
+                output.extend([f"   Relative metal radius: {metal.rel_metal_radius}"])
+                #output.extend([f"   Valence electrons: {metal.get_valence_electrons(metal.charge)}"])
 
-            for lig in mol.ligandlist:
+            output.extend([""])
+    
+    #        #if mol.is_haptic == False :
+    #        #    for met in mol.metalist:
+    #        #        output.extend([f"   >> Metal : {met.label}"])
+    #        #        output.extend([f"   Metal oxidation state : {met.totcharge}"])
+    #        #        output.extend([f"   Coordination number: {met.coordination_number}"])
+    #        #        output.extend([f"   Metal-coordinating atoms: {met.coordinating_atoms}"])
+    #        #        output.extend([f"   Coordination geometry: {met.geometry}\t(*deviation value : {met.deviation})"])
+    #        #        output.extend(["   *deviation value: closer to 0, less distortion in a given geometry"])           
+    #        #else :
+    #        #    for met in mol.metalist:
+    #        #        output.extend([f"   >> Metal : {met.label}"])
+    #        #        output.extend([f"   Metal oxidation state : {met.totcharge}"])
+    #        #        #output.extend([f"   Haptic type: mol.haptic_type "])
+
+            for lig in mol.ligands:
                 output.extend([f"   >> Ligand Formula : {lig.formula}"])
                 output.extend([f"   Charge : {lig.totcharge}"])
-                if lig.hapticity == True :
-                    output.extend([f"   Hapticity: {lig.hapttype}"])
+                if lig.is_haptic :
+                    output.extend([f"   Hapticity: {lig.haptic_type}"])
                 else : 
-                    output.extend([f"   Denticity: {lig.totmconnec}"])
+                    output.extend([f"   Denticity: {lig.denticity}"])
                 output.extend([f"   Smiles: {lig.smiles}"])
                 output.extend([""])
 
-        elif mol.type == "Other" :
+        else :
             output.extend([f"[Other] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
             output.extend([f"   Charge: {mol.totcharge}"])
             output.extend([f"   Smiles: {mol.smiles}"])
+            output.extend([""])
+
+
 
     return output
 
