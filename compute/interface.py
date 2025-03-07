@@ -350,21 +350,22 @@ def printing_text(cell, output):
     for i in list_show:
         mol=cell.moleclist[i]
         if mol.iscomplex: 
-            output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
-            output.extend([f"   Total charge : {mol.totcharge}"])
-            output.extend([f"   Spin : {mol.spin}"])
+            output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]}) \n"])
+            output.extend([f"   Total charge : {mol.totcharge} \n"])
+            output.extend([f"   Spin : {mol.spin} \n \n"])
+            output.extend(["\n\n"])
 
             for metal in mol.metals:
-                output.extend([f"   >> Metal : {metal.label}"])
-                output.extend([f"   Oxidation state : {metal.charge}"])
-                output.extend([f"   Spin : {metal.spin}"])
-                output.extend([f"   Coordination number: {metal.coord_nr}"])
-                output.extend([f"   Coordination geometry: {metal.coord_geometry}"])
-                output.extend([f"   Coordination sphere formula: {metal.coord_sphere_formula}"])
-                output.extend([f"   Relative metal radius: {metal.rel_metal_radius}"])
+                output.extend([f"   >> Metal : {metal.label}\n"])
+                output.extend([f"   Oxidation state : {metal.charge}\n"])
+                output.extend([f"   Spin : {metal.spin}\n"])
+                output.extend([f"   Coordination number: {metal.coord_nr}\n"])
+                output.extend([f"   Coordination geometry: {metal.coord_geometry}\n"])
+                output.extend([f"   Coordination sphere formula: {metal.coord_sphere_formula}\n"])
+                output.extend([f"   Relative metal radius: {metal.rel_metal_radius}\n"])
+                output.extend(["\n\n"])
                 #output.extend([f"   Valence electrons: {metal.get_valence_electrons(metal.charge)}"])
 
-            output.extend([""])
     
     #        #if mol.is_haptic == False :
     #        #    for met in mol.metalist:
@@ -381,20 +382,20 @@ def printing_text(cell, output):
     #        #        #output.extend([f"   Haptic type: mol.haptic_type "])
 
             for lig in mol.ligands:
-                output.extend([f"   >> Ligand Formula : {lig.formula}"])
-                output.extend([f"   Charge : {lig.totcharge}"])
+                output.extend([f"   >> Ligand Formula : {lig.formula} \n"])
+                output.extend([f"   Charge : {lig.totcharge} \n"])
                 if lig.is_haptic :
-                    output.extend([f"   Hapticity: {lig.haptic_type}"])
+                    output.extend([f"   Hapticity: {lig.haptic_type} \n"])
                 else : 
-                    output.extend([f"   Denticity: {lig.denticity}"])
-                output.extend([f"   Smiles: {lig.smiles}"])
-                output.extend([""])
+                    output.extend([f"   Denticity: {lig.denticity} \n"])
+                output.extend([f"   Smiles: {lig.smiles} \n"])
+                output.extend(["\n\n"])
 
         else :
-            output.extend([f"[Other] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})"])
-            output.extend([f"   Charge: {mol.totcharge}"])
-            output.extend([f"   Smiles: {mol.smiles}"])
-            output.extend([""])
+            output.extend([f"[Other] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})\n"])
+            output.extend([f"   Charge: {mol.totcharge}\n"])
+            output.extend([f"   Smiles: {mol.smiles}\n"])
+            output.extend(["\n\n"])
 
 
 
@@ -591,12 +592,12 @@ def species_list(cell):
                 jmol_list_species[mol.smiles] = " "
             else:
                 jmol_list_species[mol.smiles] += " or "
-            #for nat, atms in enumerate(mol.atoms):
-            jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
-            jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[1]) + " "
-            jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[2]) + "})"
-            #    if nat+1 < len(mol.atoms):
-            #        jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " or "
+            for nat, atms in enumerate(mol.atoms):
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[1]) + " "
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[2]) + "})"
+                if nat+1 < len(mol.atoms):
+                    jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " or "
     
     return jmol_list_species
 

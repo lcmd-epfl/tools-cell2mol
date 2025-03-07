@@ -62,7 +62,29 @@
     <br/>
     <br/>
 
-    {{compound_data}}
+    <!--{{compound_data}}-->
+    *************************************
+    {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%} 
+        cmp_1=   
+        <br/>
+        {{cmp_i}}
+        <br/>
+        cmp_name=   
+        <br/>
+        {{cmp_name}}
+        <br/>
+        Value=
+        <br/>
+        {{jmol_list_species[cmp_name]}}
+        <br/>
+        id=
+        <br/>
+        selectcmp-{{cmp_i}}
+        <br/>
+        <br/>
+
+    {%- endfor %}
+    *************************************
     <br/>
     <br/>
     

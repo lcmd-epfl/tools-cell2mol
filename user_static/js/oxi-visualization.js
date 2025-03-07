@@ -45,7 +45,7 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
 
   if (supercellOptions === undefined) {
     var loadingScript =
-      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; model 0; select all; hideNotSelected = true; zoom 175; '//
+      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; model 0; select all; hideNotSelected = true; zoom 120; '//
       //+ atmCon + ' select all ;';
   } else {
     var loadingScript =
@@ -64,6 +64,7 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
   // set unit cell data
   //loadingScript += "; unitcell \""+ucell+"\"";
   loadingScript += "; frame all; hide none";
+  loadingScript += "; moveto 0 axis x ";
 
   //Jmol.script(jsmolStructureviewer, loadingScript)
     
@@ -126,6 +127,7 @@ function cmpVisibilityUpdate(viewer) {
       visible_cmps_str += (" " + x.elements[i].value + " or");                                                                                             
     }                                                                                                                           
   }                                                                                                                             
+  //alert(x);
   let jmolscript = visible_cmps_str.slice(0,-2);
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;
@@ -156,7 +158,7 @@ function c2mButton(viewer) {
     document.getElementById("label_pos").style.display="none";
     document.getElementById("downloadBtn").style.display="none";
     //var jmolscript = "select all; unitcell true";
-    var jmolscript = "model 0; unitcell true";
+    var jmolscript = "model 0; select all; unitcell true";
   }
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;

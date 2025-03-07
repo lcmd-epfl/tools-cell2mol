@@ -92,6 +92,8 @@ def process_structure_init():
             else:
                 compound_data.append((name, False, svg))
 
+        #flask.flash(str(cmp_lut.keys()))
+        #return flask.redirect(flask.url_for("input_data"))
 
         ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
@@ -105,7 +107,7 @@ def process_structure_init():
         jmolCon = bond_order_connectivity(cell)
         jmol_list_species =species_list(cell) 
 
-        output="Output try"
+        #output="Output try"
         infodata = "info data try"
 
 

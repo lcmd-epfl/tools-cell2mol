@@ -90,11 +90,33 @@
     </div>
 
     
-      <h2>Structure analysis</h2>
+        <h2>Structure analysis</h2>
 
-      <div>                                                                                                                        
-          {{celldata}}
-     </div>
+        <div>                                                                                                                        
+
+            {% set ns = namespace(indent=false) %}
+            {% for id, paragraph in enumerate(celldata) -%}
+                {% if ">>" in paragraph %}
+                    {% set ns.indent = true %}
+                    &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- paragraph -}} </span>
+                {% elif "Complex" in paragraph %}
+                    {% set ns.indent = false %}
+                    <span class="bolded"> {{- paragraph -}} </span>
+                {% elif "Other" in paragraph %}
+                    {% set ns.indent = false %}
+                    <span class="bolded"> {{- paragraph -}} </span>
+                {% else %}
+                    {% if ns.indent == true %}
+                        &numsp;&numsp;&numsp;&numsp;{{- paragraph -}}
+                    {% else %}
+                        {{- paragraph -}}
+                    {% endif %}
+                {% endif %}
+                <br/>
+            {%- endfor %}
+
+
+        </div>
 
     </div>
 </div>
