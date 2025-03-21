@@ -135,6 +135,9 @@ def process_structure_init():
 
         #output = infodata
         #infodata = info file
+        #token.keepalive()
+        tkn_path = token.get_path()
+
         resp = flask.make_response(flask.render_template(
             "user_templates/c2m-view.html",
         #    "user_templates/test.html",
@@ -155,6 +158,7 @@ def process_structure_init():
             enumerate=enumerate, len=len, zip=zip, # needed
             struct_name=token.refcode,
         ))
+        resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
         return resp
 
 
@@ -487,7 +491,7 @@ def process_structure_init():
 
 #>>> D O W N L O A D   C E L L <<<
 
-@blueprint.route("/download-gmol", methods=["GET"])
+@blueprint.route("/process_structure/download-gmol", methods=["GET"])
 def process_structure_download_gmol():
 
     output = Capturing()
