@@ -5,6 +5,7 @@ import io
 import flask
 from .interface import *
 from .tokens import monitoring, Token
+#from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 from cell2mol.unitcell import process_unitcell
 
@@ -76,7 +77,7 @@ def process_structure_init():
         except Exception as e:
             exit_with_error_exception(e)
 
-        #save_cell(cell, 'gmol', token.get_path())
+        save_cell(cell, 'gmol', token.get_path(), token.refcode)
         savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
         savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
         celldata = printing_text(cell, Capturing()) #empty

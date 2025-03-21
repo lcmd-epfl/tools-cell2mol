@@ -1,6 +1,7 @@
 import sys, os, io, re
 sys.path.append(os.path.join(os.path.split(__file__)[0], '../cell2mol'))
 
+import pickle
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
@@ -16,6 +17,18 @@ from cell2mol.read_write import print_molecule
 #from cell2mol.final_c2m_driver import handle_cif_file
 #from cell2mol.cif2info import cif_2_info
 #from cell2mol.c2m_module import save_cell, cell2mol
+
+def save_cell(cell: object, ext: str, output_dir: str, refcode: str):
+    #taken from old cell2mol version. 
+    cellpath = os.path.join(output_dir, "Cell_{}.gmol".format(refcode))
+    with open(cellpath, "wb") as fil:
+        if ext == "gmol":
+            pickle.dump(cell, fil)
+        else:
+            print(ext, "not found as a valid print extension in print_molecule")
+
+
+
 
 def savemolecules_tools(moleclist, output_dir, print_types, option_print_repeated=True):
     # DEFAULTS
