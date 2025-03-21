@@ -28,8 +28,8 @@ upload_structure_block_known_formats = OrderedDict(
 
 upload_structure_block_known_system_type_CIF = OrderedDict(
     {
-        "reference": "Reference",
         "unitcell": "Unit Cell",
+        "reference": "Reference",
     }
 )
 

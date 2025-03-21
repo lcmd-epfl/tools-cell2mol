@@ -44,8 +44,8 @@
                     <label for="systemtypeSelect">Select here the system type:</label>
                 </div>
                 <div class='col-sm-6'>
-                    <select name="systemtype" id="systemtypeSelect" onchange="formatInfo();" autocomplete="off">
-                        <option disabled selected value> -- select an option -- </option>
+                    <select name="systemtype" id="systemtypeSelect" onchange="formatInfo()" autocomplete="off">
+                        <option disabled selected value> -- select a file format -- </option>
                         {# First put the formats the user specified, if existing #}
                         {% for parser_name in config.get('upload_structure_block_known_system_type', []) %}
                             {% if parser_name in upload_structure_block_known_system_type %}
@@ -66,13 +66,13 @@
 
             <div class="row" style="margin-top:1px; margin-bottom:4px;">
 
-                <div id="cifImportantInfo"  hidden>
+                <div id="cifImportantInfo" hidden>
                     <div class='col-sm-6'>
                         <label for="systemtypeSelect">Select here the system type:</label>
                     </div>
                     <div class='col-sm-6'>
-                        <select name="systemtype" id="systemtypeSelect" onchange="formatInfo();" autocomplete="off">
-                            <option disabled selected value> -- select an option -- </option>
+                        <select name="systemtype" id="systemtypeSelect" autocomplete="off">
+                            <option disabled selected value> -- select a system type -- </option>
                             {# First put the formats the user specified, if existing #}
                             {% for parser_name in config.get('upload_structure_block_known_system_type_CIF', []) %}
                                 {% if parser_name in upload_structure_block_known_system_type_CIF %}
@@ -95,8 +95,8 @@
                         <label for="systemtypeSelect">Select here the system type:</label>
                     </div>
                     <div class='col-sm-6'>
-                        <select name="systemtype" id="systemtypeSelect" onchange="formatInfo();" autocomplete="off">
-                            <option disabled selected value> -- select an option -- </option>
+                        <select name="systemtype" id="systemtypeSelect"  autocomplete="off">
+                            <option disabled selected value> -- select a system type -- </option>
                             {# First put the formats the user specified, if existing #}
                             {% for parser_name in config.get('upload_structure_block_known_system_type_XYZ', []) %}
                                 {% if parser_name in upload_structure_block_known_system_type_XYZ %}
@@ -153,11 +153,13 @@
 
 <script>
     function formatInfo() {
+        //document.getElementById(divId).style.display = element.value == "cif-pymatgen" ? 'block' : 'none';
         var inputFileFormat = document.getElementById("fileformatSelect").value;
-        if (inputFileFormat == "cif") {                                                                                                 
+
+        if (inputFileFormat == "cif-pymatgen") {                                                                                                 
             document.getElementById("cifImportantInfo").style.display="block";                                                       
             document.getElementById("xyzImportantInfo").style.display="none";                                                           
-        } else if (inputFileFormat == "xyz") {                                                                                         
+        } else if (inputFileFormat == "xyz-ase") {                                                                                         
             document.getElementById("cifImportantInfo").style.display="none";                                                       
             document.getElementById("xyzImportantInfo").style.display="block";                                                           
         } else {                                                                                                                        
