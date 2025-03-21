@@ -532,7 +532,7 @@ def process_structure_download_gmol():
         )
 
 # >>> D O W N L O A D   M O L <<<
-@blueprint.route("/download-xyzselected", methods=["GET", "POST"])
+@blueprint.route("/process_structure/download-xyzselected", methods=["GET", "POST"])
 def process_structure_download_xyzselected():
     output = Capturing()
     try:
