@@ -32,6 +32,7 @@ def process_structure_init():
     form_data = dict(flask.request.form)
     structurefile = flask.request.files["structurefile"]
     file_ext = os.path.splitext(structurefile.filename)[1]
+    system_type = flask.request.form.get("systemtype", "unknown")
 
     #Only accept files whose extension is equal to the option extension selected
     #if fileformat in file_ext:
@@ -72,95 +73,100 @@ def process_structure_init():
         #cell = process_refcell(token.input_path, token.refcode, token.get_path())
 
         #system_type ==  "unitcell"
-        try:
-            cell = process_unitcell(token.input_path, token.refcode, token.get_path())
-        except Exception as e:
-            exit_with_error_exception(e)
+        if system_type == "unitcell":
+            try:
+                cell = process_unitcell(token.input_path, token.refcode, token.get_path())
+            except Exception as e:
+                exit_with_error_exception(e)
 
-        save_cell(cell, 'gmol', token.get_path(), token.refcode)
-        savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
-        savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
-        celldata = printing_text(cell, Capturing()) #empty
+            save_cell(cell, 'gmol', token.get_path(), token.refcode)
+            savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
+            savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
+            celldata = printing_text(cell, Capturing()) #empty
 
-        cmp_lut = cell_cmp_lut(cell)
-        ht_descs = cell_get_metal_desc(cell, cmp_lut)
-        svgs = cell_to_svgs(cell, cmp_lut)
-        compound_data = []
-        for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-            # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
-            if desc != "":
-                compound_data.append((name, True, desc))
-            else:
-                compound_data.append((name, False, svg))
+            cmp_lut = cell_cmp_lut(cell)
+            ht_descs = cell_get_metal_desc(cell, cmp_lut)
+            svgs = cell_to_svgs(cell, cmp_lut)
+            compound_data = []
+            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+                if desc != "":
+                    compound_data.append((name, True, desc))
+                else:
+                    compound_data.append((name, False, svg))
 
-        #flask.flash(str(cmp_lut.keys()))
-        #return flask.redirect(flask.url_for("input_data"))
+            #flask.flash(str(cmp_lut.keys()))
+            #return flask.redirect(flask.url_for("input_data"))
 
-        ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
-        labels = []
-        for mol in cell.moleclist:
-            for atm in mol.atoms:
-                labels.append(atm.label)
-
-
-        jmol_list_pos = molecules_list(cell)
-        jmolCon = bond_order_connectivity(cell)
-        jmol_list_species =species_list(cell) 
-
-        #output="Output try"
-        infodata = "info data try"
+            labels = []
+            for mol in cell.moleclist:
+                for atm in mol.atoms:
+                    labels.append(atm.label)
 
 
-        #resp = flask.make_response(flask.render_template(
-        #    "user_templates/c2m-view.html",
-        #    output_lines=output,
-        #    #infodata=infodata.strip(),
-        #    celldata=celldata,
-        #    #ucellparams=ucellparams,
-        #    compound_data=compound_data,
-        #    xyzdata=xyzdata,
-        #    labels=labels,
-        #    pos=pos,
-        #    cellvec=cellvec,
-        #    cellparam=cellparam,
-        #    jmol_list_pos=jmol_list_pos,
-        #    jmol_list_species = jmol_list_species,
-        #    jmolCon = jmolCon,
-        #    totmol = len(cell.moleclist),
-        #    enumerate=enumerate, len=len, zip=zip, # needed
-        #    struct_name=token.refcode,
-        #))
+            jmol_list_pos = molecules_list(cell)
+            jmolCon = bond_order_connectivity(cell)
+            jmol_list_species =species_list(cell) 
 
-        #xyzdata = "1 \\n try \\n H 0.0 0.0 0.0 \\n"
+            #output="Output try"
+            infodata = "info data try"
 
-        #output = infodata
-        #infodata = info file
-        #token.keepalive()
-        tkn_path = token.get_path()
 
-        resp = flask.make_response(flask.render_template(
-            "user_templates/c2m-view.html",
-        #    "user_templates/test.html",
-        #    output_lines=output,
-        #    #infodata=infodata.strip(),
-            celldata=celldata,
-            ucellparams=ucellparams,
-            compound_data=compound_data,
-            xyzdata=xyzdata,
-            labels=labels,
-        #    pos=pos,
-        #    cellvec=cellvec,
-        #    cellparam=cellparam,
-            jmol_list_pos=jmol_list_pos,
-            jmol_list_species = jmol_list_species,
-            jmolCon = jmolCon,
-            totmol = len(cell.moleclist),
-            enumerate=enumerate, len=len, zip=zip, # needed
-            struct_name=token.refcode,
-        ))
-        resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-        return resp
+            #resp = flask.make_response(flask.render_template(
+            #    "user_templates/c2m-view.html",
+            #    output_lines=output,
+            #    #infodata=infodata.strip(),
+            #    celldata=celldata,
+            #    #ucellparams=ucellparams,
+            #    compound_data=compound_data,
+            #    xyzdata=xyzdata,
+            #    labels=labels,
+            #    pos=pos,
+            #    cellvec=cellvec,
+            #    cellparam=cellparam,
+            #    jmol_list_pos=jmol_list_pos,
+            #    jmol_list_species = jmol_list_species,
+            #    jmolCon = jmolCon,
+            #    totmol = len(cell.moleclist),
+            #    enumerate=enumerate, len=len, zip=zip, # needed
+            #    struct_name=token.refcode,
+            #))
+
+            #xyzdata = "1 \\n try \\n H 0.0 0.0 0.0 \\n"
+
+            #output = infodata
+            #infodata = info file
+            #token.keepalive()
+            tkn_path = token.get_path()
+
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-view.html",
+            #    "user_templates/test.html",
+            #    output_lines=output,
+            #    #infodata=infodata.strip(),
+                celldata=celldata,
+                ucellparams=ucellparams,
+                compound_data=compound_data,
+                xyzdata=xyzdata,
+                labels=labels,
+            #    pos=pos,
+            #    cellvec=cellvec,
+            #    cellparam=cellparam,
+                jmol_list_pos=jmol_list_pos,
+                jmol_list_species = jmol_list_species,
+                jmolCon = jmolCon,
+                totmol = len(cell.moleclist),
+                enumerate=enumerate, len=len, zip=zip, # needed
+                struct_name=token.refcode,
+            ))
+            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+            return resp
+
+        else:
+            flask.flash("The selected system type is not implemented yet.")
+            return flask.redirect(flask.url_for("input_data"))
 
 
 
