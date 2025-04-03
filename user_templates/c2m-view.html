@@ -79,6 +79,7 @@
 
     <div id="accordion">
     
+    <!--
     <h2>Instructions</h2>
     
     <div>
@@ -88,6 +89,7 @@
         {% endwith %}   
     
     </div>
+    -->
 
     
         <h2>Structure analysis</h2>
@@ -95,7 +97,7 @@
         <div>                                                                                                                        
 
             {% set ns = namespace(indent=false) %}
-            {% for id, paragraph in enumerate(celldata) -%}
+            {% for paragraph in celldata -%}
                 {% if ">>" in paragraph %}
                     {% set ns.indent = true %}
                     &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- paragraph -}} </span>
