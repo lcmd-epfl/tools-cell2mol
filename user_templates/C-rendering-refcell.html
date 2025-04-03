@@ -4,6 +4,9 @@
             <h2> Structure</h2>
             <p><em>Drag to rotate, scroll to zoom, double-click to enable/disable interaction</em></p>
         </div>
+
+
+
         <div id="structure">
             <div class="shadow-box">
                 <div class="plot-diagram">
@@ -37,17 +40,6 @@
                             </label>
                         </div>
 
-                        <!--
-                        <div class="checkbox-option" id="oxlabels">
-                            <label>
-                                <input id="labels-input" style="margin-right:4px" type="checkbox"
-                                    onchange="labelOxStates(jmolApplet, metal_indices, prediction_labels);"
-                                    checked>oxidation state labels
-                                <a href="#" data-toggle="tooltip"
-                                    title="Display oxidation state assignments"><sup>[?]</sup></a>
-                            </label>
-                        </div>
-                        -->
 
                                                                                                             
                     </div>
@@ -84,16 +76,18 @@
                 </div>
                 <form action="./download-xyzselected" target="_blank" method="POST">                                                                                                   
                     <div style="margin-left: 20px; float: left; width: 15%;">
+
                         <select name="atmPos" id="atm_pos" if="atmPosValue" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
-                            {% for num, molOption in enumerate(jmol_list_pos.keys()) %}
+                            {% for molOption in jmol_list_pos.keys() %}
                                 {# in option value, before $ is the model to visualize(mol), and after the name for download#}
-                                <option value='{{ (num+1)|string + "$"+ molOption}}'> 
+                                <option value='{{ ( loop.index0+1 )|string + "$"+ molOption}}'> 
                                     {% if myValue==molOption %} 
                                         {{ molOption }}
                                     {% endif %}{{ molOption }}
                                 </option>
                             {% endfor %}
                         </select>
+
                     </div>
                     <div style="margin-left: 40px; float: right; width: 33%;">
                             <button style="padding: 5px" id="downloadBtn" type="submit" hidden><i class="fa fa-download"></i> Download selected mol (.xyz)</button>         

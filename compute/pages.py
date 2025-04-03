@@ -187,6 +187,8 @@ def process_structure_init():
             #compound_data = []
 
             jmol_list_pos = molecules_list_reference(refMol)
+            #jmolCon = bond_order_connectivity(cell)
+            #jmol_list_species =species_list(cell) 
 
             ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
@@ -195,7 +197,7 @@ def process_structure_init():
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view-refcell.html",
                 celldata=celldata,
-                #ucellparams=ucellparams,
+                ucellparams=ucellparams,
                 #compound_data=compound_data,
                 xyzdata=xyzdata,
                 #labels=labels,
