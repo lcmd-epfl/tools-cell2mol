@@ -29,7 +29,6 @@ def save_cell(cell: object, ext: str, output_dir: str, refcode: str):
 
 
 
-
 def savemolecules_tools(moleclist, output_dir, print_types, option_print_repeated=True):
     # DEFAULTS
     print_xyz = True
@@ -211,6 +210,26 @@ def cell_to_string_xyz(cell, cmplut=None):
 
     allmols = []
     for idx, mols in enumerate(cell.moleclist):                                                                                                   
+
+        if mols.iscomplex:
+            molName = mols.get_parent("reference").name + "_Complex_"+str(idx) 
+        else:
+            molName = mols.get_parent("reference").name + "_Other_"+ str(idx)
+
+        atms = []
+        for atoms in mols.atoms:                                                                                                  
+            x,y,z = atoms.coord
+            Z = atoms.label
+            atms.append(" {:s}    {:8f} {:8f} {:8f}\\n".format(Z,x,y,z))
+        allmols.append( "{:d}\\n {:s}\\n ".format(mols.natoms, molName) + "".join(atms) )
+
+    return celldesc, "".join(allmols)
+
+def refcell_to_string_xyz(cell, cmplut=None):
+    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cell_param))
+
+    allmols = []
+    for idx, mols in enumerate(cell.refmoleclist):                                                                                                   
 
         if mols.iscomplex:
             molName = mols.get_parent("reference").name + "_Complex_"+str(idx) 
@@ -415,6 +434,67 @@ def printing_text(cell, output):
     return output
 
 
+def printing_text_refMol(refcell, output):
+
+    dicts = {}
+    list_show = []
+    for idx, mol in enumerate(refcell.refmoleclist):
+        if mol.iscomplex:        
+            if mol.formula in dicts.keys():
+                dicts[mol.formula] +=1 
+            else:
+                dicts[mol.formula] = 1
+                list_show.append(idx)
+
+    for idx, mol in enumerate(refcell.refmoleclist):
+        if mol.iscomplex == False:     
+            if mol.formula in dicts.keys():
+                dicts[mol.formula] +=1 
+            else:
+                dicts[mol.formula] = 1
+                list_show.append(idx)
+
+    for i in list_show:
+        mol=refcell.refmoleclist[i]
+        if mol.iscomplex: 
+            output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]}) \n"])
+            #output.extend([f"   Total charge : {mol.totcharge} \n"]) #No charge
+            #output.extend([f"   Spin : {mol.spin} \n \n"]) #No spin
+            output.extend(["\n\n"])
+
+            for metal in mol.metals:
+                output.extend([f"   >> Metal : {metal.label}\n"])
+                #output.extend([f"   Oxidation state : {metal.charge}\n"])
+                #output.extend([f"   Spin : {metal.spin}\n"])
+                output.extend([f"   Coordination number: {metal.coord_nr}\n"])
+                output.extend([f"   Coordination geometry: {metal.coord_geometry}\n"])
+                output.extend([f"   Coordination sphere formula: {metal.coord_sphere_formula}\n"])
+                output.extend([f"   Relative metal radius: {metal.rel_metal_radius}\n"])
+                output.extend(["\n\n"])
+
+            for lig in mol.ligands:
+                output.extend([f"   >> Ligand Formula : {lig.formula} \n"])
+                #output.extend([f"   Charge : {lig.totcharge} \n"]) #no charge
+                if lig.is_haptic :
+                    output.extend([f"   Hapticity: {lig.haptic_type} \n"])
+                else : 
+                    output.extend([f"   Denticity: {lig.denticity} \n"])
+                #output.extend([f"   Smiles: {lig.smiles} \n"]) #no smiles available
+                output.extend(["\n\n"])
+
+        else :
+            output.extend([f"[Other] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]})\n"])
+            #output.extend([f"   Charge: {mol.totcharge}\n"]) #no charge
+            #output.extend([f"   Smiles: {mol.smiles}\n"]) #no smiles
+            output.extend(["\n\n"])
+
+
+    return output
+
+
+
+
+
 
 def molecules_list(cell):                                                                                      
     ''' Takes the cell2mol cell object and uses its information to make a list of all the molecules with its respectives
@@ -446,6 +526,36 @@ def molecules_list(cell):
 
     return jmol_list_pos
 
+
+def molecules_list_reference(cell):                                                                                      
+    ''' Takes the cell2mol cell object and uses its information to make a list of all the molecules with its respectives
+    atomic coordinates in a compatible format for jsmol
+
+    Args:
+        cell: the output of cell2mol
+
+    Return:
+        A list containing all the molecules separeted and its respectives atoms coordinates in a string for jsmol
+    '''
+
+    totmol = len(cell.refmoleclist)                                                                                          
+    jmol_list_pos = {}                                                                                                    
+    for idx, mol in enumerate(cell.refmoleclist):                                                                                            
+
+        if mol.iscomplex:
+            molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
+        else:
+            molName = mol.get_parent("reference").name + "_Other_"+ str(idx)
+
+        jmol_list_pos[molName] = " select "                                                                              
+        cont=0                                                                                                            
+        for a in mol.atoms:                                                                                               
+            jmol_list_pos[molName] = jmol_list_pos[molName] + " within " +"(0.1, {" + str(a.coord[0]) + " " + str(a.coord[1]) + " " + str(a.coord[2]) + "})"
+            cont=cont+1                                                                                                   
+            if (cont < mol.natoms):                                                                                       
+                jmol_list_pos[molName] = jmol_list_pos[molName] + " or "                                                
+
+    return jmol_list_pos
 
 
 def bond_order_connectivity(cell):

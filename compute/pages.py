@@ -8,6 +8,7 @@ from .tokens import monitoring, Token
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 from cell2mol.unitcell import process_unitcell
+from cell2mol.refcell import process_refcell
 
 import os
 
@@ -74,6 +75,7 @@ def process_structure_init():
 
         #system_type ==  "unitcell"
         if system_type == "unitcell":
+
             try:
                 cell = process_unitcell(token.input_path, token.refcode, token.get_path())
             except Exception as e:
@@ -138,7 +140,7 @@ def process_structure_init():
 
             #output = infodata
             #infodata = info file
-            #token.keepalive()
+            token.keepalive()
             tkn_path = token.get_path()
 
             resp = flask.make_response(flask.render_template(
@@ -159,6 +161,49 @@ def process_structure_init():
                 jmolCon = jmolCon,
                 totmol = len(cell.moleclist),
                 enumerate=enumerate, len=len, zip=zip, # needed
+                struct_name=token.refcode,
+            ))
+            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+            return resp
+
+        elif system_type == "reference":
+
+            try:
+                refMol = process_refcell(token.input_path, token.refcode, token.get_path())
+                #Change cell to refMolec to avoid confussions
+            except Exception as e:
+                exit_with_error_exception(e)
+
+
+            save_cell(refMol, 'gmol', token.get_path(), token.refcode)
+            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
+            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
+            celldata = printing_text_refMol(refMol, Capturing()) #empty
+
+
+            #refcmp_lut = cell_cmp_lut(refMol)
+            #ht_descs = cell_get_metal_desc(cell, cmp_lut)
+            #svgs = cell_to_svgs(cell, cmp_lut)
+            #compound_data = []
+
+            jmol_list_pos = molecules_list_reference(refMol)
+
+            ucellparams, xyzdata = refcell_to_string_xyz(refMol)
+
+            token.keepalive()
+            tkn_path = token.get_path()
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-view-refcell.html",
+                celldata=celldata,
+                #ucellparams=ucellparams,
+                #compound_data=compound_data,
+                xyzdata=xyzdata,
+                #labels=labels,
+                jmol_list_pos=jmol_list_pos,
+                #jmol_list_species = jmol_list_species,
+                #jmolCon = jmolCon,
+                #totmol = len(cell.refmoleclist),
+                #enumerate=enumerate, len=len, zip=zip, # needed
                 struct_name=token.refcode,
             ))
             resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
