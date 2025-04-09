@@ -689,64 +689,78 @@ def session_keepalive():
 
 @blueprint.route("/process_example_structure/", methods=["POST"])
 def process_structure_example_init():
-
-    output = Capturing()
     
-    # Get structure, file format, file content, and form data
-    # (needed for additional information, e.g. cell in the case
-    # of a XYZ file)
-    fileformat = "cif-pymatgen"#flask.request.form.get("fileformat", "unknown")
-    form_data = dict(flask.request.form)
-    structurefile = open("/home/app/code/webservice/compute/examples/cif/YOXKUS.cif", 'r')#flask.request.files["structurefile"]
+    example_selected=flask.request.form['selected_option']
+    #resp = flask.make_response(flask.render_template(
+    #    "user_templates/test.html",
+    #    prueba=datos,
+    #))
+    #return resp
+
+    if example_selected == "YOXKUS_unitcell":
+        
+        output = Capturing()
+        
+        # Get structure, file format, file content, and form data
+        # (needed for additional information, e.g. cell in the case
+        # of a XYZ file)
+        fileformat = "cif-pymatgen"#flask.request.form.get("fileformat", "unknown")
+        form_data = dict(flask.request.form)
+        structurefile = open("/home/app/code/webservice/compute/examples/cif/YOXKUS.cif", 'r')#flask.request.files["structurefile"]
 
 
-    input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
+        input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
 
-    try:
-        cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
-    except Exception as e:
-        exit_with_error_exception(e)
+        try:
+            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
+        except Exception as e:
+            exit_with_error_exception(e)
 
-    celldata = printing_text(cell, Capturing()) #empty
+        celldata = printing_text(cell, Capturing()) #empty
 
-    cmp_lut = cell_cmp_lut(cell)
-    ht_descs = cell_get_metal_desc(cell, cmp_lut)
-    svgs = cell_to_svgs(cell, cmp_lut)
-    compound_data = []
-    for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-        if desc != "":
-            compound_data.append((name, True, desc))
-        else:
-            compound_data.append((name, False, svg))
-
-
-    ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
-
-    labels = []
-    for mol in cell.moleclist:
-        for atm in mol.atoms:
-            labels.append(atm.label)
+        cmp_lut = cell_cmp_lut(cell)
+        ht_descs = cell_get_metal_desc(cell, cmp_lut)
+        svgs = cell_to_svgs(cell, cmp_lut)
+        compound_data = []
+        for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+            if desc != "":
+                compound_data.append((name, True, desc))
+            else:
+                compound_data.append((name, False, svg))
 
 
-    jmol_list_pos = molecules_list(cell)
-    jmolCon = bond_order_connectivity(cell)
-    jmol_list_species =species_list(cell) 
+        ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
-    resp = flask.make_response(flask.render_template(
-        "user_templates/c2m-view-YOXKUS.html",
-        celldata=celldata,
-        ucellparams=ucellparams,
-        compound_data=compound_data,
-        xyzdata=xyzdata,
-        labels=labels,
-        jmol_list_pos=jmol_list_pos,
-        jmol_list_species = jmol_list_species,
-        jmolCon = jmolCon,
-        totmol = len(cell.moleclist),
-        enumerate=enumerate, len=len, zip=zip, # needed
-        struct_name="YOXKUS",
-    ))
-    return resp
+        labels = []
+        for mol in cell.moleclist:
+            for atm in mol.atoms:
+                labels.append(atm.label)
+
+
+        jmol_list_pos = molecules_list(cell)
+        jmolCon = bond_order_connectivity(cell)
+        jmol_list_species =species_list(cell) 
+
+        resp = flask.make_response(flask.render_template(
+            "user_templates/c2m-view-YOXKUS.html",
+            celldata=celldata,
+            ucellparams=ucellparams,
+            compound_data=compound_data,
+            xyzdata=xyzdata,
+            labels=labels,
+            jmol_list_pos=jmol_list_pos,
+            jmol_list_species = jmol_list_species,
+            jmolCon = jmolCon,
+            totmol = len(cell.moleclist),
+            enumerate=enumerate, len=len, zip=zip, # needed
+            struct_name="YOXKUS",
+        ))
+        return resp
+
+    else:
+
+        flask.flash("The selected example is not implemented yet.")   
+        return flask.redirect(flask.url_for("input_data"))     
 
 
 @blueprint.route("/analysis_YOXKUS", methods=["GET"])
