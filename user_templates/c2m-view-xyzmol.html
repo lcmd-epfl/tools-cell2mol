@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=10">
+
+    <!-- Add CSS, JS, ... here, e.g, these from tools-barebone;  -->
+    <link href="../../static/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="../../static/css/jquery-ui.1.12.1.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_base.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../static/css/visualizer_input.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../user_static/css/viewer.css"/>
+    <link rel="stylesheet" type="text/css" href="../../user_static/css/custom-elements.css"/>
+    <script src="../../user_static/js/keepalive.js"></script>
+    <script src="../../static/js/jquery-3.1.0.min.js"></script>
+    <script src="../../static/js/jquery-ui.1.12.1.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+      <!-- Styles used to show the Structure info (cif2cell results) -->                                                           
+      <style type="text/css">                                                                                                      
+      <!--                                                                                                                         
+       .tab { margin-left: 40px; }                                                                                                 
+       .bolded { font-weight: bold; }                                                                                              
+       .italics { font-style: italic; }                                                                                            
+       .emphasized { font-style: italic;  font-weight: bold; font-size: 1.25em}                                                    
+       .center { text-align: center; }                                                                                             
+      -->                                                                                                                          
+      </style>                                                  
+
+
+    <script type="text/javascript" src="../../user_static/js/three.min.js"></script>
+    <!--<script type="text/javascript" src="../static/js/BZVisualizer.min.js"></script>
+    <script type="text/javascript" src="../static/js/webglcheck.min.js"></script>-->
+    <script type="text/javascript" src="../../user_static/js/jsmol/JSmol.min.nojq.js"></script>
+    <script type="text/javascript" src="../../user_static/js/oxi-visualization.js"></script>
+
+    <!-- If you add things in a user_static folder, you will be able to access it via ../../user_static/xxx -->
+
+    <title>cell2mol Display</title>
+
+    <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
+    <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
+
+                                                                                                                                      
+    <script>                                                                                                                      
+        $( function() {                                                                                                           
+            $( "#accordion" ).accordion({                                                                                         
+                collapsible: true,                                                                                                
+                heightStyle: "content", // Avoid that all have the same height                                                    
+                active: false  // Start all closed                                                                                
+            });                                                                                                                   
+                                                                                                                                  
+        });                                                                                                                       
+    </script>                                                                                                                     
+                      
+
+</head>
+
+
+<body>
+
+<div id='container'>
+
+    <div style="padding: 15px;">                                                                                                  
+        <form action="/">                                                                                                         
+            <button type="submit" class="btn btn-primary">Compute other cif file</button>                                                        
+        </form>                                                                                                                   
+    </div>                       
+
+    <div id='maintitle'>
+        <h1 style="text-align: center;">cell2mol Structure display</h1>
+    </div>
+    <div id="kal-warning"><h2 class="user-warn">WARNING: keepalive not active: this session will be lost 5 minutes after the last action. To avoid this, please allow the execution of javascript (more specifically this tool's "keepalive.js")<br/>Moreover, the JS-based compound renderer will not work.</h2></div>
+    <h2>Structure {{struct_name}} on display</h2>
+
+
+    <div id="accordion">
+    
+    <!--
+    <h2>Instructions</h2>
+    
+    <div>
+   
+        {% with step=4 %}                                                                                                                 
+            {% include 'user_templates/INST.j2' %}                                                                                        
+        {% endwith %}   
+    
+    </div>
+    -->
+
+    
+        <h2>Structure analysis</h2>
+
+        <div>                                                                                                                        
+
+            {% set ns = namespace(indent=false) %}
+            {% for paragraph in celldata -%}
+                {% if ">>" in paragraph %}
+                    {% set ns.indent = true %}
+                    &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- paragraph -}} </span>
+                {% elif "Complex" in paragraph %}
+                    {% set ns.indent = false %}
+                    <span class="bolded"> {{- paragraph -}} </span>
+                {% elif "Other" in paragraph %}
+                    {% set ns.indent = false %}
+                    <span class="bolded"> {{- paragraph -}} </span>
+                {% else %}
+                    {% if ns.indent == true %}
+                        &numsp;&numsp;&numsp;&numsp;{{- paragraph -}}
+                    {% else %}
+                        {{- paragraph -}}
+                    {% endif %}
+                {% endif %}
+                <br/>
+            {%- endfor %}
+
+        </div>
+
+    </div>
+</div>
+
+<div class="paneviewer">
+    
+    <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;margin-left:2px;">
+        {% include 'user_templates/C-rendering-xyzmol.html' %}
+    </div>
+
+</div>
+
+
+<div class="text-center">
+<form action="./download-gmol" target="_blank">
+  <button class="btn btn-default" type="submit">Download cell (.gmol)</button>
+</form>
+</div>
+
+<div id='container'>
+    <div style="padding: 15px; float: right;">                                                                                                  
+        <form action="/">                                                                                                         
+            <button type="submit" class="btn btn-primary">Compute other cif file</button>                                                        
+        </form>                                                                                                                   
+    </div>                       
+</div>                       
+
+
+<!-- Important: leave this tag as the *very last* in your page, just before the end of the body -->
+<!-- It is needed to properly detect the size of the iframe -->
+<div style ="position: relative" data-iframe-height></div>
+</body>
+</html>

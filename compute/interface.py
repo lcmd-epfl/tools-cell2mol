@@ -206,7 +206,7 @@ def cell_get_metal_desc(cell, cmplut):
 #    return celldesc, "".join(mols)
 
 def cell_to_string_xyz(cell, cmplut=None):
-    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cell_param))
+    celldesc = "{:f},{:f},{:f},{:f},{:f},{:f}".format(*tuple(cell.cell_param))
 
     allmols = []
     for idx, mols in enumerate(cell.moleclist):                                                                                                   
@@ -226,7 +226,7 @@ def cell_to_string_xyz(cell, cmplut=None):
     return celldesc, "".join(allmols)
 
 def refcell_to_string_xyz(cell, cmplut=None):
-    celldesc = "a={:f},b={:f},c={:f},alpha={:f},beta={:f},gamma={:f}".format(*tuple(cell.cell_param))
+    celldesc = "{:f},{:f},{:f},{:f},{:f},{:f}".format(*tuple(cell.cell_param))
 
     allmols = []
     for idx, mols in enumerate(cell.refmoleclist):                                                                                                   
@@ -245,6 +245,27 @@ def refcell_to_string_xyz(cell, cmplut=None):
 
     return celldesc, "".join(allmols)
 
+def molxyz_to_string_xyz(mol, xyzCellVec, cmplut=None):
+
+    celldesc = "{:f}, {:f}, {:f}, ".format(*tuple(xyzCellVec[0]))
+    celldesc = celldesc + "{:f}, {:f}, {:f}, ".format(*tuple(xyzCellVec[1]))
+    celldesc = celldesc + "{:f}, {:f}, {:f} ".format(*tuple(xyzCellVec[2]))
+
+    allmols = []
+
+    if mol.iscomplex:
+        molName = "Complex"
+    else:
+        molName = "Other"
+
+    atms = []
+    for atoms in mol.atoms:                                                                                                  
+        x,y,z = atoms.coord
+        Z = atoms.label
+        atms.append(" {:s}    {:8f} {:8f} {:8f}\\n".format(Z,x,y,z))
+    allmols.append( "{:d}\\n {:s}\\n ".format(mol.natoms, molName) + "".join(atms) )
+
+    return celldesc, "".join(allmols)
 
 re__svghead = re.compile(r"<\?xml.*?\?>")
 re__svgbackground = re.compile(r"<rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='[0-9.]+' height='[0-9.]+' x='[0-9.]+' y='[0-9.]+'> </rect>")
@@ -492,6 +513,42 @@ def printing_text_refMol(refcell, output):
     return output
 
 
+def printing_text_molxyz(mol, output):
+
+    if mol.iscomplex: 
+        output.extend([f"[Complex] Formula : {mol.formula}\t \n"])
+        #output.extend([f"   Total charge : {mol.totcharge} \n"]) #No charge
+        #output.extend([f"   Spin : {mol.spin} \n \n"]) #No spin
+        output.extend(["\n\n"])
+
+        for metal in mol.metals:
+            output.extend([f"   >> Metal : {metal.label}\n"])
+            #output.extend([f"   Oxidation state : {metal.charge}\n"])
+            #output.extend([f"   Spin : {metal.spin}\n"])
+            output.extend([f"   Coordination number: {metal.coord_nr}\n"])
+            output.extend([f"   Coordination geometry: {metal.coord_geometry}\n"])
+            output.extend([f"   Coordination sphere formula: {metal.coord_sphere_formula}\n"])
+            output.extend([f"   Relative metal radius: {metal.rel_metal_radius}\n"])
+            output.extend(["\n\n"])
+
+        for lig in mol.ligands:
+            output.extend([f"   >> Ligand Formula : {lig.formula} \n"])
+            #output.extend([f"   Charge : {lig.totcharge} \n"]) #no charge
+            if lig.is_haptic :
+                output.extend([f"   Hapticity: {lig.haptic_type} \n"])
+            else : 
+                output.extend([f"   Denticity: {lig.denticity} \n"])
+            #output.extend([f"   Smiles: {lig.smiles} \n"]) #no smiles available
+            output.extend(["\n\n"])
+
+    else :
+        output.extend([f"[Other] Formula : {mol.formula}\t \n"])
+        #output.extend([f"   Charge: {mol.totcharge}\n"]) #no charge
+        #output.extend([f"   Smiles: {mol.smiles}\n"]) #no smiles
+        output.extend(["\n\n"])
+
+
+    return output
 
 
 

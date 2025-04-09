@@ -9,6 +9,7 @@ from .tokens import monitoring, Token
 #from cell2mol.read_write import savemolecules, writexyz
 from cell2mol.unitcell import process_unitcell
 from cell2mol.refcell import process_refcell
+from cell2mol.xyz_molecule import get_molecule
 
 import os
 
@@ -38,7 +39,7 @@ def process_structure_init():
     #Only accept files whose extension is equal to the option extension selected
     #if fileformat in file_ext:
 
-    token = Token(structurefile)        
+    token = Token(structurefile, fileformat)        
     output += [
         "structure_file: "+ repr(dir(structurefile)),
         "form_data: "+ repr(form_data),
@@ -181,14 +182,7 @@ def process_structure_init():
             celldata = printing_text_refMol(refMol, Capturing()) #empty
 
 
-            #refcmp_lut = cell_cmp_lut(refMol)
-            #ht_descs = cell_get_metal_desc(cell, cmp_lut)
-            #svgs = cell_to_svgs(cell, cmp_lut)
-            #compound_data = []
-
             jmol_list_pos = molecules_list_reference(refMol)
-            #jmolCon = bond_order_connectivity(cell)
-            #jmol_list_species =species_list(cell) 
 
             ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
@@ -198,14 +192,8 @@ def process_structure_init():
                 "user_templates/c2m-view-refcell.html",
                 celldata=celldata,
                 ucellparams=ucellparams,
-                #compound_data=compound_data,
                 xyzdata=xyzdata,
-                #labels=labels,
                 jmol_list_pos=jmol_list_pos,
-                #jmol_list_species = jmol_list_species,
-                #jmolCon = jmolCon,
-                #totmol = len(cell.refmoleclist),
-                #enumerate=enumerate, len=len, zip=zip, # needed
                 struct_name=token.refcode,
             ))
             resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
@@ -342,6 +330,65 @@ def process_structure_init():
         #))
         #resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
         #return resp
+    
+    elif fileformat == "xyz-ase" and file_ext == ".xyz":
+        
+        xyzCellVec = np.zeros((3,3))
+
+        try:
+            xyzCellVec[0,0] = flask.request.form.get("xyzCellVecAx", "unknown")
+            xyzCellVec[0,1] = flask.request.form.get("xyzCellVecAy", "unknown")
+            xyzCellVec[0,2] = flask.request.form.get("xyzCellVecAz", "unknown")
+            xyzCellVec[1,0] = flask.request.form.get("xyzCellVecBx", "unknown")
+            xyzCellVec[1,1] = flask.request.form.get("xyzCellVecBy", "unknown")
+            xyzCellVec[1,2] = flask.request.form.get("xyzCellVecBz", "unknown")
+            xyzCellVec[2,0] = flask.request.form.get("xyzCellVecCx", "unknown")
+            xyzCellVec[2,1] = flask.request.form.get("xyzCellVecCy", "unknown")
+            xyzCellVec[2,2] = flask.request.form.get("xyzCellVecCz", "unknown")
+        except Exception as e:
+            flask.flash("Please add all cell vectors components")
+            return flask.redirect(flask.url_for("input_data"))
+        
+        if system_type == "molecule":
+
+            try:
+                mol = get_molecule(token.input_path, token.refcode, token.get_path())
+                #Change cell to refMolec to avoid confussions
+            except Exception as e:
+                exit_with_error_exception(e)
+
+
+            save_cell(mol, 'gmol', token.get_path(), token.refcode)
+
+            #savemolecules_tools(mol, token.get_path(), 'xyz') #its already the input
+            #savemolecules_tools(mol, token.get_path(), 'gmol') #will be the same as the cell
+
+            celldata = printing_text_molxyz(mol, Capturing()) #empty
+
+
+            #jmol_list_pos = molecules_list_reference(refMol)
+
+            ucellparams, xyzdata = molxyz_to_string_xyz(mol, xyzCellVec)
+            
+            token.keepalive()
+            tkn_path = token.get_path()
+            resp = flask.make_response(flask.render_template(
+            #    "user_templates/test.html",
+            #    prueba=ucellparams+xyzdata,
+                "user_templates/c2m-view-xyzmol.html",
+                celldata=celldata,
+                ucellparams=ucellparams,
+                xyzdata=xyzdata,
+            #    jmol_list_pos=jmol_list_pos,
+                struct_name=token.refcode,
+            ))
+            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+            return resp
+
+        else:
+            flask.flash("The selected system type is not implemented yet.")
+            return flask.redirect(flask.url_for("input_data"))
+
 
     elif fileformat =="unknown":
         flask.flash("Please select a file format.")

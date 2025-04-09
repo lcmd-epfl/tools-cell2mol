@@ -45,7 +45,7 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
 
   if (supercellOptions === undefined) {
     var loadingScript =
-      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; model 0; select all; hideNotSelected = true; zoom 120; '//
+      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell [' + ucell + ']; unitcell true; model 0; select all; hideNotSelected = true; zoom 120; '//
       //+ atmCon + ' select all ;';
   } else {
     var loadingScript =
@@ -63,7 +63,7 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
 
   // set unit cell data
   //loadingScript += "; unitcell \""+ucell+"\"";
-  loadingScript += "; frame all; hide none";
+  loadingScript += "; frame all; hide none; frank off";
   loadingScript += "; moveto 0 axis x ";
 
   //Jmol.script(jsmolStructureviewer, loadingScript)
