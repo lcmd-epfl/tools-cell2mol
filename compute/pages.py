@@ -689,61 +689,64 @@ def session_keepalive():
 
 @blueprint.route("/process_example_structure/", methods=["POST"])
 def process_structure_example_init():
-    """Example view to process a crystal structure."""
 
     output = Capturing()
     
     # Get structure, file format, file content, and form data
     # (needed for additional information, e.g. cell in the case
     # of a XYZ file)
-    fileformat = "cif"#flask.request.form.get("fileformat", "unknown")
+    fileformat = "cif-pymatgen"#flask.request.form.get("fileformat", "unknown")
     form_data = dict(flask.request.form)
     structurefile = open("/home/app/code/webservice/compute/examples/cif/YOXKUS.cif", 'r')#flask.request.files["structurefile"]
 
 
-    output += [
-        "structure_file: "+ repr(dir(structurefile)),
-        "form_data: "+ repr(form_data),
-        "file_format: "+ repr(fileformat),
-        "code: " + "YOXKUS",
-    ]
+    input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
+
+    try:
+        cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
+    except Exception as e:
+        exit_with_error_exception(e)
+
+    celldata = printing_text(cell, Capturing()) #empty
+
+    cmp_lut = cell_cmp_lut(cell)
+    ht_descs = cell_get_metal_desc(cell, cmp_lut)
+    svgs = cell_to_svgs(cell, cmp_lut)
+    compound_data = []
+    for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+        if desc != "":
+            compound_data.append((name, True, desc))
+        else:
+            compound_data.append((name, False, svg))
 
 
-    #############################
-    # STEP 2: Run cell2info
-    #############################
-    with output as _out:
-        info_path="/home/app/code/webservice/compute/examples/cif/info.txt"
-        error_path="/home/app/code/webservice/compute/examples/cif/err.txt"
-        cif_2_info("/home/app/code/webservice/compute/examples/cif/YOXKUS.cif", info_path, error_path)
-    error = False
-    with open(error_path, 'r') as err:
-        for line in err.readlines():
-            if "Error" in line:
-                output.append(line)
-                error = True
-    if error :
-        output.append(f"Parsing of .cif file failed due to the error above.")
-    else :
-        output.append(f"Infofile generated succesfully.")
+    ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
+    labels = []
+    for mol in cell.moleclist:
+        for atm in mol.atoms:
+            labels.append(atm.label)
 
 
-    with open(info_path, 'r') as f:
-        infodata = f.read()
-        output.append(infodata)
-    
+    jmol_list_pos = molecules_list(cell)
+    jmolCon = bond_order_connectivity(cell)
+    jmol_list_species =species_list(cell) 
 
     resp = flask.make_response(flask.render_template(
-        "user_templates/c2m-infopage-YOXKUS.html",
-        output_lines=output,
-        infodata=infodata,
-        enumerate=enumerate, len=len,  # why is this needed?
-        #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
-        struct_name="YOXKUS"#token.refcode,
+        "user_templates/c2m-view-YOXKUS.html",
+        celldata=celldata,
+        ucellparams=ucellparams,
+        compound_data=compound_data,
+        xyzdata=xyzdata,
+        labels=labels,
+        jmol_list_pos=jmol_list_pos,
+        jmol_list_species = jmol_list_species,
+        jmolCon = jmolCon,
+        totmol = len(cell.moleclist),
+        enumerate=enumerate, len=len, zip=zip, # needed
+        struct_name="YOXKUS",
     ))
-    #resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') #secure must be True for final version
     return resp
-
 
 
 @blueprint.route("/analysis_YOXKUS", methods=["GET"])
@@ -793,84 +796,79 @@ def process_structure_analysis_YOXKUS():
 
 
 
-@blueprint.route("/view-gmol-YOXKUS", methods=["GET"])
+@blueprint.route("compute/view-gmol-YOXKUS/", methods=["GET"])
 def process_structure_view_YOXKUS():
 
-    output = Capturing()
+    #output = Capturing()
 
-    info_path="/home/app/code/webservice/compute/examples/cif/info.txt"
-    analysis_path="/home/app/code/webservice/compute/examples/cif/cell.txt"
-    cell_path="/home/app/code/webservice/compute/examples/cif/Cell_YOXKUS.gmol"
-    labels, pos, lfracs, fracs, cellvec, cellparam = readinfo(info_path)
-    with open(info_path, 'r') as f:
-        infodata = f.read()
-        output.append(infodata)
-    with open(analysis_path, 'r') as f:
-        celldata = f.read()
-        output.append(celldata)
-    with open(cell_path, 'rb') as f:
-        cell = pickle.load(f)
+    #input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
 
-    cmp_lut = cell_cmp_lut(cell)
-    ht_descs = cell_get_metal_desc(cell, cmp_lut)
-    svgs = cell_to_svgs(cell, cmp_lut)
-    compound_data = []
-    for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-        # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
-        if desc != "":
-            compound_data.append((name, True, desc))
-        else:
-            compound_data.append((name, False, svg))
-    
+    #try:
+    #    cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
+    #except Exception as e:
+    #    exit_with_error_exception(e)
+
+    #celldata = printing_text(cell, Capturing()) #empty
+
+    #cmp_lut = cell_cmp_lut(cell)
+    #ht_descs = cell_get_metal_desc(cell, cmp_lut)
+    #svgs = cell_to_svgs(cell, cmp_lut)
+    #compound_data = []
+    #for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+    #    if desc != "":
+    #        compound_data.append((name, True, desc))
+    #    else:
+    #        compound_data.append((name, False, svg))
+
 
     #ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
-    ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
-    #string used by jsmol to define the molecules/complexes, and the connectivity respectively
-    jmol_list_pos = molecules_list(cell)
-    jmolCon = bond_order_connectivity(cell)
-    jmol_list_species =species_list(cell) 
+    #labels = []
+    #for mol in cell.moleclist:
+    #    for atm in mol.atoms:
+    #        labels.append(atm.label)
+
+
+    #jmol_list_pos = molecules_list(cell)
+    #jmolCon = bond_order_connectivity(cell)
+    #jmol_list_species =species_list(cell) 
 
     resp = flask.make_response(flask.render_template(
-        "user_templates/c2m-view-YOXKUS.html",
-        output_lines=output,
-        infodata=infodata.strip(),
-        celldata=celldata,
-        ucellparams=ucellparams,
-        compound_data=compound_data,
-        xyzdata=xyzdata,
-        labels=labels,
-        pos=pos,
-        cellvec=cellvec,
-        cellparam=cellparam,
-        jmol_list_pos=jmol_list_pos,
-        jmol_list_species = jmol_list_species,
-        jmolCon = jmolCon,
-        totmol = len(cell.moleclist),
-        enumerate=enumerate, len=len, zip=zip, # needed
-        #token_path=tkn_path.replace('/','_'), #blueprint.url_for('process_structure','analysis', token=tkn_path.replace('/','_')),
-        struct_name="YOXKUS",
+        "user_templates/test.html",
+        prueba="HOLA",
+    #    "user_templates/c2m-view-YOXKUS.html",
+    #    celldata=celldata,
+    #    ucellparams=ucellparams,
+    #    compound_data=compound_data,
+    #    xyzdata=xyzdata,
+    #    labels=labels,
+    #    jmol_list_pos=jmol_list_pos,
+    #    jmol_list_species = jmol_list_species,
+    #    jmolCon = jmolCon,
+    #    totmol = len(cell.moleclist),
+    #    enumerate=enumerate, len=len, zip=zip, # needed
+    #    struct_name=token.refcode,
     ))
     return resp
 
     
-@blueprint.route("/download-gmol-YOXKUS", methods=["GET"])
+@blueprint.route("/process_example_structure/download-gmol-YOXKUS", methods=["GET"])
 def process_structure_download_gmol_YOXKUS():
 
     output = Capturing()
 
-    cell_path="/home/app/code/webservice/compute/examples/cif/Cell_YOXKUS.gmol"
+    cell_path="/home/app/code/webservice/compute/examples/cif/results/Cell_YOXKUS.gmol"
     headers = {"Content-Disposition": f"attachment; filename=Cell_YOXKUS.gmol"}
     with open(cell_path, 'rb') as f:
         body = f.read()
     return flask.make_response((body, headers))
 
-@blueprint.route("/download-xyzselected-YOXKUS", methods=["GET", "POST"])
+@blueprint.route("/process_example_structure/download-xyzselected-YOXKUS", methods=["GET", "POST"])
 def process_structure_download_xyzselected_YOXKUS():
     output = Capturing()
 
     #Get name from last part of atmPos
-    tkn_path="/home/app/code/webservice/compute/examples/cif/"
+    tkn_path="/home/app/code/webservice/compute/examples/cif/results/"
     xyzfile = str(flask.request.form.get("atmPos","unknown")).split('$')[1]
     #add the extension
     xyzfile = xyzfile + ".xyz"

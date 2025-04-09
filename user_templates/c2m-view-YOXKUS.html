@@ -31,11 +31,11 @@
       </style>                                                  
 
 
-    <script type="text/javascript" src="../user_static/js/three.min.js"></script>
+    <script type="text/javascript" src="../../user_static/js/three.min.js"></script>
     <!--<script type="text/javascript" src="../static/js/BZVisualizer.min.js"></script>
     <script type="text/javascript" src="../static/js/webglcheck.min.js"></script>-->
-    <script type="text/javascript" src="../user_static/js/jsmol/JSmol.min.nojq.js"></script>
-    <script type="text/javascript" src="../user_static/js/oxi-visualization.js"></script>
+    <script type="text/javascript" src="../../user_static/js/jsmol/JSmol.min.nojq.js"></script>
+    <script type="text/javascript" src="../../user_static/js/oxi-visualization.js"></script>
 
     <!-- If you add things in a user_static folder, you will be able to access it via ../../user_static/xxx -->
 
@@ -79,6 +79,7 @@
 
     <div id="accordion">
     
+    <!--
     <h2>Instructions</h2>
     
     <div>
@@ -88,79 +89,36 @@
         {% endwith %}   
     
     </div>
-    
-    
-    <h2>Structure information</h2>
-
-    <div>
-                                                                                                                                   
-      {% for paragraph_id,paragraph in enumerate(infodata.split('\n\n')) -%}                                                       
-      {% set paragraph = paragraph.split('\n')-%}                                                                                  
-                                                                                                                                   
-      <p style="font-family=mono;" class="tab">                                                                                    
-          {% for line_id,line in enumerate(paragraph) -%}                                                                          
-              {% if paragraph_id == 0 and line_id == 0 %} <!-- cif2cell information -->                                            
-                  <div class="center"> <span class="emphasized"> {{- line -}} </span> </div>                                       
-              {% elif paragraph_id == 0 and line_id != 0 %}                                                                        
-                  <div class="center"> <span class="italics"> {{- line -}} </span> </div>                                          
-              {% else %} <!-- structure information -->                                                                            
-                  {% if "INFORMATION" in line %} <!-- headers -->                                                                  
-                      <br/>                                                                                                        
-                      &nbsp;&nbsp;&nbsp;&nbsp; <span class="bolded">{{- line -}}</span>                                            
-                      {% if "BIBLIOGRAPHIC" in line %} <!-- bibliographic header to match format of other headers -->              
-                          <br/>                                                                                                    
-                      {% endif %}                                                                                                  
-                  {% else %} <!-- not headers -->                                                                                  
-                      {% if ":" in line %} <!-- contain ":", then is  -->                                                          
-                          <br/>                                                                                                    
-                      {% endif %}                                                                                                  
-                      {{- line -}}                                                                                                 
-                  {% endif%}                                                                                                       
-              {% endif %}                                                                                                          
-              {%if line_id+1 < len(paragraph)-%}                                                                                    
-                  <br/>                                                                                                            
-              {%-endif%}                                                                                                           
-          {%-endfor%}                                                                                                              
-      {%- endfor %}                                                                                                                
-      </p>                                                                                                                         
-                                                                                                                                   
-      </div>                                                                                                                       
+    -->
 
     
-      <h2>Structure analysis</h2>
+        <h2>Structure analysis</h2>
 
-      <div>                                                                                                                        
-    {% for paragraph in celldata.split('\n\n') -%}                                                                                
-         {% set paragraph = paragraph.split('\n')-%}                                                                              
-         <p style="font-family=mono;" class="tab">                                                                                
-                                                                                                                                  
-         {% if ">>" in paragraph|join %}                                                                                          
-            {% for line_id,line in enumerate(paragraph) -%}                                                                       
-            {% if ">>" in line %}                                                                                                 
-                &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- line -}} </span>                                                
-            {% else %}                                                                                                            
-                &numsp;&numsp;&numsp;&numsp;{{- line -}}                                                                              
-            {%endif%}                                                                                                             
-            <br/>                                                                                                                 
-            {%-endfor%}                                                                                                           
-         {% else %}                                                                                                               
-            {% for line_id,line in enumerate(paragraph) -%}                                                                       
-            {% if "Complex" in line %}                                                                                            
-                <span class="bolded"> {{- line -}} </span>                                                                        
-            {% elif "[Other]" in line %}                                                                                          
-                <span class="bolded"> {{- line -}} </span>                                                                        
-            {% else %}                                                                                                            
-                {{- line -}}                                                                                                      
-            {% endif %}                                                                                                           
-            <br/>                                                                                                                 
-            {%-endfor%}                                                                                                           
-         {%endif%}                                                                                                                
-                                                                                                                                  
-         </p>                                                                                                                          
-    {%- endfor %}                 
+        <div>                                                                                                                        
+
+            {% set ns = namespace(indent=false) %}
+            {% for paragraph in celldata -%}
+                {% if ">>" in paragraph %}
+                    {% set ns.indent = true %}
+                    &numsp;&numsp;&numsp;&numsp;<span class="bolded"> {{- paragraph -}} </span>
+                {% elif "Complex" in paragraph %}
+                    {% set ns.indent = false %}
+                    <span class="bolded"> {{- paragraph -}} </span>
+                {% elif "Other" in paragraph %}
+                    {% set ns.indent = false %}
+                    <span class="bolded"> {{- paragraph -}} </span>
+                {% else %}
+                    {% if ns.indent == true %}
+                        &numsp;&numsp;&numsp;&numsp;{{- paragraph -}}
+                    {% else %}
+                        {{- paragraph -}}
+                    {% endif %}
+                {% endif %}
+                <br/>
+            {%- endfor %}
 
 
-     </div>
+        </div>
     </div>
 </div>
 
@@ -181,7 +139,7 @@
         </div>
     </form>
     
-    <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;margin-left:2px;">
+    <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;overflow:hidden;">
         {% include 'user_templates/C-rendering-YOXKUS.j2' %}
     </div>
 </div>
