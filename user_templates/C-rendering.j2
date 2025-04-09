@@ -19,7 +19,7 @@
                 </div>
             </div>
 
-            <div class="jsmol-options" style="margin-top: 20px; margin-left: 20px;">
+            <div class="jsmol-options" style="margin-left: 20px;">
 
                 <div class="option-section">
                     <h4 class="inline-header">Camera:</h4>
@@ -78,12 +78,12 @@
                 {# <input id="unpacked-input" style="margin-right:4px" type="checkbox" onchange="showUnpacked(jmolApplet);">unpacked #}
             </div>
 
-            <div class="container" style="margin: 15px;">
-                <div style="margin-left: 30px; float:left; width: 33%;">
+            <div class="xyzSelect" >
+                <div style="float:left; width: 220px;">
                     <label id="label_pos" style="text-align:right" hidden> Choose one structure to visualize:    </label>
                 </div>
                 <form action="./download-xyzselected" target="_blank" method="POST">                                                                                                   
-                    <div style="margin-left: 20px; float: left; width: 15%;">
+                    <div style="margin-left: 20px; float: left; width: fit-content;">
                         <select name="atmPos" id="atm_pos" if="atmPosValue" hidden  style="margin-left:5px; border-radius: 12px;"  onchange="showUnpacked(jmolApplet);">
                             {% for num, molOption in enumerate(jmol_list_pos.keys()) %}
                                 {# in option value, before $ is the model to visualize(mol), and after the name for download#}
@@ -95,8 +95,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div style="margin-left: 40px; float: right; width: 33%;">
-                            <button style="padding: 5px" id="downloadBtn" type="submit" hidden><i class="fa fa-download"></i> Download selected mol (.xyz)</button>         
+                    <div style="margin-right: 20px; float: right; width: 220px;">
+                            <button  class="btn-xyz-download btn-default" id="downloadBtn" type="submit" hidden>  Download selected mol (.xyz)</button>         
                     </div>
                 </form>                                                                                                                           
             </div>
