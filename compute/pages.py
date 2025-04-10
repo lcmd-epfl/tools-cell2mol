@@ -77,10 +77,31 @@ def process_structure_init():
         #system_type ==  "unitcell"
         if system_type == "unitcell":
 
+            #flask.flash(token.get_path())
+            #return flask.redirect(flask.url_for("input_data"))
+
             try:
                 cell = process_unitcell(token.input_path, token.refcode, token.get_path())
             except Exception as e:
-                exit_with_error_exception(e)
+                msg = "Failure…"
+                output += traceback.format_tb(e.__traceback__)
+                output.append(repr(e))
+                return flask.render_template(
+                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                        )
+
+            #error = False
+
+            #with open(token.error_path, 'r') as err:
+            #    for line in err.readlines():
+            #        if "Error" in line:
+            #            output.append(line)
+            #            error = True
+
+            #if error :
+            #    flask.flash("Something went wrong")
+            #    return flask.redirect(flask.url_for("input_data"))
+
 
             save_cell(cell, 'gmol', token.get_path(), token.refcode)
             savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
@@ -173,7 +194,12 @@ def process_structure_init():
                 refMol = process_refcell(token.input_path, token.refcode, token.get_path())
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
-                exit_with_error_exception(e)
+                msg = "Failure…"
+                output += traceback.format_tb(e.__traceback__)
+                output.append(repr(e))
+                return flask.render_template(
+                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                        )
 
 
             save_cell(refMol, 'gmol', token.get_path(), token.refcode)
@@ -355,7 +381,13 @@ def process_structure_init():
                 mol = get_molecule(token.input_path, token.refcode, token.get_path())
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
-                exit_with_error_exception(e)
+                msg = "Failure…"
+                output += traceback.format_tb(e.__traceback__)
+                output.append(repr(e))
+                return flask.render_template(
+                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                        )
+
 
 
             save_cell(mol, 'gmol', token.get_path(), token.refcode)
@@ -714,7 +746,13 @@ def process_structure_example_init():
         try:
             cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
         except Exception as e:
-            exit_with_error_exception(e)
+                msg = "Failure…"
+                output += traceback.format_tb(e.__traceback__)
+                output.append(repr(e))
+                return flask.render_template(
+                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                        )
+
 
         celldata = printing_text(cell, Capturing()) #empty
 

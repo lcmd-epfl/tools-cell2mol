@@ -1,8 +1,6 @@
 
 
 
-
-
 <style>
 /* Basic styling for the custom dropdown */
 .custom-dropdown {
@@ -13,7 +11,7 @@
 
 .custom-dropdown select {
     width: 100%;
-    padding: 10px;
+    /*padding: 10px;*/
     font-size: 16px;
     cursor: pointer;
     display: none; /* Hide the native select element */
@@ -21,21 +19,24 @@
 
 .dropdown-button {
     width: 100%;
-    padding: 10px;
+    /*padding: 10px;*/
     background-color: #f0f0f0;
     border: 1px solid #ccc;
     cursor: pointer;
+    border-radius: 4px;
                                       }
 
 .dropdown-content {
     display: none;
     position: absolute;
     top: 100%;
-    width: 100%;
+    width: 140%;
     background-color: white;
     border: 1px solid #ccc;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     z-index: 1;
+    border-radius: 4px;
+
 }
 
 .dropdown-content div {
@@ -74,24 +75,26 @@
 
 
 
+    <div style="margin-left: 20px; margin-right: 20px;">
+    <h2 style="margin-left: -15px;"> Otherwise, pick an example</h2>
+    <div class='alert alert-info'>
+    <div class="row">
+        
+    <div class="col-xs-12 col-sm-6">
+        <label for="modelValue">Select an example:</label>
+    </div>
 
-   <div style="margin-left: 20px; margin-right: 20px;">
-         <h2 style="margin-left: -15px;"> Otherwise, pick an example</h2>
-     <div class='alert alert-info'>
-       <div class="row">
-     <div class="col-xs-12 col-sm-6">
-       <label for="modelValue">Select an example:</label>
-     </div>
+    <div class="custom-dropdown col-xs-12 col-sm-6">
 
-    <div class="custom-dropdown">
-        <button type="button" class="dropdown-button" id="dropdownButton">Select Option</button>
+        <button type="button" class="dropdown-button" id="dropdownButton">-- select an option --</button>
+
         <div class="dropdown-content">
             <div data-value="YOXKUS_unitcell">
-                Option 1
+                Option 1: <b>YOXKUS_unitcell</b>
                 <div class="YOXKUS.cif">
-                    crystal structure: YOXKUS.cif<br>
-                    file format: CIF File (.cif)<br>
-                    system type: Unit Cell
+                    &emsp;&emsp;crystal structure: <i>YOXKUS.cif</i><br>
+                    &emsp;&emsp;file format: <i>CIF File (.cif)</i><br>
+                    &emsp;&emsp;system type: <i>Unit Cell</i>
                 </div>
             </div>
         </div>
@@ -162,7 +165,7 @@
              options.forEach(option => {
                        option.addEventListener('click', function() {
                                    const value = option.getAttribute('data-value');
-                                   dropdownButton.textContent = `Option ${value} Selected`; // Update button text
+                                   dropdownButton.textContent = `${value}`; // Update button text
                                    selectedOptionInput.value = value; // Set the selected value to the hidden input
                                    dropdownContent.style.display = 'none'; // Hide dropdown
                                  });
