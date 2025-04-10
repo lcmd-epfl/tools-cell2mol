@@ -36,8 +36,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
     debug: false,
     color: "#FFFFFF",
     use: "HTML5",
-    j2sPath: "../user_static/js/jsmol/j2s",
-    serverURL: "../user_static/js/jsmol/php/jsmol.php",
+    j2sPath: "../../user_static/js/jsmol/j2s",
+    serverURL: "../../user_static/js/jsmol/php/jsmol.php",
     console: "jmolApplet_infodiv"
   };
 
@@ -45,8 +45,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
 
   if (supercellOptions === undefined) {
     var loadingScript =
-      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell "' + ucell + '"; unitcell true; select all; hideNotSelected = true; zoom 50;'
-      + atmCon + ' select all ;';
+      'color cpk; load INLINE "' + data + '"'+"{ijk i'j'k' 0}"+' centroid unitcell [' + ucell + ']; unitcell true; model 0; select all; hideNotSelected = true; zoom 120; '//
+      //+ atmCon + ' select all ;';
   } else {
     var loadingScript =
       'color cpk; load INLINE "' +
@@ -63,7 +63,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
 
   // set unit cell data
   //loadingScript += "; unitcell \""+ucell+"\"";
-  loadingScript += "; frame all; hide none";
+  loadingScript += "; frame all; hide none; frank off";
+  loadingScript += "; moveto 0 axis x ";
 
   //Jmol.script(jsmolStructureviewer, loadingScript)
     
@@ -71,8 +72,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
   loadingScript +=
     '; axes off; draw xaxis ">X" vector {0 0 0} {2 0 0} color red width 0.15; draw yaxis ">Y" vector {0 0 0} {0 2 0} color green width 0.15; draw zaxis ">Z" vector {0 0 0} {0 0 2} color blue width 0.15';
 
-  loadingScript += "; wireframe 0.1; spacefill 23%";
-  loadingScript += "; unitcell primitive";
+  loadingScript += "; wireframe 0.08; spacefill 25%";
+  //loadingScript += "; unitcell primitive";
 
   //Sets the unit cell line diameter in Angstroms
   loadingScript += "; unitcell 2";
@@ -90,7 +91,8 @@ function jsmolCrystal(data, ucell, parentHtmlId, appletName, supercellOptions, a
   loadingScript += "; set labeloffset 2 2";
   loadingScript += "; set fontSize 16";
 
-  loadingScript += "select all"
+  //show bond order and connectivity
+  loadingScript += "; model 0; " + atmCon + " ; select all ; " ;
 
 
   Jmol.script(jsmolStructureviewer, loadingScript);
@@ -125,6 +127,7 @@ function cmpVisibilityUpdate(viewer) {
       visible_cmps_str += (" " + x.elements[i].value + " or");                                                                                             
     }                                                                                                                           
   }                                                                                                                             
+  //alert(x);
   let jmolscript = visible_cmps_str.slice(0,-2);
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;
@@ -155,7 +158,7 @@ function c2mButton(viewer) {
     document.getElementById("label_pos").style.display="none";
     document.getElementById("downloadBtn").style.display="none";
     //var jmolscript = "select all; unitcell true";
-    var jmolscript = "model 0; unitcell true";
+    var jmolscript = "model 0; select all; unitcell true";
   }
   Jmol.script(eval(viewer), jmolscript);
   return jmolscript;

@@ -20,8 +20,22 @@ from conf import (
 # Key: internal value; value: string to show
 upload_structure_block_known_formats = OrderedDict(
     {
-        "cif": "CIF File (.cif)",
-        "info": "cif2cell output (.info)",
+        "cif-pymatgen": "CIF File (.cif)",
+        "xyz-ase": "XYZ File (.xyz)",
+        #"info": "cif2cell output (.info)",
+    }
+)
+
+upload_structure_block_known_system_type_CIF = OrderedDict(
+    {
+        "unitcell": "Unit Cell",
+        "reference": "Reference",
+    }
+)
+
+upload_structure_block_known_system_type_XYZ = OrderedDict(
+    {
+        "molecule": "Molecule",
     }
 )
 
@@ -125,6 +139,8 @@ def get_config():
         "config": config,
         "include_pages": parse_config(config),
         "upload_structure_block_known_formats": upload_structure_block_known_formats,
+        "upload_structure_block_known_system_type_CIF": upload_structure_block_known_system_type_CIF,
+        "upload_structure_block_known_system_type_XYZ": upload_structure_block_known_system_type_XYZ,
     }
 
 

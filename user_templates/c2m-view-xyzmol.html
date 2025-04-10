@@ -117,32 +117,17 @@
                 <br/>
             {%- endfor %}
 
-
         </div>
 
     </div>
 </div>
 
 <div class="paneviewer">
-    <form class="pane" id="structure-chooser" style="width: min-content;">
-        <h2>Mol components</h2>
-        <p><em>Select mol components to visualize/hide.</em></p>
-        <div class="row" style="margin-right: 2em">
-            {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%}
-                <div class=" col-sm text-center res-pad" style="text-align:center;float:none ">
-                    <input class="struct2d" value='{{jmol_list_species[cmp_name]}}' type="checkbox" onchange="cmpVisibilityUpdate(jmolApplet);" id="selectcmp-{{cmp_i}}" checked/>
-                    <label for="selectcmp-{{cmp_i}}">
-                        <strong class="text-center">{{cmp_name}}</strong> <br/>
-                        {{desc|safe}}
-                    </label>
-                </div>
-            {%- endfor %}
-        </div>
-    </form>
     
     <div class="pane" id="structure-3D-viewer" style="flex-grow:1;width:100%;overflow:hidden;">
-        {% include 'user_templates/C-rendering.j2' %}
+        {% include 'user_templates/C-rendering-xyzmol.html' %}
     </div>
+
 </div>
 
 

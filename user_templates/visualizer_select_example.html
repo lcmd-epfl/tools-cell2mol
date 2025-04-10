@@ -1,22 +1,125 @@
 
+
+
+<style>
+/* Basic styling for the custom dropdown */
+.custom-dropdown {
+    position: relative;
+    width: 200px;
+    font-family: Arial, sans-serif;
+                     }
+
+.custom-dropdown select {
+    width: 100%;
+    /*padding: 10px;*/
+    font-size: 16px;
+    cursor: pointer;
+    display: none; /* Hide the native select element */
+                                     }
+
+.dropdown-button {
+    width: 100%;
+    /*padding: 10px;*/
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    border-radius: 4px;
+                                      }
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    width: 140%;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 4px;
+
+}
+
+.dropdown-content div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.dropdown-content div:hover {
+    background-color: #f1f1f1;
+}
+
+.option-details {
+    color: #888;
+    font-size: 12px;
+    padding-top: 5px;
+}
+
+  </style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <form action="compute/process_example_structure/" method="post">
-   <div style="margin-left: 20px; margin-right: 20px;">
-         <h2 style="margin-left: -15px;"> Otherwise, pick an example</h2>
-     <div class='alert alert-info'>
-       <div class="row">
-     <div class="col-xs-12 col-sm-6">
-       <label for="modelValue">Select an example:</label>
-     </div>
+
+
+
+
+
+    <div style="margin-left: 20px; margin-right: 20px;">
+    <h2 style="margin-left: -15px;"> Otherwise, pick an example</h2>
+    <div class='alert alert-info'>
+    <div class="row">
+        
+    <div class="col-xs-12 col-sm-6">
+        <label for="modelValue">Select an example:</label>
+    </div>
+
+    <div class="custom-dropdown col-xs-12 col-sm-6">
+
+        <button type="button" class="dropdown-button" id="dropdownButton">-- select an option --</button>
+
+        <div class="dropdown-content">
+            <div data-value="YOXKUS_unitcell">
+                Option 1: <b>YOXKUS_unitcell</b>
+                <div class="YOXKUS.cif">
+                    &emsp;&emsp;crystal structure: <i>YOXKUS.cif</i><br>
+                    &emsp;&emsp;file format: <i>CIF File (.cif)</i><br>
+                    &emsp;&emsp;system type: <i>Unit Cell</i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden input field to hold the selected value -->
+    <input type="hidden" name="selected_option" id="selectedOption">
+
+
+
+
+         <!--
      <div class="col-xs-12 col-sm-6">
        <select name="modelValue">
-             <option value='YOXKUS'>YOXKUS.cif</option>
-         <!--
-         <optgroup label="previously computed">
-             <option value='Cucurbit_8_uril_bfdb_HCNO'>Cucurbit-8-uril with SA-GPR/BFDB</option>
-         </optgroup>
-         -->
+           <option value='YOXKUS'> Option 1 </option>
+           <option disabled class="red"> &nbsp;&nbsp;&nbsp; crystal structure: YOXKUS.cif </option>
+           <option disabled > &nbsp;&nbsp;&nbsp; file format: CIF File (.cif) </option>
+           <option disabled > &nbsp;&nbsp;&nbsp; system type: Unit Cell </option>
        </select>
      </div>
+         -->
+
+
+
+
        </div>
        <div style="margin-top: 10px;">
         <center>
@@ -47,8 +150,31 @@
 
 
 
+ <script>
+         // Show dropdown content when the button is clicked
+         const dropdownButton = document.getElementById('dropdownButton');
+             const dropdownContent = document.querySelector('.dropdown-content');
+             const selectedOptionInput = document.getElementById('selectedOption');
 
+             dropdownButton.addEventListener('click', () => {
+                       dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+                     });
 
+             // Option selection logic
+             const options = document.querySelectorAll('.dropdown-content div');
+             options.forEach(option => {
+                       option.addEventListener('click', function() {
+                                   const value = option.getAttribute('data-value');
+                                   dropdownButton.textContent = `${value}`; // Update button text
+                                   selectedOptionInput.value = value; // Set the selected value to the hidden input
+                                   dropdownContent.style.display = 'none'; // Hide dropdown
+                                 });
+                     });
 
-
-
+             // Close dropdown if clicked outside
+             document.addEventListener('click', function(event) {
+                       if (!dropdownButton.contains(event.target) && !dropdownContent.contains(event.target)) {
+                                   dropdownContent.style.display = 'none';
+                                 }
+                     });
+           </script>

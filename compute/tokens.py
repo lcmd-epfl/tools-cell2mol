@@ -30,7 +30,7 @@ TOKENS = {}
 MONITOR_THR = None
 thr_iters = 0
 class Token:
-    def __init__(self, structurefile):
+    def __init__(self, structurefile, fileformat):
         global TOKENS, TOKEN_LOCK, MONITOR_THR
         self.refcode = structurefile.filename.split('.')[-2]
         #refcode = cif_name.split("/")[-1].split(".")[-2]
@@ -39,7 +39,12 @@ class Token:
         self.info_path = os.path.join(self.localdir.name, 'info.txt')
         self.analysis_path = os.path.join(self.localdir.name, 'cell.txt')
         self.error_path = os.path.join(self.localdir.name, 'err.txt')
-        self.input_path = os.path.join(self.localdir.name, 'input.cif')
+
+        if fileformat == "xyz-ase":
+            self.input_path = os.path.join(self.localdir.name, 'input.xyz')
+        else:
+            self.input_path = os.path.join(self.localdir.name, 'input.cif')
+
         self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
         self.last_alive = time.monotonic()
 

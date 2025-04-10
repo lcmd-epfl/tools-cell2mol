@@ -17,7 +17,7 @@
 
     <!-- If you add things in a user_static folder, you will be able to access it via ../../user_static/xxx -->
 
-    <title>cell2mol debug output</title>
+    <title>TEST output</title>
 
     <!-- Keep this, it's needed to make the tool embeddable in an iframe; it's provided by tools-barebone -->
     <script src="../../static/js/iframeResizer.contentWindow.min.js"></script>
@@ -50,28 +50,13 @@
 
 
     <div id='maintitle'>
-        <h1 style="text-align: center;">cell2mol debug output page</h1>
+        <h1 style="text-align: center;">test output page</h1>
     </div>
 
-    <h2>An error has ocured…</h2>
+    <h2>This is only a test</h2> 
 
-    <h2>Please check the traceback for details or try with a different input file. </h2>
-
-                                                                                                                                   
-    <div id="accordion">                                                                                            
-
-        <h2>Error traceback</h2>                                                                                                       
-        <div id="c2m-output-info" aria-labelledby="c2m-ctrl-info">                                   
-            {% for line in output_lines -%}
-            <p>
-                <code>
-                    {{- line -}}
-                </code>
-            </p>
-            {%- endfor %}
-        </div>
-    </div>
-
+    its OK
+    {{prueba}}
 
 
     <div id='container'>                                                                                                          

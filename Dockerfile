@@ -1,4 +1,4 @@
-FROM materialscloud/tools-barebone:1.3.0
+FROM materialscloud/tools-barebone:1.4.0
 
 LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, Liam O. Marsh <liam.marsh@epfl.ch>, and Ruben Laplaza <ruben.laplazasolanas@epfl.ch>"
 
@@ -6,7 +6,7 @@ LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, 
 COPY ./requirements.txt /home/app/code/requirements.txt
 # Run this as sudo to replace the version of pip
 
-RUN pip3 install -U 'pip>=10' setuptools wheel
+RUN pip3 install -U 'pip>=10' setuptools==65.4.1 wheel
 # install packages as normal user (app, provided by passenger)
 
 RUN apt-get update
@@ -15,7 +15,7 @@ RUN apt-get install -y libxrender-dev libxext-dev
 USER app
 WORKDIR /home/app/code
 # Install pinned versions of packages
-COPY ./requirements.txt /home/app/code/requirements.txt
+#COPY ./requirements.txt /home/app/code/requirements.txt
 RUN pip3 install --user -r requirements.txt
 
 # Go back to root.
@@ -30,6 +30,7 @@ COPY ./compute/ /home/app/code/webservice/compute/
 #Needed to allow only .cif file formats in the upload_structure_block
 COPY ./web_module.py /home/app/code/webservice/ 
 COPY ./base_templates/* /home/app/code/webservice/templates/
+COPY ./toolsbarebone_mod/__init__.py /home/app/code/tools_barebone/structure_importers/
 
 # If you put any static file (CSS, JS, images),
 #create this folder and put them here
