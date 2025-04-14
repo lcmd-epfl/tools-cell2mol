@@ -201,16 +201,39 @@ def process_structure_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
+            try:
+                save_cell(refMol, 'gmol', token.get_path(), token.refcode)
+            except Exception as e:
+                flask.flash("Error while saving cell")
+                return flask.redirect(flask.url_for("input_data"))
+            try:
+                savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
+            except Exception as e:
+                flask.flash("Error while saving xyz molecules")
+                return flask.redirect(flask.url_for("input_data"))
+            try:
+                savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
+            except Exception as e:
+                flask.flash("Error while saving gmol molecules")
+                return flask.redirect(flask.url_for("input_data"))
+            try:
+                celldata = printing_text_refMol(refMol, Capturing()) #empty
+            except Exception as e:
+                flask.flash("Error while printing text")
+                return flask.redirect(flask.url_for("input_data"))
 
-            save_cell(refMol, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
-            celldata = printing_text_refMol(refMol, Capturing()) #empty
 
+            try:
+                jmol_list_pos = molecules_list_reference(refMol)
+            except Exception as e:
+                flask.flash("Error while saving coordinates for jmol")
+                return flask.redirect(flask.url_for("input_data"))
 
-            jmol_list_pos = molecules_list_reference(refMol)
-
-            ucellparams, xyzdata = refcell_to_string_xyz(refMol)
+            try:
+                ucellparams, xyzdata = refcell_to_string_xyz(refMol)
+            except Exception as e:
+                flask.flash("Error while getting the summary info")
+                return flask.redirect(flask.url_for("input_data"))
 
             token.keepalive()
             tkn_path = token.get_path()
