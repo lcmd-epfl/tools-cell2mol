@@ -51,7 +51,7 @@ class Token:
         else:
             self.input_path = os.path.join(self.localdir.name, 'input.cif')
 
-        self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
+        self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.cell')
         self.last_alive = time.monotonic()
 
         with open(self.input_path,'w') as f:

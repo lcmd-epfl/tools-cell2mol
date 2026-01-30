@@ -648,8 +648,8 @@ def process_structure_init():
 
 #>>> D O W N L O A D   C E L L <<<
 
-@blueprint.route("/process_structure/download-gmol", methods=["GET"])
-def process_structure_download_gmol():
+@blueprint.route("/process_structure/download-cell", methods=["GET"])
+def process_structure_download_cell():
 
     output = Capturing()
     try:
@@ -662,7 +662,7 @@ def process_structure_download_gmol():
         output.append(token.cell_path)
         token.keepalive()
                 
-        headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.gmol"}
+        headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.cell"}
         with open(token.cell_path, 'rb') as f:
             body = f.read()
         return flask.make_response((body, headers))
@@ -928,13 +928,13 @@ def process_structure_view_YOXKUS():
     return resp
 
     
-@blueprint.route("/process_example_structure/download-gmol-YOXKUS", methods=["GET"])
-def process_structure_download_gmol_YOXKUS():
+@blueprint.route("/process_example_structure/download-cell-YOXKUS", methods=["GET"])
+def process_structure_download_cell_YOXKUS():
 
     output = Capturing()
 
-    cell_path="/home/app/code/webservice/compute/examples/cif/results/Cell_YOXKUS.gmol"
-    headers = {"Content-Disposition": f"attachment; filename=Cell_YOXKUS.gmol"}
+    cell_path="/home/app/code/webservice/compute/examples/cif/results/Cell_YOXKUS.cell"
+    headers = {"Content-Disposition": f"attachment; filename=Cell_YOXKUS.cell"}
     with open(cell_path, 'rb') as f:
         body = f.read()
     return flask.make_response((body, headers))
