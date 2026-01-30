@@ -126,10 +126,9 @@ def process_structure_init():
             extract_refmoleclist_xyz_general_name(token.get_path(), cell.moleclist, token.refcode)
             path_to_save = os.path.join(token.get_path(), f"Cells_{token.refcode}.cell")
             cell.save(path_to_save)
-            return flask.render_template("user_templates/c2m-debug.html", msg="msg", output_lines="OK")
             #save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(cell.refmoleclist, token.get_path(), 'xyz')
-            savemolecules_tools(cell.refmoleclist, token.get_path(), 'gmol')
+            #savemolecules_tools(cell.refmoleclist, token.get_path(), 'xyz')
+            #savemolecules_tools(cell.refmoleclist, token.get_path(), 'gmol')
             celldata = printing_text(cell, Capturing()) #empty
 
             cmp_lut = cell_cmp_lut(cell)
