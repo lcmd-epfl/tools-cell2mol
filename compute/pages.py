@@ -5,18 +5,37 @@ import io
 import flask
 from .interface import *
 from .tokens import monitoring, Token
+
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
-from cell2mol.unitcell import process_unitcell
-from cell2mol.refcell import process_refcell
-from cell2mol.xyz_molecule import get_molecule
+#from cell2mol.process_unitcell import _save_cell_outputs
+
+#from cell2mol.unitcell import process_unitcell
+
+#from cell2mol.write_results import writexyz
+
+from cell2mol.process_unitcell import interpret_unitcell
+
+from cell2mol.process_reference import interpret_reference
+
+from cell2mol.process_xyz import interpret_molecule
 
 import os
 
 import webbrowser
 
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"crystal system 'monoclinic' is not interpreted.*",
+    category=UserWarning,
+    module=r"ase\.io\.cif",
+)
+
+
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
-    
+
 @blueprint.route("/process_structure/", methods=["POST"])
 def process_structure_init():
     """Example view to process a crystal structure."""
@@ -81,7 +100,7 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
-                cell = process_unitcell(token.input_path, token.refcode, token.get_path())
+                cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -103,9 +122,14 @@ def process_structure_init():
             #    return flask.redirect(flask.url_for("input_data"))
 
 
-            save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
-            savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
+            #writexyz(token.get_path(), "Other_1.xyz", cell.moleclist[1].labels, cell.moleclist[1].coord, charge="", spin="", ) 
+            extract_refmoleclist_xyz_general_name(token.get_path(), cell.moleclist, token.refcode)
+            path_to_save = os.path.join(token.get_path(), f"Cells_{token.refcode}.cell")
+            cell.save(path_to_save)
+            return flask.render_template("user_templates/c2m-debug.html", msg="msg", output_lines="OK")
+            #save_cell(cell, 'gmol', token.get_path(), token.refcode)
+            savemolecules_tools(cell.refmoleclist, token.get_path(), 'xyz')
+            savemolecules_tools(cell.refmoleclist, token.get_path(), 'gmol')
             celldata = printing_text(cell, Capturing()) #empty
 
             cmp_lut = cell_cmp_lut(cell)
@@ -741,7 +765,7 @@ def process_structure_example_init():
         input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
 
         try:
-            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
+            cell = interpret_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
         except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)

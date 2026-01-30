@@ -5,11 +5,17 @@ import pickle
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
-import cell2mol
-from cell2mol.refcell import process_refcell
-from cell2mol.unitcell import process_unitcell
-from cell2mol.xyz_molecule import get_molecule
-from cell2mol.read_write import print_molecule
+from cell2mol.write_results import writexyz 
+from cell2mol.elementdata import ElementData
+
+elemdatabase = ElementData()
+
+def run_cell2mol():
+    import cell2mol
+    from cell2mol.refcell import process_refcell
+    from cell2mol.unitcell import process_unitcell
+    from cell2mol.xyz_molecule import get_molecule
+    from cell2mol.read_write import print_molecule
 
 #from cell2mol.read_write import savemolecules
 #from cell2mol.readwrite import readinfo, savemolecules
@@ -17,6 +23,69 @@ from cell2mol.read_write import print_molecule
 #from cell2mol.final_c2m_driver import handle_cif_file
 #from cell2mol.cif2info import cif_2_info
 #from cell2mol.c2m_module import save_cell, cell2mol
+
+def extract_refmoleclist_xyz_general_name(fdir, refmoleclist, name: str):
+    """Extracts reference molecules to XYZ files. Adapted cell2mol function to match the web version 
+
+    Args:
+        fdir (str): Directory to save the XYZ files.
+        refmoleclist (list): List of reference molecule objects.
+        name (str): Base name for the output files.
+    """
+    #i=1
+    #ref = refmoleclist[i]
+    #writexyz(fdir, f"{i}_Other_{i}.xyz", ref.labels, ref.coord, charge="", spin="", )
+
+    for i, ref in enumerate(refmoleclist):
+
+        if ref.iscomplex:
+            mol_type = "Complex"
+        else:
+            mol_type = "Other"
+
+        if ref.totcharge is not None:
+            N = 0
+            for atom in ref.labels:
+                N += elemdatabase.elementnr[atom]
+            N -= ref.totcharge
+            if N % 2 == 0:
+                spin = 1
+            else:
+                spin = 2
+            writexyz(
+                fdir,
+                f"{name}_{mol_type}_{i}.xyz",
+                ref.labels,
+                ref.coord,
+                charge=ref.totcharge,
+                spin=spin,
+            )
+            #NOdebugger
+            #logger.debug(
+            #    "Ref molecule %s %s total charge %s lowest spin multiplicity %s",
+            #    i,
+            #    ref.formula,
+            #    ref.totcharge_cif,
+            #    spin,
+            #)
+        else:
+            #i=1
+            #ref = refmoleclist[i]
+            #writexyz(fdir, f"{i}_Other_{i}.xyz", ref.labels, ref.coord, charge="", spin="", )
+            writexyz(
+                fdir, 
+                f"{name}_{mol_type}_{i}.xyz", 
+                ref.labels, 
+                ref.coord, 
+                charge="", 
+                spin="", 
+            )
+            #NOdebugger
+            #logger.debug( "Ref molecule %s %s without charge and spin information", i, ref.formula, )
+
+
+
+
 
 def save_cell(cell: object, ext: str, output_dir: str, refcode: str):
     #taken from old cell2mol version. 
