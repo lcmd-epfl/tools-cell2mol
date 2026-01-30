@@ -214,7 +214,8 @@ def process_structure_init():
         elif system_type == "reference":
 
             try:
-                refMol = process_refcell(token.input_path, token.refcode, token.get_path())
+                #refMol = process_refcell(token.input_path, token.refcode, token.get_path())
+                refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
                 msg = "Failure…"
@@ -224,9 +225,12 @@ def process_structure_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
-            save_cell(refMol, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
+            extract_refmoleclist_xyz_general_name(token.get_path(), refMol.refmoleclist, token.refcode)
+            path_to_save = os.path.join(token.get_path(), f"Cells_{token.refcode}.cell")
+            refMol.save(path_to_save)
+            #save_cell(refMol, 'gmol', token.get_path(), token.refcode)
+            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
+            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
             celldata = printing_text_refMol(refMol, Capturing()) #empty
 
 
