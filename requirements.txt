@@ -25,14 +25,15 @@
 #pandas>=2.3.3
 #cell2mol @ git+https://github.com/lcmd-epfl/cell2mol@feat/pydantic #/archive/dev_update/2c899a9.zip
 
-
-networkx>=3.2.1
-numpy==1.26.4
-rdkit>=2025.9.1
+numpy
+networkx
+rdkit
 ase
-scipy>=1.13.1
-scikit-learn>=1.6.1
+scipy
+scikit-learn
 pydantic
 pyyaml
-pandas>=2.3.3
+pandas
+cell2mol @ git+https://github.com/lcmd-epfl/cell2mol@feat/pydantic #/archive/dev_update/2c899a9.zip
+
 

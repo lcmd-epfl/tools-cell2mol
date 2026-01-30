@@ -4,7 +4,13 @@ LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, 
 
 COPY ./requirements.txt /home/app/code/requirements.txt
 
-RUN pip3 install -U 'pip>=10' setuptools==65.4.1 wheel
+RUN pip3 install -U pip setuptools wheel
+
+# install NumPy 2.x first (because wheels/extensions may be selected based on it)
+RUN pip3 install --no-cache-dir "numpy>=2,<3"
+
+# FORCE replace pymatgen in the system site-packages
+RUN pip3 install --no-cache-dir --upgrade --force-reinstall pymatgen
 
 RUN apt-get update && apt-get install -y libxrender-dev libxext-dev \
  && rm -rf /var/lib/apt/lists/*
@@ -12,7 +18,7 @@ RUN apt-get update && apt-get install -y libxrender-dev libxext-dev \
 USER app
 WORKDIR /home/app/code
 
-# Install web requirements (numpy==1.26.4 etc.)
+# Install web requirements (numpy, etc.)
 RUN pip3 install --user -r requirements.txt
 
 USER root

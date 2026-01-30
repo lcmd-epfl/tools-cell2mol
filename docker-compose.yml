@@ -1,5 +1,4 @@
-version: "3"
-
+version: '3'
 services:
   cell2mol:
     volumes:
@@ -16,20 +15,3 @@ services:
       - "8091:80"
     container_name: cell2mol-instance
     image: cell2mol
-    environment:
-      - PYTHONUNBUFFERED=1
-      - CELL2MOL_WORKER_URL=http://cell2mol-worker:8000
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    memswap_limit: 512M
-
-  cell2mol-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
-    container_name: cell2mol-worker
-    expose:
-      - "8000"
-
