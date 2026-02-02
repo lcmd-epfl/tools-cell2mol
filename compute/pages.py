@@ -25,13 +25,14 @@ import os
 import webbrowser
 
 import warnings
+import contextlib
 
-warnings.filterwarnings(
-    "ignore",
-    message=r"crystal system 'monoclinic' is not interpreted.*",
-    category=UserWarning,
-    module=r"ase\.io\.cif",
-)
+#warnings.filterwarnings(
+#    "ignore",
+#    message=r"crystal system 'monoclinic' is not interpreted.*",
+#    category=UserWarning,
+#    module=r"ase\.io\.cif",
+#)
 
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
@@ -100,6 +101,25 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
+                #buf = io.StringIO()
+                #with warnings.catch_warnings(record=True) as wlist, \
+                #    contextlib.redirect_stdout(buf), \
+                #    contextlib.redirect_stderr(buf):
+
+                #    warnings.simplefilter("always")
+                #    cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+
+                #wlist = dedupe_warnings(wlist)
+
+                #output_text = buf.getvalue()
+                #warning_text = "\n".join(f"{w.category.__name__}: {w.message}" for w in wlist)
+
+                #all_warning_text = "--- Output --- " + output_text
+                #if warning_text.strip():
+                #    all_warning_text = all_warning_text.rstrip() + "\n\n--- Warnings ---\n" + warning_text + "\n"
+
+                #all_warning_text = dedupe_consecutive_lines(all_warning_text)
+
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
             except Exception as e:
                 msg = "Failure…"
@@ -198,6 +218,7 @@ def process_structure_init():
                 compound_data=compound_data,
                 xyzdata=xyzdata,
                 labels=labels,
+            #    all_warning_text = all_warning_text,
             #    pos=pos,
             #    cellvec=cellvec,
             #    cellparam=cellparam,
@@ -233,6 +254,10 @@ def process_structure_init():
             #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
             celldata = printing_text_refMol(refMol, Capturing()) #empty
 
+            unique_species = unique_species_to_text(refMol, Capturing())
+
+            potential_warnings = potential_warnings_refCell(refMol)
+
 
             jmol_list_pos = molecules_list_reference(refMol)
             ucellparams, xyzdata = refcell_to_string_xyz(refMol)
@@ -240,7 +265,9 @@ def process_structure_init():
             #tkn_path = token.get_path()
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view-refcell.html",
+                unique_species = unique_species,
                 celldata=celldata,
+                potential_warnings = potential_warnings,
                 ucellparams=ucellparams,
                 xyzdata=xyzdata,
                 jmol_list_pos=jmol_list_pos,

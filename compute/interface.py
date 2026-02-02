@@ -24,6 +24,69 @@ def run_cell2mol():
 #from cell2mol.cif2info import cif_2_info
 #from cell2mol.c2m_module import save_cell, cell2mol
 
+def unique_species_to_text(refCell, output):
+    """Return all unique species in text format
+
+    Args: 
+        refCell : Reference cell
+    """
+
+    #species_info = ""
+
+    for my_mol in refCell.unique_species:
+        if my_mol.type == "atom":
+            output.extend([f"[{my_mol.subtype}] Formula : {my_mol.formula} \n"])
+            output.extend([f"Metal Adjacency : {my_mol.mconnec} \n"])
+            output.extend([f"Regular Adjacencies : {my_mol.connec} \n"])
+            output.extend([f"Coordination Sphere Formula : {my_mol.coord_sphere_formula} \n"])
+            output.extend([f"Possible Charges : {my_mol.possible_cs} \n"])
+            output.extend([f"\n"])
+        else:
+            output.extend([f"[{my_mol.subtype}] Formula : {my_mol.formula} \n"])
+            output.extend([f"Number of atoms : {my_mol.natoms} \n"])
+            output.extend([f"Covalent Radii Factor : {my_mol.cov_factor} \n"])
+            output.extend([f"Metal Radii Factor : {my_mol.metal_factor} \n"])
+            output.extend([f"Origin : {my_mol.origin} \n"])
+            output.extend([f"Number of Groups : {len(my_mol.groups)} \n"])
+            output.extend([f"\n"])
+
+    return output 
+
+
+def potential_warnings_refCell(refCell):
+    """Return all true warnings from the reference cell
+
+    Args: 
+        refCell : Reference cell
+    """
+    all_warnings = ""
+    for my_warning in refCell.potential_warnings:
+        if refCell.potential_warnings[my_warning]:
+            all_warnings += str(my_warning) + ' \n '
+    return all_warnings
+
+def dedupe_consecutive_lines(text: str) -> str:
+    out = []
+    prev = None
+    for line in text.splitlines():
+        if line == prev:
+            continue
+        out.append(line)
+        prev = line
+    return "\n".join(out)
+
+def dedupe_warnings(wlist):
+    seen, out = set(), []
+    for w in wlist:
+        key = (w.category, str(w.message), w.filename, w.lineno)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(w)
+    return out
+
+
+
 def extract_refmoleclist_xyz_general_name(fdir, refmoleclist, name: str):
     """Extracts reference molecules to XYZ files. Adapted cell2mol function to match the web version 
 

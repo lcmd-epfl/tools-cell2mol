@@ -30,7 +30,7 @@ networkx
 rdkit
 ase
 scipy
-scikit-learn
+scikit-learn==1.7.2
 pydantic
 pyyaml
 pandas
