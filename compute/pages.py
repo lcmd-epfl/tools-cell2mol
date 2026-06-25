@@ -81,7 +81,7 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
-                cell = process_unitcell(token.input_path, token.refcode, token.get_path())
+                cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=True)
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -106,7 +106,7 @@ def process_structure_init():
             save_cell(cell, 'gmol', token.get_path(), token.refcode)
             savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
             savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
-            celldata = printing_text(cell, Capturing()) #empty
+            #celldata = printing_text(cell, Capturing()) #empty
 
             cmp_lut = cell_cmp_lut(cell)
             ht_descs = cell_get_metal_desc(cell, cmp_lut)
@@ -170,7 +170,7 @@ def process_structure_init():
             #    "user_templates/test.html",
             #    output_lines=output,
             #    #infodata=infodata.strip(),
-                celldata=celldata,
+            #    celldata=celldata,
                 ucellparams=ucellparams,
                 compound_data=compound_data,
                 xyzdata=xyzdata,
@@ -191,7 +191,7 @@ def process_structure_init():
         elif system_type == "reference":
 
             try:
-                refMol = process_refcell(token.input_path, token.refcode, token.get_path())
+                refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=True)
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
                 msg = "Failure…"
@@ -205,7 +205,7 @@ def process_structure_init():
             save_cell(refMol, 'gmol', token.get_path(), token.refcode)
             savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
             savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
-            celldata = printing_text_refMol(refMol, Capturing()) #empty
+            #celldata = printing_text_refMol(refMol, Capturing()) #empty
 
 
             jmol_list_pos = molecules_list_reference(refMol)
@@ -216,7 +216,7 @@ def process_structure_init():
             tkn_path = token.get_path()
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view-refcell.html",
-                celldata=celldata,
+                #celldata=celldata,
                 ucellparams=ucellparams,
                 xyzdata=xyzdata,
                 jmol_list_pos=jmol_list_pos,
