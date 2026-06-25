@@ -9,8 +9,12 @@ COPY ./requirements.txt /home/app/code/requirements.txt
 RUN pip3 install -U 'pip>=10' setuptools==65.4.1 wheel
 # install packages as normal user (app, provided by passenger)
 
-RUN apt-get update
-RUN apt-get install -y libxrender-dev libxext-dev
+#RUN apt-get update
+#RUN apt-get install -y libxrender-dev libxext-dev
+RUN rm -f /etc/apt/sources.list.d/passenger.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends libxrender-dev libxext-dev \
+ && rm -rf /var/lib/apt/lists/*
 
 USER app
 WORKDIR /home/app/code
