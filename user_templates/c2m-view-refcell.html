@@ -119,6 +119,35 @@
 
         </div>
 
+            <h2>Unique species</h2>
+            <div>
+                {% for paragraph in unique_species %}
+
+                    {% if "] Formula" in paragraph %}
+                        {% set ns.indent = false %}
+                        <span class="bolded"> {{- paragraph -}} </span> </br>
+                    {% else %}
+                        {% set ns.indent = true %}
+                        &numsp;&numsp;&numsp;&numsp;{{- paragraph -}}</br>
+                    {% endif %}
+
+                {%- endfor %}
+            </div>
+
+        {% if potential_warnings | length > 1 %}
+            <h2>Potential warnings</h2>
+
+            <div>
+                {% for paragraph in potential_warnings %}
+                    {{- paragraph -}}
+                    {% if "\n" in paragraph %}
+                        <br/>
+                    {% endif %}
+                {%- endfor %}
+            </div>
+        {% endif %}
+
+
     </div>
 </div>
 

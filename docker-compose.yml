@@ -12,6 +12,6 @@ services:
       - "./user_templates/INST.j2:/home/app/code/webservice/templates/user_templates/INST.j2:rw"
     build: .
     ports:
-     - "8090:80"
+      - "8091:80"
     container_name: cell2mol-instance
     image: cell2mol
