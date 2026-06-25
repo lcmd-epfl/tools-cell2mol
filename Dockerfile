@@ -2,38 +2,44 @@ FROM materialscloud/tools-barebone:1.4.0
 
 LABEL maintainer="Osvaldo Hernandez-Cuellar <osvaldo.hernandezcuellar@epfl.ch>, Liam O. Marsh <liam.marsh@epfl.ch>, and Ruben Laplaza <ruben.laplazasolanas@epfl.ch>"
 
+# Python requirements
 COPY ./requirements.txt /home/app/code/requirements.txt
+# Run this as sudo to replace the version of pip
 
-RUN pip3 install -U pip setuptools wheel
+RUN pip3 install -U 'pip>=10' setuptools==65.4.1 wheel
+# install packages as normal user (app, provided by passenger)
 
-# install NumPy 2.x first (because wheels/extensions may be selected based on it)
-RUN pip3 install --no-cache-dir "numpy>=2,<3"
-
-# FORCE replace pymatgen in the system site-packages
-RUN pip3 install --no-cache-dir --upgrade --force-reinstall pymatgen
-
-#RUN apt-get update && apt-get install -y libxrender-dev libxext-dev \
-# && rm -rf /var/lib/apt/lists/*
-RUN rm -f /etc/apt/sources.list.d/passenger.list \
- && apt-get update \
- && apt-get install -y --no-install-recommends libxrender-dev libxext-dev \
- && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install -y libxrender-dev libxext-dev
 
 USER app
 WORKDIR /home/app/code
-
-# Install web requirements (numpy, etc.)
+# Install pinned versions of packages
+#COPY ./requirements.txt /home/app/code/requirements.txt
 RUN pip3 install --user -r requirements.txt
 
+# Go back to root.
+# Also, it should remain as user root for startup
 USER root
 
+# Copy various files: configuration, user templates, the actual python code, ...
 COPY ./config.yaml /home/app/code/webservice/static/config.yaml
 COPY ./user_templates/ /home/app/code/webservice/templates/user_templates/
 COPY ./user_static/ /home/app/code/webservice/user_static/
 COPY ./compute/ /home/app/code/webservice/compute/
-COPY ./web_module.py /home/app/code/webservice/
+#Needed to allow only .cif file formats in the upload_structure_block
+COPY ./web_module.py /home/app/code/webservice/ 
 COPY ./base_templates/* /home/app/code/webservice/templates/
 COPY ./toolsbarebone_mod/__init__.py /home/app/code/tools_barebone/structure_importers/
 
+# If you put any static file (CSS, JS, images),
+#create this folder and put them here
+
+###
+# Copy any additional files needed into /home/app/code/webservice/
+###
+
+# Set proper permissions on files just copied
 RUN chown -R app:app /home/app/code/webservice/
+
 

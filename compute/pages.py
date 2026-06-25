@@ -5,38 +5,18 @@ import io
 import flask
 from .interface import *
 from .tokens import monitoring, Token
-
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
-#from cell2mol.process_unitcell import _save_cell_outputs
-
-#from cell2mol.unitcell import process_unitcell
-
-#from cell2mol.write_results import writexyz
-
-from cell2mol.process_unitcell import interpret_unitcell
-
-from cell2mol.process_reference import interpret_reference
-
-from cell2mol.process_xyz import interpret_molecule
+from cell2mol.unitcell import process_unitcell
+from cell2mol.refcell import process_refcell
+from cell2mol.xyz_molecule import get_molecule
 
 import os
 
 import webbrowser
 
-import warnings
-import contextlib
-
-#warnings.filterwarnings(
-#    "ignore",
-#    message=r"crystal system 'monoclinic' is not interpreted.*",
-#    category=UserWarning,
-#    module=r"ase\.io\.cif",
-#)
-
-
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
-
+    
 @blueprint.route("/process_structure/", methods=["POST"])
 def process_structure_init():
     """Example view to process a crystal structure."""
@@ -85,7 +65,7 @@ def process_structure_init():
         #token = Token.from_path(tkn_path)
         #if token is None:
         #    raise ValueError("session expired")
-        token.keepalive()
+        #token.keepalive()
 
         ##################
         ## Run cell2mol ##
@@ -101,26 +81,7 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
-                #buf = io.StringIO()
-                #with warnings.catch_warnings(record=True) as wlist, \
-                #    contextlib.redirect_stdout(buf), \
-                #    contextlib.redirect_stderr(buf):
-
-                #    warnings.simplefilter("always")
-                #    cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
-
-                #wlist = dedupe_warnings(wlist)
-
-                #output_text = buf.getvalue()
-                #warning_text = "\n".join(f"{w.category.__name__}: {w.message}" for w in wlist)
-
-                #all_warning_text = "--- Output --- " + output_text
-                #if warning_text.strip():
-                #    all_warning_text = all_warning_text.rstrip() + "\n\n--- Warnings ---\n" + warning_text + "\n"
-
-                #all_warning_text = dedupe_consecutive_lines(all_warning_text)
-
-                cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+                cell = process_unitcell(token.input_path, token.refcode, token.get_path())
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -142,13 +103,9 @@ def process_structure_init():
             #    return flask.redirect(flask.url_for("input_data"))
 
 
-            #writexyz(token.get_path(), "Other_1.xyz", cell.moleclist[1].labels, cell.moleclist[1].coord, charge="", spin="", ) 
-            extract_refmoleclist_xyz_general_name(token.get_path(), cell.moleclist, token.refcode)
-            path_to_save = os.path.join(token.get_path(), f"Cells_{token.refcode}.cell")
-            cell.save(path_to_save)
-            #save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            #savemolecules_tools(cell.refmoleclist, token.get_path(), 'xyz')
-            #savemolecules_tools(cell.refmoleclist, token.get_path(), 'gmol')
+            save_cell(cell, 'gmol', token.get_path(), token.refcode)
+            savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
+            savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
             celldata = printing_text(cell, Capturing()) #empty
 
             cmp_lut = cell_cmp_lut(cell)
@@ -205,8 +162,8 @@ def process_structure_init():
 
             #output = infodata
             #infodata = info file
-            #token.keepalive()
-            #tkn_path = token.get_path()
+            token.keepalive()
+            tkn_path = token.get_path()
 
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view.html",
@@ -218,7 +175,6 @@ def process_structure_init():
                 compound_data=compound_data,
                 xyzdata=xyzdata,
                 labels=labels,
-            #    all_warning_text = all_warning_text,
             #    pos=pos,
             #    cellvec=cellvec,
             #    cellparam=cellparam,
@@ -229,14 +185,13 @@ def process_structure_init():
                 enumerate=enumerate, len=len, zip=zip, # needed
                 struct_name=token.refcode,
             ))
-            resp.set_cookie("token_path",token.get_path(),  secure=False,httponly=True,samesite='Strict') 
+            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
             return resp
 
         elif system_type == "reference":
 
             try:
-                #refMol = process_refcell(token.input_path, token.refcode, token.get_path())
-                refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
+                refMol = process_refcell(token.input_path, token.refcode, token.get_path())
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
                 msg = "Failure…"
@@ -246,34 +201,28 @@ def process_structure_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
-            extract_refmoleclist_xyz_general_name(token.get_path(), refMol.refmoleclist, token.refcode)
-            path_to_save = os.path.join(token.get_path(), f"Cells_{token.refcode}.cell")
-            refMol.save(path_to_save)
-            #save_cell(refMol, 'gmol', token.get_path(), token.refcode)
-            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
-            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
+
+            save_cell(refMol, 'gmol', token.get_path(), token.refcode)
+            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
+            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
             celldata = printing_text_refMol(refMol, Capturing()) #empty
-
-            unique_species = unique_species_to_text(refMol, Capturing())
-
-            potential_warnings = potential_warnings_refCell(refMol)
 
 
             jmol_list_pos = molecules_list_reference(refMol)
+
             ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
-            #tkn_path = token.get_path()
+            token.keepalive()
+            tkn_path = token.get_path()
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view-refcell.html",
-                unique_species = unique_species,
                 celldata=celldata,
-                potential_warnings = potential_warnings,
                 ucellparams=ucellparams,
                 xyzdata=xyzdata,
                 jmol_list_pos=jmol_list_pos,
                 struct_name=token.refcode,
             ))
-            resp.set_cookie("token_path",token.get_path(),  secure=False,httponly=True,samesite='Strict') 
+            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
             return resp
 
         else:
@@ -675,8 +624,8 @@ def process_structure_init():
 
 #>>> D O W N L O A D   C E L L <<<
 
-@blueprint.route("/process_structure/download-cell", methods=["GET"])
-def process_structure_download_cell():
+@blueprint.route("/process_structure/download-gmol", methods=["GET"])
+def process_structure_download_gmol():
 
     output = Capturing()
     try:
@@ -689,7 +638,7 @@ def process_structure_download_cell():
         output.append(token.cell_path)
         token.keepalive()
                 
-        headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.cell"}
+        headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.gmol"}
         with open(token.cell_path, 'rb') as f:
             body = f.read()
         return flask.make_response((body, headers))
@@ -954,13 +903,13 @@ def process_structure_view_YOXKUS():
     return resp
 
     
-@blueprint.route("/process_example_structure/download-cell-YOXKUS", methods=["GET"])
-def process_structure_download_cell_YOXKUS():
+@blueprint.route("/process_example_structure/download-gmol-YOXKUS", methods=["GET"])
+def process_structure_download_gmol_YOXKUS():
 
     output = Capturing()
 
-    cell_path="/home/app/code/webservice/compute/examples/cif/results/Cell_YOXKUS.cell"
-    headers = {"Content-Disposition": f"attachment; filename=Cell_YOXKUS.cell"}
+    cell_path="/home/app/code/webservice/compute/examples/cif/results/Cell_YOXKUS.gmol"
+    headers = {"Content-Disposition": f"attachment; filename=Cell_YOXKUS.gmol"}
     with open(cell_path, 'rb') as f:
         body = f.read()
     return flask.make_response((body, headers))

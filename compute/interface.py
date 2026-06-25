@@ -5,17 +5,11 @@ import pickle
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
-from cell2mol.write_results import writexyz 
-from cell2mol.elementdata import ElementData
-
-elemdatabase = ElementData()
-
-def run_cell2mol():
-    import cell2mol
-    from cell2mol.refcell import process_refcell
-    from cell2mol.unitcell import process_unitcell
-    from cell2mol.xyz_molecule import get_molecule
-    from cell2mol.read_write import print_molecule
+import cell2mol
+from cell2mol.refcell import process_refcell
+from cell2mol.unitcell import process_unitcell
+from cell2mol.xyz_molecule import get_molecule
+from cell2mol.read_write import print_molecule
 
 #from cell2mol.read_write import savemolecules
 #from cell2mol.readwrite import readinfo, savemolecules
@@ -23,132 +17,6 @@ def run_cell2mol():
 #from cell2mol.final_c2m_driver import handle_cif_file
 #from cell2mol.cif2info import cif_2_info
 #from cell2mol.c2m_module import save_cell, cell2mol
-
-def unique_species_to_text(refCell, output):
-    """Return all unique species in text format
-
-    Args: 
-        refCell : Reference cell
-    """
-
-    #species_info = ""
-
-    for my_mol in refCell.unique_species:
-        if my_mol.type == "atom":
-            output.extend([f"[{my_mol.subtype}] Formula : {my_mol.formula} \n"])
-            output.extend([f"Metal Adjacency : {my_mol.mconnec} \n"])
-            output.extend([f"Regular Adjacencies : {my_mol.connec} \n"])
-            output.extend([f"Coordination Sphere Formula : {my_mol.coord_sphere_formula} \n"])
-            output.extend([f"Possible Charges : {my_mol.possible_cs} \n"])
-            output.extend([f"\n"])
-        else:
-            output.extend([f"[{my_mol.subtype}] Formula : {my_mol.formula} \n"])
-            output.extend([f"Number of atoms : {my_mol.natoms} \n"])
-            output.extend([f"Covalent Radii Factor : {my_mol.cov_factor} \n"])
-            output.extend([f"Metal Radii Factor : {my_mol.metal_factor} \n"])
-            output.extend([f"Origin : {my_mol.origin} \n"])
-            output.extend([f"Number of Groups : {len(my_mol.groups)} \n"])
-            output.extend([f"\n"])
-
-    return output 
-
-
-def potential_warnings_refCell(refCell):
-    """Return all true warnings from the reference cell
-
-    Args: 
-        refCell : Reference cell
-    """
-    all_warnings = ""
-    for my_warning in refCell.potential_warnings:
-        if refCell.potential_warnings[my_warning]:
-            all_warnings += str(my_warning) + ' \n '
-    return all_warnings
-
-def dedupe_consecutive_lines(text: str) -> str:
-    out = []
-    prev = None
-    for line in text.splitlines():
-        if line == prev:
-            continue
-        out.append(line)
-        prev = line
-    return "\n".join(out)
-
-def dedupe_warnings(wlist):
-    seen, out = set(), []
-    for w in wlist:
-        key = (w.category, str(w.message), w.filename, w.lineno)
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(w)
-    return out
-
-
-
-def extract_refmoleclist_xyz_general_name(fdir, refmoleclist, name: str):
-    """Extracts reference molecules to XYZ files. Adapted cell2mol function to match the web version 
-
-    Args:
-        fdir (str): Directory to save the XYZ files.
-        refmoleclist (list): List of reference molecule objects.
-        name (str): Base name for the output files.
-    """
-    #i=1
-    #ref = refmoleclist[i]
-    #writexyz(fdir, f"{i}_Other_{i}.xyz", ref.labels, ref.coord, charge="", spin="", )
-
-    for i, ref in enumerate(refmoleclist):
-
-        if ref.iscomplex:
-            mol_type = "Complex"
-        else:
-            mol_type = "Other"
-
-        if ref.totcharge is not None:
-            N = 0
-            for atom in ref.labels:
-                N += elemdatabase.elementnr[atom]
-            N -= ref.totcharge
-            if N % 2 == 0:
-                spin = 1
-            else:
-                spin = 2
-            writexyz(
-                fdir,
-                f"{name}_{mol_type}_{i}.xyz",
-                ref.labels,
-                ref.coord,
-                charge=ref.totcharge,
-                spin=spin,
-            )
-            #NOdebugger
-            #logger.debug(
-            #    "Ref molecule %s %s total charge %s lowest spin multiplicity %s",
-            #    i,
-            #    ref.formula,
-            #    ref.totcharge_cif,
-            #    spin,
-            #)
-        else:
-            #i=1
-            #ref = refmoleclist[i]
-            #writexyz(fdir, f"{i}_Other_{i}.xyz", ref.labels, ref.coord, charge="", spin="", )
-            writexyz(
-                fdir, 
-                f"{name}_{mol_type}_{i}.xyz", 
-                ref.labels, 
-                ref.coord, 
-                charge="", 
-                spin="", 
-            )
-            #NOdebugger
-            #logger.debug( "Ref molecule %s %s without charge and spin information", i, ref.formula, )
-
-
-
-
 
 def save_cell(cell: object, ext: str, output_dir: str, refcode: str):
     #taken from old cell2mol version. 
