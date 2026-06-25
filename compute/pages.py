@@ -744,7 +744,7 @@ def process_structure_example_init():
         input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
 
         try:
-            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results")
+            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results", cif_bond_info=True)
         except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -753,8 +753,7 @@ def process_structure_example_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
-
-        celldata = printing_text(cell, Capturing()) #empty
+        #celldata = printing_text(cell, Capturing()) #empty
 
         cmp_lut = cell_cmp_lut(cell)
         ht_descs = cell_get_metal_desc(cell, cmp_lut)
@@ -781,7 +780,7 @@ def process_structure_example_init():
 
         resp = flask.make_response(flask.render_template(
             "user_templates/c2m-view-YOXKUS.html",
-            celldata=celldata,
+            #celldata=celldata,
             ucellparams=ucellparams,
             compound_data=compound_data,
             xyzdata=xyzdata,
