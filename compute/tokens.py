@@ -3,29 +3,26 @@ import threading
 import tempfile
 
 def monitoring():
-    global MONITOR_THR
-
-    try:
-        while True:
-            time.sleep(MONITOR_PERIOD)
-
-            now = time.time()
-            with TOKEN_LOCK:
-                expired_paths = [
-                    path for path, tkn in list(TOKENS.items())
-                    if (now - tkn.last_alive) > MAX_TOKEN_AGE
-                ]
-                for path in expired_paths:
-                    TOKENS.pop(path, None)
-
-                if not TOKENS:
-                    MONITOR_THR = None
-                    break
-
-    except Exception:
-        # Don’t kill Apache worker because a background cleanup thread crashed
-        traceback.print_exc()
-        MONITOR_THR = None
+    """expire all sessions that haven't recieved a keepalive in 5min"""
+    global TOKENS, TOKEN_LOCK, MONITOR_THR,thr_iters
+    cond = True
+    while cond:
+        try:
+            thr_iters +=1
+            TOKEN_LOCK.acquire()
+            now = time.monotonic()
+            for path, tkn in TOKENS.items():
+                if tkn.last_alive + 300 < now:
+                    del TOKENS[path]
+            cond = len(TOKENS)
+        except:
+            thr_iters -= 1000
+            raise
+        finally:
+            TOKEN_LOCK.release()
+        if cond:
+            time.sleep(60)
+    MONTIOR_THR = None
 
 
 TOKEN_LOCK = threading.Lock()
@@ -43,15 +40,12 @@ class Token:
         self.analysis_path = os.path.join(self.localdir.name, 'cell.txt')
         self.error_path = os.path.join(self.localdir.name, 'err.txt')
 
-        self.last_alive = time.time()
-
-
         if fileformat == "xyz-ase":
             self.input_path = os.path.join(self.localdir.name, 'input.xyz')
         else:
             self.input_path = os.path.join(self.localdir.name, 'input.cif')
 
-        self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.cell')
+        self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
         self.last_alive = time.monotonic()
 
         with open(self.input_path,'w') as f:
