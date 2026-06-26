@@ -6,10 +6,10 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
 import cell2mol
-from cell2mol.refcell import process_refcell
-from cell2mol.unitcell import process_unitcell
-from cell2mol.xyz_molecule import get_molecule
-from cell2mol.read_write import print_molecule
+#from cell2mol.refcell import process_refcell
+#from cell2mol.unitcell import process_unitcell
+#from cell2mol.xyz_molecule import get_molecule
+#from cell2mol.read_write import print_molecule
 
 #from cell2mol.read_write import savemolecules
 #from cell2mol.readwrite import readinfo, savemolecules
@@ -17,6 +17,75 @@ from cell2mol.read_write import print_molecule
 #from cell2mol.final_c2m_driver import handle_cif_file
 #from cell2mol.cif2info import cif_2_info
 #from cell2mol.c2m_module import save_cell, cell2mol
+
+from pathlib import Path
+
+def print_molecule(mol, name, ext, folder):
+    filename = str(folder) + "/" + str(name) + "." + str(ext)
+
+    if ext == "xyz" or ext == "txt":
+        with open(filename, "w") as fil:
+
+            # XYZ
+            if ext == "xyz":
+                print(mol.natoms, file=fil)
+                if hasattr(mol, "totcharge") and hasattr(mol, "spin"):
+                    print(mol.totcharge, mol.spin, file=fil)
+                if hasattr(mol, "totcharge") and not hasattr(mol, "spin"):
+                    print(mol.totcharge, "SPIN", file=fil)
+                # if not hasattr(mol, 'totcharge') and not hasattr(mol, 'spin'):
+                else:
+                    print("", file=fil)
+
+                for a in mol.atoms:
+                    print("%s   %.6f   %.6f   %.6f" % (a.label, a.coord[0], a.coord[1], a.coord[2]),file=fil)
+
+            # TXT
+            elif ext == "txt":
+                print(vars(mol), file=fil)
+
+    elif ext == "gmol" or ext == "mol" or ext == "npy" or ext == "dict":
+        with open(filename, "wb") as fil:
+
+            # GMOL
+            if ext == "gmol":
+                pickle.dump(mol, fil)
+
+            # MOL
+            elif ext == "mol":
+                pickle.dump(mol.object, fil)
+
+            # NPY
+            elif ext == "npy":
+                np.save(filename, mol)
+
+            # DICT
+            elif ext == "dict":
+                mydict = vars(mol)
+                pickle.dump(mydict, fil)
+
+    else:
+        print(ext, "not found as a valid print extension in print_molecule")
+
+
+def get_error_code(output_dir, prefix):
+    """
+    Finds files like:
+      unitcell_error_0.out
+      reference_error_2.out
+
+    Returns the error number as int, or None if no file exists.
+    """
+    output_dir = Path(output_dir)
+
+    pattern = re.compile(rf"{prefix}_error_(\d+)\.out$")
+
+    for path in output_dir.glob(f"{prefix}_error_*.out"):
+        match = pattern.match(path.name)
+        if match:
+            return int(match.group(1))
+
+    return None
 
 def save_cell(cell: object, ext: str, output_dir: str, refcode: str):
     #taken from old cell2mol version. 
@@ -120,7 +189,8 @@ class Capturing(list):
 
 def cell_cmp_lut(cell):
     names = {}
-    for i_mol,mol in enumerate(cell.refmoleclist):
+    #for i_mol,mol in enumerate(cell.refmoleclist):
+    for i_mol,mol in enumerate(cell.unitcell.moleclist):
         #if mol.type == 'Complex':
         if mol.iscomplex :
             #for i_mtl, mtl in enumerate(mol.metalist):
@@ -150,7 +220,7 @@ def cell_get_metal_desc(cell, cmplut):
     for name, lst in cmplut.items():
         tpl = lst[0]
     #for mol in cell.moleclist:
-        mol = cell.refmoleclist[tpl[0]]
+        mol = cell.unitcell.moleclist[tpl[0]]
         if tpl[1]=='m':
             mtl = mol.metals[tpl[2]]
             res.append('<p>Metal center: {0:s}<br/>predicted charge: {1:+d}</p>'.format(
@@ -211,7 +281,7 @@ def cell_to_string_xyz(cell, cmplut=None):
     celldesc = "{:f},{:f},{:f},{:f},{:f},{:f}".format(*tuple(cell.cell_param))
 
     allmols = []
-    for idx, mols in enumerate(cell.moleclist):                                                                                                   
+    for idx, mols in enumerate(cell.unitcell.moleclist):                                                                                                   
 
         if mols.iscomplex:
             molName = mols.get_parent("reference").name + "_Complex_"+str(idx) 
@@ -279,7 +349,7 @@ def cell_to_svgs(cell, cmplut):
     for name, lst in cmplut.items():
         tpl = lst[0]
         #for mol in cell.moleclist:
-        mol = cell.moleclist[tpl[0]]
+        mol = cell.unitcell.moleclist[tpl[0]]
         if tpl[1]=='m':
             mol = mol.metals[tpl[2]]
             sm = mol.label
@@ -386,7 +456,7 @@ def printing_text(cell, output):
 
     dicts = {}
     list_show = []
-    for idx, mol in enumerate(cell.moleclist):
+    for idx, mol in enumerate(cell.unitcell.moleclist):
         if mol.iscomplex:        
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
@@ -394,7 +464,7 @@ def printing_text(cell, output):
                 dicts[mol.formula] = 1
                 list_show.append(idx)
 
-    for idx, mol in enumerate(cell.moleclist):
+    for idx, mol in enumerate(cell.unitcell.moleclist):
         if mol.iscomplex == False:     
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
@@ -403,7 +473,7 @@ def printing_text(cell, output):
                 list_show.append(idx)
 
     for i in list_show:
-        mol=cell.moleclist[i]
+        mol=cell.unitcell.moleclist[i]
         if mol.iscomplex: 
             output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]}) \n"])
             output.extend([f"   Total charge : {mol.totcharge} \n"])
@@ -451,8 +521,6 @@ def printing_text(cell, output):
             output.extend([f"   Charge: {mol.totcharge}\n"])
             output.extend([f"   Smiles: {mol.smiles}\n"])
             output.extend(["\n\n"])
-
-
 
     return output
 
@@ -566,9 +634,9 @@ def molecules_list(cell):
         A list containing all the molecules separeted and its respectives atoms coordinates in a string for jsmol
     '''
 
-    totmol = len(cell.moleclist)                                                                                          
+    totmol = len(cell.unitcell.moleclist)                                                                                          
     jmol_list_pos = {}                                                                                                    
-    for idx, mol in enumerate(cell.moleclist):                                                                                            
+    for idx, mol in enumerate(cell.unitcell.moleclist):                                                                                            
 
         if mol.iscomplex:
             molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
@@ -692,7 +760,7 @@ def bond_order_connectivity(cell):
 
 
     #Double looping. atom1-atom2 = atom2-atom1. Can be improved            
-    for mol in cell.moleclist:
+    for mol in cell.unitcell.moleclist:
         for atm in mol.atoms:
             for bond in atm.bonds: #loop over all atoms
                 if (bond.order > 1.0):
@@ -739,7 +807,7 @@ def species_list(cell):
     '''
 
     jmol_list_species = {}
-    for mol in cell.moleclist:
+    for mol in cell.unitcell.moleclist:
         if mol.iscomplex :
             for ligand in mol.ligands:
                 if ligand.smiles not in jmol_list_species:
