@@ -15,6 +15,8 @@ import os
 
 import webbrowser
 
+import logging
+
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
     
 @blueprint.route("/process_structure/", methods=["POST"])
@@ -81,7 +83,7 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
-                cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=True)
+                cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -91,6 +93,12 @@ def process_structure_init():
                         )
 
             #error = False
+            #with open(token.get_path()+"/cell2mol.out") as f:
+            #    output += f.readlines()
+            #return flask.render_template(
+            #        "user_templates/c2m-debug.html", msg="error", output_lines=output,
+            #        )
+
 
             #with open(token.error_path, 'r') as err:
             #    for line in err.readlines():
@@ -104,8 +112,8 @@ def process_structure_init():
 
 
             save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(cell.moleclist, token.get_path(), 'xyz')
-            savemolecules_tools(cell.moleclist, token.get_path(), 'gmol')
+            savemolecules_tools(cell.refmoleclist, token.get_path(), 'xyz')
+            savemolecules_tools(cell.refmoleclist, token.get_path(), 'gmol')
             #celldata = printing_text(cell, Capturing()) #empty
 
             cmp_lut = cell_cmp_lut(cell)
@@ -125,7 +133,7 @@ def process_structure_init():
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
             labels = []
-            for mol in cell.moleclist:
+            for mol in cell.refmoleclist:
                 for atm in mol.atoms:
                     labels.append(atm.label)
 
@@ -191,7 +199,7 @@ def process_structure_init():
         elif system_type == "reference":
 
             try:
-                refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=True)
+                refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
                 msg = "Failure…"
@@ -200,6 +208,7 @@ def process_structure_init():
                 return flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
+
 
 
             save_cell(refMol, 'gmol', token.get_path(), token.refcode)
@@ -744,7 +753,7 @@ def process_structure_example_init():
         input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
 
         try:
-            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results", cif_bond_info=True)
+            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results", cif_bond_info=False)
         except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)

@@ -120,7 +120,7 @@ class Capturing(list):
 
 def cell_cmp_lut(cell):
     names = {}
-    for i_mol,mol in enumerate(cell.moleclist):
+    for i_mol,mol in enumerate(cell.refmoleclist):
         #if mol.type == 'Complex':
         if mol.iscomplex :
             #for i_mtl, mtl in enumerate(mol.metalist):
@@ -150,7 +150,7 @@ def cell_get_metal_desc(cell, cmplut):
     for name, lst in cmplut.items():
         tpl = lst[0]
     #for mol in cell.moleclist:
-        mol = cell.moleclist[tpl[0]]
+        mol = cell.refmoleclist[tpl[0]]
         if tpl[1]=='m':
             mtl = mol.metals[tpl[2]]
             res.append('<p>Metal center: {0:s}<br/>predicted charge: {1:+d}</p>'.format(
