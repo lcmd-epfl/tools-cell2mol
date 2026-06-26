@@ -7,15 +7,21 @@ from .interface import *
 from .tokens import monitoring, Token
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
-from cell2mol.unitcell import process_unitcell
-from cell2mol.refcell import process_refcell
-from cell2mol.xyz_molecule import get_molecule
+
+#from cell2mol.unitcell import process_unitcell
+#from cell2mol.refcell import process_refcell
+#from cell2mol.xyz_molecule import get_molecule
+
+from cell2mol.process_unitcell import interpret_unitcell 
 
 import os
+import glob
 
 import webbrowser
 
 import logging
+
+from flask import send_file
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
     
@@ -83,7 +89,8 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
-                cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
+                #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
+                cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -93,6 +100,12 @@ def process_structure_init():
                         )
 
             #error = False
+
+            unitcell_error = get_error_code(token.get_path(), "unitcell")
+            reference_error = get_error_code(token.get_path(), "reference")
+
+
+
             #with open(token.get_path()+"/cell2mol.out") as f:
             #    output += f.readlines()
             #return flask.render_template(
@@ -111,9 +124,10 @@ def process_structure_init():
             #    return flask.redirect(flask.url_for("input_data"))
 
 
+
             save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(cell.refmoleclist, token.get_path(), 'xyz')
-            savemolecules_tools(cell.refmoleclist, token.get_path(), 'gmol')
+            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
+            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
             #celldata = printing_text(cell, Capturing()) #empty
 
             cmp_lut = cell_cmp_lut(cell)
@@ -127,13 +141,14 @@ def process_structure_init():
                 else:
                     compound_data.append((name, False, svg))
 
+
             #flask.flash(str(cmp_lut.keys()))
             #return flask.redirect(flask.url_for("input_data"))
 
             ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
 
             labels = []
-            for mol in cell.refmoleclist:
+            for mol in cell.unitcell.moleclist:
                 for atm in mol.atoms:
                     labels.append(atm.label)
 
@@ -173,6 +188,8 @@ def process_structure_init():
             token.keepalive()
             tkn_path = token.get_path()
 
+            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=labels,)
+
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view.html",
             #    "user_templates/test.html",
@@ -189,7 +206,7 @@ def process_structure_init():
                 jmol_list_pos=jmol_list_pos,
                 jmol_list_species = jmol_list_species,
                 jmolCon = jmolCon,
-                totmol = len(cell.moleclist),
+                totmol = len(cell.unitcell.moleclist),
                 enumerate=enumerate, len=len, zip=zip, # needed
                 struct_name=token.refcode,
             ))
@@ -199,7 +216,8 @@ def process_structure_init():
         elif system_type == "reference":
 
             try:
-                refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
+                #refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
+                refMol = "test"
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
                 msg = "Failure…"
@@ -214,22 +232,31 @@ def process_structure_init():
             save_cell(refMol, 'gmol', token.get_path(), token.refcode)
             savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
             savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
-            #celldata = printing_text_refMol(refMol, Capturing()) #empty
+            celldata = printing_text_refMol(refMol, Capturing()) #empty
 
+            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=celldata, )
 
             jmol_list_pos = molecules_list_reference(refMol)
 
             ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
+            ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
+
+            if ref_error_file:
+
+                with open(ref_error_file[0], "r") as f:
+                    ref_error_content = f.read()
+
             token.keepalive()
             tkn_path = token.get_path()
             resp = flask.make_response(flask.render_template(
                 "user_templates/c2m-view-refcell.html",
-                #celldata=celldata,
+                celldata=celldata,
                 ucellparams=ucellparams,
                 xyzdata=xyzdata,
                 jmol_list_pos=jmol_list_pos,
                 struct_name=token.refcode,
+                ref_error_content=ref_error_content,
             ))
             resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
             return resp
@@ -628,6 +655,97 @@ def process_structure_init():
 #            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
 #        )
 
+
+#>>> D O W N L O A D   C E L L 2 M O L   O U T P U T <<<
+@blueprint.route("/process_structure/download-c2moutput", methods=["GET"])
+def process_structure_download_c2m_output():
+
+    output = Capturing()
+    try:
+        tkn_path = flask.request.cookies.get('token_path', None)
+        if tkn_path is None:
+            raise ValueError("no token?")
+        token = Token.from_path(tkn_path)
+        if token is None:
+            raise ValueError("session expired")
+        output.append(token.cell_path)
+        token.keepalive()
+                
+        #headers = {"Content-Disposition": f"attachment; filename=cell2mol.out"}
+        #with open(token.cell_path, 'rb') as f:
+        #    body = f.read()
+        #return flask.make_response((body, headers))
+        return send_file(
+            token.get_path()+'/cell2mol.out',
+            as_attachment=True,
+            download_name="cell2mol.out",
+            mimetype="text/plain"
+        )
+    
+        #if True or res.status_code >= 400:
+        #    output.append(repr(res))
+        #    raise ValueError("Bad status code: {:d}".format(res.status_code))
+        #else:
+        #    return res
+        
+     
+    except Exception as err:
+        msg = "Failure…"
+        output.append(repr(err))
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+    except:
+        msg = "Failure…"
+        output.append("unknown error")
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+
+@blueprint.route("/process_structure/download-referenceSummary", methods=["GET"])
+def process_structure_download_reference_summary():
+
+    output = Capturing()
+    try:
+        tkn_path = flask.request.cookies.get('token_path', None)
+        if tkn_path is None:
+            raise ValueError("no token?")
+        token = Token.from_path(tkn_path)
+        if token is None:
+            raise ValueError("session expired")
+        output.append(token.cell_path)
+        token.keepalive()
+                
+        #headers = {"Content-Disposition": f"attachment; filename=cell2mol.out"}
+        #with open(token.cell_path, 'rb') as f:
+        #    body = f.read()
+        #return flask.make_response((body, headers))
+        return send_file(
+            token.get_path()+'/reference_summary.out',
+            as_attachment=True,
+            download_name="reference_summary.out",
+            mimetype="text/plain"
+        )
+    
+        #if True or res.status_code >= 400:
+        #    output.append(repr(res))
+        #    raise ValueError("Bad status code: {:d}".format(res.status_code))
+        #else:
+        #    return res
+        
+     
+    except Exception as err:
+        msg = "Failure…"
+        output.append(repr(err))
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+    except:
+        msg = "Failure…"
+        output.append("unknown error")
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
 
 
 
