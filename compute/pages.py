@@ -13,6 +13,7 @@ from .tokens import monitoring, Token
 #from cell2mol.xyz_molecule import get_molecule
 
 from cell2mol.process_unitcell import interpret_unitcell 
+from cell2mol.process_reference import interpret_reference 
 
 import os
 import glob
@@ -91,6 +92,59 @@ def process_structure_init():
             try:
                 #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+
+                save_cell(cell, 'gmol', token.get_path(), token.refcode)
+                savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
+                savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
+                celldata = printing_text(cell, Capturing()) #empty
+
+                cmp_lut = cell_cmp_lut(cell)
+                ht_descs = cell_get_metal_desc(cell, cmp_lut)
+                svgs = cell_to_svgs(cell, cmp_lut)
+                compound_data = []
+                for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                    # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+                    if desc != "":
+                        compound_data.append((name, True, desc))
+                    else:
+                        compound_data.append((name, False, svg))
+
+                ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
+                labels = []
+                for mol in cell.unitcell.moleclist:
+                    for atm in mol.atoms:
+                        labels.append(atm.label)
+
+                jmol_list_pos = molecules_list(cell)
+                jmolCon = bond_order_connectivity(cell)
+                jmol_list_species =species_list(cell) 
+
+                token.keepalive()
+                tkn_path = token.get_path()
+
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-view.html",
+                    celldata=celldata,
+                    ucellparams=ucellparams,
+                    compound_data=compound_data,
+                    xyzdata=xyzdata,
+                    labels=labels,
+                    jmol_list_pos=jmol_list_pos,
+                    jmol_list_species = jmol_list_species,
+                    jmolCon = jmolCon,
+                    totmol = len(cell.unitcell.moleclist),
+                    enumerate=enumerate, len=len, zip=zip, # needed
+                    struct_name=token.refcode,
+                    unitcell_error_reconstruction = str(cell.unitcell.error_reconstruction),
+                    unitcell_error_assign_charge = str(cell.unitcell.error_assign_charge),
+                    unitcell_error_create_bonds = str(cell.unitcell.error_create_bonds),
+                    unitcell_error_get_fragments = str(cell.unitcell.error_get_fragments),
+                    unitcell_error_get_spin = str(cell.unitcell.error_get_spin),
+                ))
+                resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+                return resp
+
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -99,125 +153,13 @@ def process_structure_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
-            #error = False
-
-            unitcell_error = get_error_code(token.get_path(), "unitcell")
-            reference_error = get_error_code(token.get_path(), "reference")
-
-
-
-            #with open(token.get_path()+"/cell2mol.out") as f:
-            #    output += f.readlines()
-            #return flask.render_template(
-            #        "user_templates/c2m-debug.html", msg="error", output_lines=output,
-            #        )
-
-
-            #with open(token.error_path, 'r') as err:
-            #    for line in err.readlines():
-            #        if "Error" in line:
-            #            output.append(line)
-            #            error = True
-
-            #if error :
-            #    flask.flash("Something went wrong")
-            #    return flask.redirect(flask.url_for("input_data"))
-
-
-
-            save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
-            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
-            #celldata = printing_text(cell, Capturing()) #empty
-
-            cmp_lut = cell_cmp_lut(cell)
-            ht_descs = cell_get_metal_desc(cell, cmp_lut)
-            svgs = cell_to_svgs(cell, cmp_lut)
-            compound_data = []
-            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-                # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
-                if desc != "":
-                    compound_data.append((name, True, desc))
-                else:
-                    compound_data.append((name, False, svg))
-
-
-            #flask.flash(str(cmp_lut.keys()))
-            #return flask.redirect(flask.url_for("input_data"))
-
-            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
-
-            labels = []
-            for mol in cell.unitcell.moleclist:
-                for atm in mol.atoms:
-                    labels.append(atm.label)
-
-
-            jmol_list_pos = molecules_list(cell)
-            jmolCon = bond_order_connectivity(cell)
-            jmol_list_species =species_list(cell) 
-
-            #output="Output try"
-            infodata = "info data try"
-
-
-            #resp = flask.make_response(flask.render_template(
-            #    "user_templates/c2m-view.html",
-            #    output_lines=output,
-            #    #infodata=infodata.strip(),
-            #    celldata=celldata,
-            #    #ucellparams=ucellparams,
-            #    compound_data=compound_data,
-            #    xyzdata=xyzdata,
-            #    labels=labels,
-            #    pos=pos,
-            #    cellvec=cellvec,
-            #    cellparam=cellparam,
-            #    jmol_list_pos=jmol_list_pos,
-            #    jmol_list_species = jmol_list_species,
-            #    jmolCon = jmolCon,
-            #    totmol = len(cell.moleclist),
-            #    enumerate=enumerate, len=len, zip=zip, # needed
-            #    struct_name=token.refcode,
-            #))
-
-            #xyzdata = "1 \\n try \\n H 0.0 0.0 0.0 \\n"
-
-            #output = infodata
-            #infodata = info file
-            token.keepalive()
-            tkn_path = token.get_path()
-
-            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=labels,)
-
-            resp = flask.make_response(flask.render_template(
-                "user_templates/c2m-view.html",
-            #    "user_templates/test.html",
-            #    output_lines=output,
-            #    #infodata=infodata.strip(),
-            #    celldata=celldata,
-                ucellparams=ucellparams,
-                compound_data=compound_data,
-                xyzdata=xyzdata,
-                labels=labels,
-            #    pos=pos,
-            #    cellvec=cellvec,
-            #    cellparam=cellparam,
-                jmol_list_pos=jmol_list_pos,
-                jmol_list_species = jmol_list_species,
-                jmolCon = jmolCon,
-                totmol = len(cell.unitcell.moleclist),
-                enumerate=enumerate, len=len, zip=zip, # needed
-                struct_name=token.refcode,
-            ))
-            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-            return resp
 
         elif system_type == "reference":
 
             try:
                 #refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
-                refMol = "test"
+                #refMol = "test"
+                refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
                 #Change cell to refMolec to avoid confussions
             except Exception as e:
                 msg = "Failure…"
@@ -227,26 +169,24 @@ def process_structure_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
-
-
             save_cell(refMol, 'gmol', token.get_path(), token.refcode)
             savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
             savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
             celldata = printing_text_refMol(refMol, Capturing()) #empty
 
-            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=celldata, )
 
             jmol_list_pos = molecules_list_reference(refMol)
 
             ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
-            ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
+            #ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
 
-            if ref_error_file:
+            #if ref_error_file:
 
-                with open(ref_error_file[0], "r") as f:
-                    ref_error_content = f.read()
+            #    with open(ref_error_file[0], "r") as f:
+            #        ref_error_content = f.read()
 
+            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=ref_error_file, )
             token.keepalive()
             tkn_path = token.get_path()
             resp = flask.make_response(flask.render_template(
@@ -256,7 +196,7 @@ def process_structure_init():
                 xyzdata=xyzdata,
                 jmol_list_pos=jmol_list_pos,
                 struct_name=token.refcode,
-                ref_error_content=ref_error_content,
+                #ref_error_content=ref_error_content,
             ))
             resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
             return resp

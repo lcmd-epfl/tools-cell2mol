@@ -37,4 +37,5 @@ pandas>=2.3.3
 rdkit>=2025.9.1
 scikit-learn>=1.6.1
 scipy>=1.13.1
-cell2mol @ https://github.com/lcmd-epfl/cell2mol/archive/feat/pydantic/1486d80.zip #2c899a9.zip
+#cell2mol @ https://github.com/lcmd-epfl/cell2mol/archive/feat/pydantic/17d4cb3.zip #1486d80.zip #2c899a9.zip
+cell2mol @ https://github.com/lcmd-epfl/cell2mol/archive/feat/pydantic/ceadcca.zip
