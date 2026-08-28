@@ -124,6 +124,7 @@
             </div>
             </div>
 
+
             <div class="row" style="margin-top:1px; margin-bottom:4px;">
 
                 <div id="cifImportantInfo" hidden>
@@ -148,6 +149,14 @@
                             {% endfor %}
                         </select>
                     </div>
+
+                    <div class='col-sm-12' style="display:flex; justify-content: center;  margin-top: 10px;">
+                        <div>
+                            <input type="checkbox" id="cifConn" name="cifConnectivity" value="yes" checked>
+                            <label for="connectivityfromcif"> Use .cif information for connectivity if available?</label><br>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div id="xyzImportantInfo" hidden>
@@ -175,6 +184,7 @@
                 </div>
 
             </div>
+
 
             <div id="xyzFormatFields" class="row" style="display: none">
                 <div class='col-sm-6'>Cell vectors (&#x212B;)</div>

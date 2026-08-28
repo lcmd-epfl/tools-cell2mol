@@ -44,6 +44,12 @@ def process_structure_init():
     structurefile = flask.request.files["structurefile"]
     file_ext = os.path.splitext(structurefile.filename)[1]
     system_type = flask.request.form.get("systemtype", "unknown")
+    cif_connectivity = flask.request.form.get("cifConnectivity", "no")
+
+    #resp = flask.make_response(flask.render_template(
+    #    "user_templates/test.html", prueba = cif_connectivity
+    #))
+    #return resp
 
     #Only accept files whose extension is equal to the option extension selected
     #if fileformat in file_ext:
