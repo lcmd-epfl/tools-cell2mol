@@ -103,6 +103,14 @@ def process_structure_init():
                 #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
 
+                refcell_error = get_refcell_error(cell.reference)
+                unitcell_error = get_unitcell_error(cell.unitcell)
+
+                #resp = flask.make_response(flask.render_template(
+                #    "user_templates/test.html", prueba=refcell_error
+                #))
+                #return resp
+
                 save_cell(cell, 'gmol', token.get_path(), token.refcode)
                 savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
                 savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
@@ -151,6 +159,8 @@ def process_structure_init():
                     unitcell_error_create_bonds = str(cell.unitcell.error_create_bonds),
                     unitcell_error_get_fragments = str(cell.unitcell.error_get_fragments),
                     unitcell_error_get_spin = str(cell.unitcell.error_get_spin),
+                    refcell_error = refcell_error,
+                    unitcell_error = unitcell_error,
                 ))
                 resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
                 return resp

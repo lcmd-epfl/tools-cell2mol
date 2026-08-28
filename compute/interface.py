@@ -22,6 +22,30 @@ from pathlib import Path
 
 from cell2mol.utils import config
 
+from cell2mol.write_results import (
+    write_cell_molecules_info,
+    write_unique_species,
+    write_plausible_charges,
+    get_reference_error_message,
+    get_reference_error_message_all,
+    get_unitcell_error_message,
+    exit_with_error_exception,
+    get_reference_warning_messages,
+)
+
+def get_refcell_error(refcell):
+    if refcell.error_cases:
+        all_codes = refcell.error_cases_all or {}
+        for err_mode, code in refcell.error_cases.items():
+            msg = get_reference_error_message_all(all_codes.get(err_mode), code)
+            return(f"Reference Error (mode={err_mode}): {msg}")
+
+def get_unitcell_error(unitcell):
+	for err_mode in unitcell.error_cases.keys():
+		code = unitcell.error_cases.get(err_mode, 0)
+		msg = get_unitcell_error_message(code)
+		return(f"UnitCell Error (mode={err_mode}): {msg}")
+
 def print_molecule(mol, name, ext, folder):
     filename = str(folder) + "/" + str(name) + "." + str(ext)
 

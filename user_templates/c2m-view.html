@@ -124,11 +124,16 @@
         <h2>Error Analysis</h2>
         
         <div>
+            <!--
             <p>Unitcell reconstruction error: {{ unitcell_error_reconstruction }}</p>
             <p>Unitcell charge assignment error: {{ unitcell_error_assign_charge }}</p>
             <p>Unitcell bond creation error: {{ unitcell_error_create_bonds }}</p>
             <p>Unitcell fragments error: {{ unitcell_error_get_fragments }}</p>
             <p>Unitcell spin assignation error: {{ unitcell_error_get_spin }}</p>
+            -->
+            <p>{{refcell_error}}</p>
+            <p>{{unitcell_error}}</p>
+
         </div>
 
     </div>
