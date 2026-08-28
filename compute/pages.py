@@ -96,6 +96,10 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
+
+                if cif_connectivity == "no":
+                    config.USE_BOND_INFO = False
+
                 #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
 

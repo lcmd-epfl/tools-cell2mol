@@ -20,6 +20,8 @@ import cell2mol
 
 from pathlib import Path
 
+from cell2mol.utils import config
+
 def print_molecule(mol, name, ext, folder):
     filename = str(folder) + "/" + str(name) + "." + str(ext)
 
