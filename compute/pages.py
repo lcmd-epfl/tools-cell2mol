@@ -82,6 +82,13 @@ def process_structure_init():
         #    raise ValueError("session expired")
         #token.keepalive()
 
+        def _safe_run(func, error_msg):
+            """Utility to wrap save operations in try-except."""
+            try:
+                func()
+            except Exception:
+                logger.exception(error_msg)
+
         ##################
         ## Run cell2mol ##
         ##################
@@ -103,10 +110,14 @@ def process_structure_init():
                 #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
 
+                #cell.save(token.get_path()+token.refcode+'.json', format="json")
+                _safe_run(lambda:cell.save(token.get_path()+token.refcode+'.json', format="json"), "Failed to save JSON")
+
                 refcell_error = get_refcell_error(cell.reference)
                 unitcell_error = get_unitcell_error(cell.unitcell)
 
                 refcell_interpretation = get_refcell_interpretation(cell.reference)
+
 
                 #resp = flask.make_response(flask.render_template(
                 #    "user_templates/test.html", prueba=refcell_error
@@ -711,6 +722,46 @@ def process_structure_download_reference_summary():
         )
 
 
+
+#>>> D O W N L O A D   J S O N <<<
+@blueprint.route("/process_structure/download-json", methods=["GET"])
+def process_structure_download_json():
+
+    output = Capturing()
+    try:
+        tkn_path = flask.request.cookies.get('token_path', None)
+        if tkn_path is None:
+            raise ValueError("no token?")
+        token = Token.from_path(tkn_path)
+        if token is None:
+            raise ValueError("session expired")
+        output.append(token.cell_path)
+        token.keepalive()
+                
+        headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.json"}
+        with open(token.cell_path, 'rb') as f:
+            body = f.read()
+        return flask.make_response((body, headers))
+    
+        if True or res.status_code >= 400:
+            output.append(repr(res))
+            raise ValueError("Bad status code: {:d}".format(res.status_code))
+        else:
+            return res
+        
+     
+    except Exception as err:
+        msg = "Failure…"
+        output.append(repr(err))
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+    except:
+        msg = "Failure…"
+        output.append("unknown error")
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
 
 #>>> D O W N L O A D   C E L L <<<
 
