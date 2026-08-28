@@ -106,6 +106,8 @@ def process_structure_init():
                 refcell_error = get_refcell_error(cell.reference)
                 unitcell_error = get_unitcell_error(cell.unitcell)
 
+                refcell_interpretation = get_refcell_interpretation(cell.reference)
+
                 #resp = flask.make_response(flask.render_template(
                 #    "user_templates/test.html", prueba=refcell_error
                 #))
@@ -161,6 +163,7 @@ def process_structure_init():
                     unitcell_error_get_spin = str(cell.unitcell.error_get_spin),
                     refcell_error = refcell_error,
                     unitcell_error = unitcell_error,
+                    refcell_interpretation = refcell_interpretation,
                 ))
                 resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
                 return resp

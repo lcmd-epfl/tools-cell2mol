@@ -33,6 +33,281 @@ from cell2mol.write_results import (
     get_reference_warning_messages,
 )
 
+def get_refcell_interpretation(refcell):
+    main = []
+    main.append('Total charge comparison result: {}'.format(getattr(refcell, 'total_charge_comparison')))
+    main.append('Metal oxidation state comparison result: {}'.format(getattr(refcell, 'metal_os_comparison')))
+    reported_os = getattr(refcell, "reported_metal_os", None)
+    matched_os = getattr(refcell, "reported_metal_os_matched", None)
+    os_confidence = getattr(refcell, "metal_os_match_confidence", None)
+    confidence_str = f"{os_confidence:.2f}" if os_confidence is not None else "N/A"
+    main.append("  - Reported:   {}".format(reported_os))
+    main.append("  - Matched:    {}".format(matched_os))
+    main.append("  - Confidence: {}".format(confidence_str))
+    main.append(" ")
+
+    cell_mol_info = get_cell_molecules_info(refcell)
+    main = main + cell_mol_info
+    main.append(" ")
+
+    unique_species = get_unique_species(refcell)
+    main = main + unique_species
+    main.append(" ")
+
+    plausible_charges = get_plausible_charges(refcell)
+    main = main + plausible_charges
+    main.append(" ")
+
+    return(main)
+
+def get_plausible_charges(object):
+    plausible_charges = []
+    if object.species_list is not None:
+        plausible_charges.append("Possible charges of species in {object.subtype}:")
+    for specie in object.species_list:
+        info = f"\tunique_index={specie.unique_index} {specie.formula} ({specie.subtype})"
+
+        if specie.subtype == "metal":
+            info += f" coord_sphere_formula={getattr(specie, 'coord_sphere_formula', 'N/A')}"
+
+        if specie.subtype == "metal":
+            plausible = getattr(specie, "plausible_os", None)
+        else:
+            plausible = getattr(specie, "plausible_charge_states", None)
+
+        if plausible is not None:
+            if specie.subtype == "metal":
+                info += f" plausible_os={plausible}"
+            else:
+                info += f"\n\tplausible_charge_states={plausible}"
+
+        else:
+            info += f" {_no_charge_state_reason(specie)}"
+
+        plausible_charges.append(info)
+
+    else:
+        plausible_charges.append("No species list found in the cell object.")
+
+
+    inconsistent = getattr(object, "inconsistent_plausible_charges", None)
+    if inconsistent:
+        plausible_charges.append("WARNING: plausible charges disagree between copies of the same specie:")
+
+        for unique_index, variants in sorted(inconsistent.items()):
+            formula = next(
+                    (
+                        spec.formula
+                        for spec in (object.species_list or [])
+                        if getattr(spec, "unique_index", None) == unique_index
+                    ),
+                    "?",
+                )
+            plausible_charges.append(f"\tunique_index={unique_index} {formula} enumerated to {variants}")
+
+
+
+
+
+    return(plausible_charges)
+
+
+def get_unique_species(object):
+    uniqSpe = []
+    unique_species = getattr(object, "unique_species", None)
+    if not unique_species:
+        uniqSpe.append(f"No unique species found in the {object.subtype} object.")
+        return(uniqSpe)
+
+    uniqSpe.append(f"Unique Species in {object.subtype}:")
+
+    for specie in unique_species:
+        parts = [
+                f"unique_index={specie.unique_index}",
+                f"{specie.formula}",
+                f"({specie.subtype})",
+                ]
+
+        if specie.subtype == "metal":
+            parts.append(f"coord_sphere_formula={specie.coord_sphere_formula}")
+            if getattr(specie, "charge", None) is not None:
+                parts.append(f"charge={specie.charge}")
+
+        elif specie.subtype == "ligand":
+            parts.append(f"denticity={specie.denticity}")
+            if specie.is_haptic:
+                parts.append(f"haptic_type={specie.haptic_type}")
+            if getattr(specie, "smiles", None) is not None:
+                parts.append(f"smiles={specie.smiles}")
+            if getattr(specie, "totcharge", None) is not None:
+                parts.append(f"totcharge={specie.totcharge}")
+            if getattr(specie, "groups", None) is not None:
+                parts.append(f"groups={[group.formula for group in specie.groups]}")
+
+        else:
+            if getattr(specie, "smiles", None) is not None:
+                parts.append(f"smiles={specie.smiles}")
+            if getattr(specie, "totcharge", None) is not None:
+                parts.append(f"totcharge={specie.totcharge}")
+        uniqSpe.append("\t" + " ".join(parts))
+
+    return(uniqSpe)
+
+
+def get_cell_molecules_info(cell):
+    cell_mol_info = []
+    if cell.subtype == "reference":
+        cell_type = "Reference"
+        molecule_list = getattr(cell, "refmoleclist", None)
+    elif cell.subtype == "unitcell":
+        cell_type = "Unitcell"
+        molecule_list = getattr(cell, "moleclist", None)
+    else:
+        return
+
+    if molecule_list is None:
+        cell_mol_info.append('No molecules found in the {} cell.'.format(cell_type))
+        return
+    
+    cell_mol_info.append("Molecules in {}:".format(cell.subtype))
+
+    for i, mol in enumerate(molecule_list):
+        get_molecule_info(mol, cell_mol_info, index=i)
+
+    return(cell_mol_info)
+
+
+def get_molecule_info(mol, cell_mol_info, index=None):
+    if mol is None:
+        cell_mol_info.append("No molecule object.")
+        return
+
+    prefix = "Molecule {}:".format(index)
+    cell_mol_info.append("{} {}".format(prefix, mol.formula))
+
+    if mol.iscomplex:
+        cell_mol_info.append("(TM Complex)")
+    if mol.has_ia_iia:
+        cell_mol_info.append("(Complex with Alkali or Alkaline metals)")
+    if mol.has_post_transition_metal:
+        cell_mol_info.append("(Complex with Post-Transition metals)")
+    if mol.is_non_complex_molecule:
+        cell_mol_info.append("(Non-complex)")
+
+    if mol.totcharge is not None:
+        cell_mol_info.append(f"totcharge={mol.totcharge}")
+    if getattr(mol, "totcharge_cif", None) is not None:
+        cell_mol_info.append(f"totcharge_cif={mol.totcharge_cif}")
+    if getattr(mol, "totcharge_agree", None) is not None:
+        cell_mol_info.append(f"totcharge_agree={mol.totcharge_agree}")
+    if getattr(mol, "spin", None) is not None:
+        cell_mol_info.append(f"spin_multiplicity={mol.spin}")
+    if mol.smiles is not None:
+        cell_mol_info.append(f"smiles={mol.smiles}")
+
+
+    if not mol.is_non_complex_molecule and hasattr(mol, "metals"):
+        for met in mol.metals:
+            met_info = f"\t{met.formula} ({met.subtype})"
+
+            labels = getattr(met, "atom_site_label", None)
+            if labels:
+                met_info += f" atom_site_label={labels}"
+
+            if met.charge is not None:
+                met_info += f" metal_OS={met.charge}"
+            elif getattr(met, "plausible_os", None) is not None:
+                met_info += f" metal_plausible_OS={met.plausible_os}"
+
+            if getattr(met, "spin", None) is not None:
+                met_info += f" metal_spin={met.spin}"
+
+            cell_mol_info.append(met_info)
+
+
+            if getattr(met, "coord_sphere_formula", None):
+                cell_mol_info.append(f"\t|--coord_sphere_formula={met.coord_sphere_formula}")
+
+            if all(
+                    hasattr(met, attr)
+                    for attr in ("coord_nr", "coord_geometry", "geom_deviation")
+                ):
+                cell_mol_info.append(f"\t|--coord_nr={met.coord_nr} coord_geometry={met.coord_geometry} geom_deviation={met.geom_deviation}")
+
+            if getattr(met, "groups", None):
+                for group in met.groups:
+                    group_info = f"\t|--(group) {group.labels}"
+                    group_atom_site_labels = [
+                            a.atom_site_label
+                            for a in group.atoms
+                            if a.atom_site_label is not None
+                        ]
+                    if group_atom_site_labels:
+                        group_info += f" atom_site_labels={group_atom_site_labels}"
+                    if hasattr(group, "denticity"):
+                        group_info += f" denticity={group.denticity}"
+                    if getattr(group, "is_haptic", False):
+                        group_info += f" haptic_type={group.haptic_type}"
+
+                    cell_mol_info.append(group_info)
+
+
+                # Metal-Metal Bonds
+                if hasattr(met, "metals") and hasattr(met, "coord_nr_with_metal_bonds"):
+                    bonded_metals = [m.label for m in met.metals]
+                    if bonded_metals:
+                        cell_mol_info.append(
+                                f"\t|--bonded metals={bonded_metals} coord_nr_with_metal_bonds={met.coord_nr_with_metal_bonds} "
+                                f"coord_geometry_with_metal_bonds={getattr(met, 'coord_geometry_with_metal_bonds', 'N/A')} "
+                                f"geom_deviation_with_metal_bonds={getattr(met, 'geom_deviation_with_metal_bonds', 'N/A')}"
+                                )
+
+    # --------------------
+    # Ligands
+    # --------------------
+
+    if not mol.is_non_complex_molecule and getattr(mol, "ligands", None):
+        for lig in mol.ligands:
+            lig_info = f"\t{lig.formula} ({lig.subtype})"
+            for attr in ("smiles", "denticity", "totcharge"):
+                val = getattr(lig, attr, None)
+                if val is not None:
+                    lig_info += f" {attr}={val}"
+            if (getattr(lig, "plausible_charge_states", None) is not None
+                and getattr(lig, "totcharge", None) is None
+                ):
+                status = "Exists" if lig.plausible_charge_states else "Does not exist"
+                lig_info += f" lig.plausible_charge_states {status}"
+            cell_mol_info.append(lig_info)
+
+
+            if getattr(lig, "groups", None):
+                for group in lig.groups:
+                    group_info = f"\t|--(group) {group.labels}"
+                    group_atom_site_labels = [
+                            a.atom_site_label
+                            for a in group.atoms
+                            if a.atom_site_label is not None
+                        ]
+                    if group_atom_site_labels:
+                        group_info += f" atom_site_labels={group_atom_site_labels}"
+                    if hasattr(group, "denticity"):
+                        group_info += f" denticity={group.denticity}"
+                    if getattr(group, "is_haptic", False):
+                        group_info += f" haptic_type={group.haptic_type}"
+
+                    if getattr(group, "metals", None):
+                        labels = [
+                                getattr(m, "atom_site_label", None) or m.label
+                                for m in group.metals
+                            ]
+                        group_info += f" connected_metals={labels}"
+                    cell_mol_info.append(group_info)
+
+    return(cell_mol_info)
+
+
+
 def get_refcell_error(refcell):
     if refcell.error_cases:
         all_codes = refcell.error_cases_all or {}

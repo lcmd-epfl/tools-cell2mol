@@ -96,6 +96,7 @@
 
         <div>                                                                                                                        
 
+            <!--
             {% set ns = namespace(indent=false) %}
             {% for paragraph in celldata -%}
                 {% if ">>" in paragraph %}
@@ -115,6 +116,16 @@
                     {% endif %}
                 {% endif %}
                 <br/>
+            {%- endfor %}
+            -->
+
+            {% set ns = namespace(indent=false) %}
+            {% for line in refcell_interpretation %}
+                {% if "\t" in line %}
+                    &numsp;&numsp;&numsp;&numsp; {{- line -}} <br>
+                {% else %}
+                    {{- line -}} <br>
+                {% endif %}
             {%- endfor %}
 
 
