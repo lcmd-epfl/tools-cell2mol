@@ -45,7 +45,10 @@ class Token:
         else:
             self.input_path = os.path.join(self.localdir.name, 'input.cif')
 
-        self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
+        #Do not download gmol, but json 
+        #self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
+        self.cell_path = os.path.join(self.localdir.name, f'{self.refcode:s}.json')
+
         self.last_alive = time.monotonic()
 
         with open(self.input_path,'w') as f:

@@ -111,7 +111,7 @@ def process_structure_init():
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
 
                 #cell.save(token.get_path()+token.refcode+'.json', format="json")
-                _safe_run(lambda:cell.save(token.get_path()+token.refcode+'.json', format="json"), "Failed to save JSON")
+                _safe_run(lambda:cell.save(token.get_path()+'/'+token.refcode+'.json', format="json"), "Failed to save JSON")
 
                 refcell_error = get_refcell_error(cell.reference)
                 unitcell_error = get_unitcell_error(cell.unitcell)
