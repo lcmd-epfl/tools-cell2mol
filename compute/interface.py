@@ -54,9 +54,10 @@ def get_refcell_interpretation(refcell):
     main = main + unique_species
     main.append(" ")
 
-    plausible_charges = get_plausible_charges(refcell)
-    main = main + plausible_charges
-    main.append(" ")
+    #fix to check what to print here
+    #plausible_charges = get_plausible_charges(refcell)
+    #main = main + plausible_charges
+    #main.append(" ")
 
     return(main)
 
@@ -309,17 +310,23 @@ def get_molecule_info(mol, cell_mol_info, index=None):
 
 
 def get_refcell_error(refcell):
+    refcell_error = []
     if refcell.error_cases:
         all_codes = refcell.error_cases_all or {}
         for err_mode, code in refcell.error_cases.items():
             msg = get_reference_error_message_all(all_codes.get(err_mode), code)
-            return(f"Reference Error (mode={err_mode}): {msg}")
+            refcell_error.append(f"Reference Error (mode={err_mode}): {msg}")
+
+        return(refcell_error)
 
 def get_unitcell_error(unitcell):
-	for err_mode in unitcell.error_cases.keys():
-		code = unitcell.error_cases.get(err_mode, 0)
-		msg = get_unitcell_error_message(code)
-		return(f"UnitCell Error (mode={err_mode}): {msg}")
+    unitcell_error = []
+    for err_mode in unitcell.error_cases.keys():
+        code = unitcell.error_cases.get(err_mode, 0)
+        msg = get_unitcell_error_message(code)
+        unitcell_error.append(f"UnitCell Error (mode={err_mode}): {msg}")
+
+    return(unitcell_error)
 
 def print_molecule(mol, name, ext, folder):
     filename = str(folder) + "/" + str(name) + "." + str(ext)

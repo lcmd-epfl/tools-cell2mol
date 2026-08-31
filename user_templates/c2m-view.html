@@ -142,8 +142,22 @@
             <p>Unitcell fragments error: {{ unitcell_error_get_fragments }}</p>
             <p>Unitcell spin assignation error: {{ unitcell_error_get_spin }}</p>
             -->
-            <p>{{refcell_error}}</p>
-            <p>{{unitcell_error}}</p>
+
+            <!--<p>{{refcell_error}}</p>-->
+            <p>
+            {% for line in refcell_error %}
+                {{- line -}} <br>
+            {%- endfor %}
+            </p>
+
+
+            <!--<p>{{unitcell_error}}</p>-->
+            <p>
+            {% for line in unitcell_error %}
+                {{- line -}} <br>
+            {%- endfor %}
+            </p>
+
 
         </div>
 
