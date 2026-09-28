@@ -175,6 +175,7 @@ def process_structure_init():
                     refcell_error = refcell_error,
                     unitcell_error = unitcell_error,
                     refcell_interpretation = refcell_interpretation,
+                    system_type=system_type,
                 ))
                 resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
                 return resp
@@ -191,10 +192,77 @@ def process_structure_init():
         elif system_type == "reference":
 
             try:
+
+                if cif_connectivity == "no":
+                    config.USE_BOND_INFO = False
+
                 #refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 #refMol = "test"
                 refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
+
                 #Change cell to refMolec to avoid confussions
+                _safe_run(lambda:refMol.save(token.get_path()+'/'+token.refcode+'.json', format="json"), "Failed to save JSON")
+
+                refcell_error = get_refcell_error(refMol)
+                #unitcell_error = get_unitcell_error(cell.unitcell)
+
+                refcell_interpretation = get_refcell_interpretation(refMol)
+
+
+                cmp_lut = cell_cmp_lut_base(refMol)
+                ht_descs = cell_get_metal_desc_base(refMol, cmp_lut)
+                svgs = cell_to_svgs_base(refMol, cmp_lut)
+                compound_data = []
+                for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                    # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+                    if desc != "":
+                        compound_data.append((name, True, desc))
+                    else:
+                        compound_data.append((name, False, svg))
+
+                ucellparams, xyzdata = refcell_to_string_xyz(refMol, cmp_lut)
+
+                labels = []
+                for mol in refMol.refmoleclist:
+                    for atm in mol.atoms:
+                        labels.append(atm.label)
+
+                jmol_list_pos = molecules_list_reference(refMol)
+                jmolCon = bond_order_connectivity_reference(refMol)
+                jmol_list_species =species_list(refMol) 
+
+                token.keepalive()
+                tkn_path = token.get_path()
+
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-view.html",
+                    celldata=celldata,
+                    ucellparams=ucellparams,
+                    compound_data=compound_data,
+                    xyzdata=xyzdata,
+                    labels=labels,
+                    jmol_list_pos=jmol_list_pos,
+                    jmol_list_species = jmol_list_species,
+                    jmolCon = jmolCon,
+                    totmol = len(cell.unitcell.moleclist),
+                    enumerate=enumerate, len=len, zip=zip, # needed
+                    struct_name=token.refcode,
+                    unitcell_error_reconstruction = str(cell.unitcell.error_reconstruction),
+                    unitcell_error_assign_charge = str(cell.unitcell.error_assign_charge),
+                    unitcell_error_create_bonds = str(cell.unitcell.error_create_bonds),
+                    unitcell_error_get_fragments = str(cell.unitcell.error_get_fragments),
+                    unitcell_error_get_spin = str(cell.unitcell.error_get_spin),
+                    refcell_error = refcell_error,
+                    unitcell_error = unitcell_error,
+                    refcell_interpretation = refcell_interpretation,
+                    system_type = system_type, 
+                ))
+                resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+                return resp
+
+
+
+
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
@@ -203,37 +271,37 @@ def process_structure_init():
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         )
 
-            save_cell(refMol, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
-            celldata = printing_text_refMol(refMol, Capturing()) #empty
+            #save_cell(refMol, 'gmol', token.get_path(), token.refcode)
+            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
+            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
+            #celldata = printing_text_refMol(refMol, Capturing()) #empty
 
 
-            jmol_list_pos = molecules_list_reference(refMol)
+            #jmol_list_pos = molecules_list_reference(refMol)
 
-            ucellparams, xyzdata = refcell_to_string_xyz(refMol)
+            #ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
-            #ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
+            ##ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
 
-            #if ref_error_file:
+            ##if ref_error_file:
 
-            #    with open(ref_error_file[0], "r") as f:
-            #        ref_error_content = f.read()
+            ##    with open(ref_error_file[0], "r") as f:
+            ##        ref_error_content = f.read()
 
-            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=ref_error_file, )
-            token.keepalive()
-            tkn_path = token.get_path()
-            resp = flask.make_response(flask.render_template(
-                "user_templates/c2m-view-refcell.html",
-                celldata=celldata,
-                ucellparams=ucellparams,
-                xyzdata=xyzdata,
-                jmol_list_pos=jmol_list_pos,
-                struct_name=token.refcode,
-                #ref_error_content=ref_error_content,
-            ))
-            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-            return resp
+            ##return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=ref_error_file, )
+            #token.keepalive()
+            #tkn_path = token.get_path()
+            #resp = flask.make_response(flask.render_template(
+            #    "user_templates/c2m-view-refcell.html",
+            #    celldata=celldata,
+            #    ucellparams=ucellparams,
+            #    xyzdata=xyzdata,
+            #    jmol_list_pos=jmol_list_pos,
+            #    struct_name=token.refcode,
+            #    #ref_error_content=ref_error_content,
+            #))
+            #resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+            #return resp
 
         else:
             flask.flash("The selected system type is not implemented yet.")

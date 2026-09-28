@@ -494,7 +494,6 @@ class Capturing(list):
         sys.stdout = self._stdout
 
 
-
 def cell_cmp_lut(cell):
     names = {}
     #for i_mol,mol in enumerate(cell.refmoleclist):
@@ -522,6 +521,231 @@ def cell_cmp_lut(cell):
     return names
 
 
+def cell_cmp_lut_base(refCell):
+    """
+    Build compound lookup table for REFERENCE mode.
+
+    In reference mode, ligand/molecule .smiles may still be None because
+    no final charge state has been selected. Therefore we use unique_index
+    to identify/group species instead of SMILES.
+
+    Returned tuples keep the same structure expected by cell_to_svgs_base:
+        (i_mol, 'm', i_mtl)
+        (i_mol, 'l', i_lig)
+        (i_mol, 't')
+    """
+    names = {}
+
+    for i_mol, mol in enumerate(refCell.refmoleclist):
+
+        if mol.iscomplex:
+
+            # Metals
+            for i_mtl, mtl in enumerate(mol.metals):
+                # Include type in the key so a metal label cannot collide
+                # with a ligand/molecule identifier.
+                key = ('m', mtl.label)
+
+                names.setdefault(key, [])
+                names[key].append((i_mol, 'm', i_mtl))
+
+            # Ligands
+            for i_lig, lig in enumerate(mol.ligands):
+
+                # Reference mode should have unique_index assigned by
+                # get_unique_species().
+                unique_index = getattr(lig, 'unique_index', None)
+
+                if unique_index is None:
+                    raise ValueError(
+                        "Reference ligand has no unique_index: "
+                        f"i_mol={i_mol}, "
+                        f"i_lig={i_lig}, "
+                        f"formula={getattr(lig, 'formula', None)!r}, "
+                        f"origin={getattr(lig, 'origin', None)!r}, "
+                        f"ligand={lig!r}"
+                    )
+
+                key = ('l', unique_index)
+
+                names.setdefault(key, [])
+                names[key].append((i_mol, 'l', i_lig))
+
+        else:
+            # Non-complex molecule
+            unique_index = getattr(mol, 'unique_index', None)
+
+            if unique_index is None:
+                raise ValueError(
+                    "Reference molecule has no unique_index: "
+                    f"i_mol={i_mol}, "
+                    f"formula={getattr(mol, 'formula', None)!r}, "
+                    f"origin={getattr(mol, 'origin', None)!r}, "
+                    f"molecule={mol!r}"
+                )
+
+            key = ('t', unique_index)
+
+            names.setdefault(key, [])
+            names[key].append((i_mol, 't'))
+
+    return names
+
+
+def _reference_rdkit_obj(specie):
+    """
+    Return an RDKit Mol suitable for depiction of a reference-mode specie.
+
+    Reference species do not necessarily have specie.rdkit_obj populated,
+    because reference mode enumerates plausible charge states without
+    selecting a final one.
+
+    We therefore obtain the RDKit molecule from a valid plausible
+    charge state.
+
+    A COPY of the RDKit Mol is returned because Compute2DCoords modifies
+    the molecule by adding coordinates.
+    """
+
+    states = getattr(specie, 'plausible_charge_states', None)
+
+    if not states:
+        raise ValueError(
+            "Reference specie has no plausible charge states: "
+            f"formula={getattr(specie, 'formula', None)!r}, "
+            f"origin={getattr(specie, 'origin', None)!r}, "
+            f"specie={specie!r}"
+        )
+
+    valid_states = []
+
+    for cs in states:
+
+        # Some Cell2Mol objects expose status; if it does not exist,
+        # treat the state as usable unless its RDKit object is missing.
+        status = getattr(cs, 'status', True)
+        rd = getattr(cs, 'specie_rdkit_obj', None)
+
+        if status and rd is not None:
+            valid_states.append(cs)
+
+    if not valid_states:
+        raise ValueError(
+            "Reference specie has plausible charge states, but none "
+            "contains a usable RDKit object: "
+            f"formula={getattr(specie, 'formula', None)!r}, "
+            f"origin={getattr(specie, 'origin', None)!r}, "
+            f"n_states={len(states)}, "
+            f"specie={specie!r}"
+        )
+
+    # IMPORTANT:
+    # Reference mode has not selected a definitive charge state.
+    # For visualization only, use the first valid plausible state.
+    cs = valid_states[0]
+
+    return Chem.Mol(cs.specie_rdkit_obj)
+
+#def cell_cmp_lut_base(refCell):
+#    names = {}
+#
+#    for i_mol, mol in enumerate(refCell.refmoleclist):
+#
+#        if mol.iscomplex:
+#
+#            for i_mtl, mtl in enumerate(mol.metals):
+#                key = ("metal", mtl.label)
+#                names.setdefault(key, [])
+#                names[key].append((i_mol, 'm', i_mtl))
+#
+#            for i_lig, lig in enumerate(mol.ligands):
+#                key = ("ligand", lig.unique_index)
+#                names.setdefault(key, [])
+#                names[key].append((i_mol, 'l', i_lig))
+#
+#        else:
+#            key = ("molecule", mol.unique_index)
+#            names.setdefault(key, [])
+#            names[key].append((i_mol, 't'))
+#
+#    return names
+
+#def cell_cmp_lut_base(refCell):
+#    names = {}
+#
+#    for i_mol, mol in enumerate(refCell.refmoleclist):
+#
+#        if mol.iscomplex:
+#
+#            for i_mtl, mtl in enumerate(mol.metals):
+#                mlabel = mtl.label
+#
+#                names.setdefault(mlabel, [])
+#                names[mlabel].append((i_mol, 'm', i_mtl))
+#
+#            for i_lig, lig in enumerate(mol.ligands):
+#
+#                if lig.smiles is None:
+#                    raise ValueError(
+#                        f"Ligand has no SMILES: "
+#                        f"i_mol={i_mol}, "
+#                        f"i_lig={i_lig}, "
+#                        f"rdkit_obj={lig.rdkit_obj!r}, "
+#                        f"ligand={lig!r}"
+#                    )
+#
+#                if lig.rdkit_obj is None:
+#                    raise ValueError(
+#                        f"Ligand has no RDKit object: "
+#                        f"i_mol={i_mol}, "
+#                        f"i_lig={i_lig}, "
+#                        f"smiles={lig.smiles!r}, "
+#                        f"ligand={lig!r}"
+#                    )
+#
+#                names.setdefault(lig.smiles, [])
+#                names[lig.smiles].append((i_mol, 'l', i_lig))
+#
+#        else:
+#
+#            if mol.smiles is None:
+#                raise ValueError(
+#                    f"Molecule has no SMILES: "
+#                    f"i_mol={i_mol}, mol={mol!r}"
+#                )
+#
+#            names.setdefault(mol.smiles, [])
+#            names[mol.smiles].append((i_mol, 't'))
+#
+#    return names
+
+#def cell_cmp_lut_base(refCell):
+#    names = {}
+#    #for i_mol,mol in enumerate(cell.refmoleclist):
+#    for i_mol,mol in enumerate(refCell.refmoleclist):
+#        #if mol.type == 'Complex':
+#        if mol.iscomplex :
+#            #for i_mtl, mtl in enumerate(mol.metalist):
+#            for i_mtl, mtl in enumerate(mol.metals):
+#                mlabel = mtl.label
+#                #charge not predicted in ref mode
+#                #if mtl.totcharge > 0:
+#                #if mtl.charge > 0:
+#                #    mlabel = f'[{mlabel:s}+{mtl.charge:d}]'
+#                ##elif mtl.totcharge < 0:
+#                #elif mtl.charge < 0:
+#                #    mlabel = f'[{mlabel:s}-{-mtl.charge:d}]'
+#                names.setdefault(mlabel, [])
+#                names[mlabel].append((i_mol,'m',i_mtl))
+#            #for i_lig, lig in enumerate(mol.ligandlist):
+#            for i_lig, lig in enumerate(mol.ligands):
+#                names.setdefault(lig.smiles, [])
+#                names[lig.smiles].append((i_mol,'l',i_lig))
+#        else:
+#            names.setdefault(mol.smiles, [])
+#            names[mol.smiles].append((i_mol,'t'))
+#    return names
+
 
 def cell_get_metal_desc(cell, cmplut):
     res = []
@@ -534,6 +758,22 @@ def cell_get_metal_desc(cell, cmplut):
             res.append('<p>Metal center: {0:s}<br/>predicted charge: {1:+d}</p>'.format(
                 mtl.label,
                 mtl.charge,
+            ))
+        else:
+            res.append("")
+    return res
+    
+
+def cell_get_metal_desc_base(refCell, cmplut):
+    res = []
+    for name, lst in cmplut.items():
+        tpl = lst[0]
+    #for mol in cell.moleclist:
+        mol = refCell.refmoleclist[tpl[0]]
+        if tpl[1]=='m':
+            mtl = mol.metals[tpl[2]]
+            res.append('<p>Metal center: {0:s}</p>'.format(
+                mtl.label,
             ))
         else:
             res.append("")
@@ -700,6 +940,174 @@ def cell_to_svgs(cell, cmplut):
 
     res.append(repr(cell.cell_param))
     return res
+
+
+def cell_to_svgs_base(refCell, cmplut):
+    """
+    Return an SVG image for every individual compound type in REFERENCE mode.
+
+    Metals are drawn directly from the element symbol.
+    Ligands and standalone molecules are drawn from one of their
+    plausible reference-mode charge states.
+    """
+    res = []
+
+    for name, lst in cmplut.items():
+
+        tpl = lst[0]
+
+        rd = None
+        specie = None
+
+        mol = refCell.refmoleclist[tpl[0]]
+
+        # -------------------------------------------------------------
+        # METAL
+        # -------------------------------------------------------------
+        if tpl[1] == 'm':
+
+            specie = mol.metals[tpl[2]]
+
+            label = specie.label
+            smiles = '[' + label + ']'
+
+            rd = Chem.MolFromSmiles(smiles)
+
+            if rd is None:
+                raise ValueError(
+                    "Could not construct RDKit metal molecule: "
+                    f"name={name!r}, "
+                    f"tpl={tpl!r}, "
+                    f"label={label!r}, "
+                    f"smiles={smiles!r}, "
+                    f"metal={specie!r}"
+                )
+
+        # -------------------------------------------------------------
+        # LIGAND
+        # -------------------------------------------------------------
+        elif tpl[1] == 'l':
+
+            specie = mol.ligands[tpl[2]]
+
+            rd = _reference_rdkit_obj(specie)
+
+        # -------------------------------------------------------------
+        # STANDALONE MOLECULE
+        # -------------------------------------------------------------
+        elif tpl[1] == 't':
+
+            specie = mol
+
+            rd = _reference_rdkit_obj(specie)
+
+        else:
+            raise ValueError(
+                "Internal error juggling reference compounds: "
+                f"name={name!r}, tpl={tpl!r}"
+            )
+
+        if rd is None:
+            raise ValueError(
+                "RDKit object unexpectedly None after reference conversion: "
+                f"name={name!r}, "
+                f"tpl={tpl!r}, "
+                f"type={tpl[1]!r}, "
+                f"specie={specie!r}"
+            )
+
+        try:
+            Chem.rdDepictor.Compute2DCoords(rd)
+
+        except Exception as e:
+            raise ValueError(
+                "Compute2DCoords failed in reference mode: "
+                f"name={name!r}, "
+                f"tpl={tpl!r}, "
+                f"type={tpl[1]!r}, "
+                f"formula={getattr(specie, 'formula', None)!r}, "
+                f"rd={rd!r}, "
+                f"specie={specie!r}, "
+                f"original_error={e!r}"
+            ) from e
+
+    return res
+
+
+#def cell_to_svgs_base(refCell, cmplut):
+#    """returns an svg image for every individual compound type in the cell"""
+#    res = []
+#    for name, lst in cmplut.items():
+#        tpl = lst[0]
+#        rd = None
+#        sm = None
+#
+#        #for mol in cell.moleclist:
+#        mol = refCell.refmoleclist[tpl[0]]
+#        if tpl[1]=='m':
+#            mol = mol.metals[tpl[2]]
+#            sm = mol.label
+#            #no charge in ref mode
+#            #if mol.charge > 0:
+#            #    sm += f'+{mol.charge:d}'
+#            #elif mol.charge < 0:
+#            #    sm += f'-{-mol.charge:d}'
+#            smiles = '[' + sm + ']'
+#            rd = Chem.MolFromSmiles(smiles)
+#
+#            if rd is None:
+#                 raise ValueError(
+#                        f"MolFromSmiles failed: "
+#                        f"name={name!r}, tpl={tpl!r}, "
+#                        f"label={sm!r}, smiles={smiles!r}, "
+#                        f"mol={mol!r}"
+#                        )
+#
+#        elif tpl[1]=='l':
+#            mol = mol.ligands[tpl[2]]
+#            rd = mol.rdkit_obj
+#        elif tpl[1]=='t':
+#            rd = mol.rdkit_obj
+#        else:
+#            raise ValueError("internal error juggling compounds")
+#
+#        if rd is None:
+#                raise ValueError(
+#                f"RDKit object is None: "
+#                f"name={name!r}, "
+#                f"tpl={tpl!r}, "
+#                f"type={tpl[1]!r}, "
+#                f"sm={sm!r}, "
+#                f"mol={mol!r}"
+#            )
+#
+#        try:
+#            Chem.rdDepictor.Compute2DCoords(rd)
+#        except Exception:
+#            raise ValueError(repr(rd) +' '+ sm)
+#
+#        coords = rd.GetConformer(-1).GetPositions()
+#        bbox = (coords.max(axis=0) - coords.min(axis=0))[:2]
+#        size = (30*bbox+30).round()
+#
+#        try:
+#            drawer = rdMolDraw2D.MolDraw2DSVG(int(size[0]), int(size[1]))
+#        except Exception as err:
+#            raise err
+#            raise ValueError(repr(size), repr(coords))
+#        drawer.DrawMolecule(rd)
+#        drawer.FinishDrawing()
+#        svg = drawer.GetDrawingText()
+#        #svg = rdMolDraw2D.MolToSVG(rd)
+#        svg = svg.replace('svg:', '')
+#        svg = re.sub(re__svghead, '', svg)
+#        svg = re.sub(re__svgbackground, '', svg, 1)
+#        #res.append(name+'   '+svg)
+#        res.append(svg)
+#
+#
+#    res.append(repr(refCell.cell_param))
+#    return res
 
 
 
@@ -1092,14 +1500,50 @@ def bond_order_connectivity(cell):
                     else:
                         jmolCon = jmolCon + " bondOrder " + str(bond.order) + " ; "
 
+    return jmolCon
 
 
 
 
+def bond_order_connectivity_reference(refCell):
+    ''' Takes the cell object and returns a string containig the information needed by jsmol to generate the atomic bonds with 
+    the correct bond order
 
+    Args:
+        cell: the output of cell2mol
+        
 
+    Return:
+        A string with the jsmol instructions to select all bonded atoms within the same molecule and specify its bond order
+    '''
 
-    
+    jmolCon = " "
+
+    #Double looping. atom1-atom2 = atom2-atom1. Can be improved            
+    for mol in refCell.refmoleclist:
+        for atm in mol.atoms:
+            for bond in atm.bonds: #loop over all atoms
+                if (bond.order > 1.0):
+                    #select atom 1 by its coordinates
+                    jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                    jmolCon = jmolCon + str(bond.atom1.coord[0]) + " "
+                    jmolCon = jmolCon + str(bond.atom1.coord[1]) + " "
+                    jmolCon = jmolCon + str(bond.atom1.coord[2]) + " "
+                    jmolCon = jmolCon + "}) or "
+                    #select atom 2 by its coordinates
+                    jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
+                    jmolCon = jmolCon + str(bond.atom2.coord[0]) + " "
+                    jmolCon = jmolCon + str(bond.atom2.coord[1]) + " "
+                    jmolCon = jmolCon + str(bond.atom2.coord[2]) + " "
+                    jmolCon = jmolCon + "}) ; "
+                    #bond order
+                    if (bond.order == 2.0):
+                        jmolCon = jmolCon + " bondOrder 2 ; "
+                    elif (bond.order == 3.0):
+                        jmolCon = jmolCon + " bondOrder 3 ; "
+                    else:
+                        jmolCon = jmolCon + " bondOrder " + str(bond.order) + " ; "
+
     return jmolCon
 
 
@@ -1116,6 +1560,63 @@ def species_list(cell):
 
     jmol_list_species = {}
     for mol in cell.unitcell.moleclist:
+        if mol.iscomplex :
+            for ligand in mol.ligands:
+                if ligand.smiles not in jmol_list_species:
+                    jmol_list_species[ligand.smiles] = " "
+                else:
+                    jmol_list_species[ligand.smiles] += " or "
+                for nat, atms in enumerate(ligand.atoms):
+                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[1]) + " "
+                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[2]) + "})"
+                    if nat+1 < len(ligand.atoms):
+                        jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " or "
+            for metal in mol.metals:
+                if metal.charge > 0:
+                    metalName = f'[{metal.label:s}+{metal.charge:d}]'
+                elif metal.charge < 0:  #elif mtl.totcharge < 0: 
+                    metalName = f'[{metal.label:s}-{metal.charge:d}]'
+                else:
+                    metalName = f'{metal.label:s}'
+                if metalName not in jmol_list_species:
+                    jmol_list_species[metalName] = " "
+                else:
+                    jmol_list_species[metalName] += " or "
+                #for nat in range(metal.natom):
+                jmol_list_species[metalName] += " within (0.1, {" + str(metal.coord[0]) + " "
+                jmol_list_species[metalName] += str(metal.coord[1]) + " "
+                jmol_list_species[metalName] += str(metal.coord[2]) + "}) "
+                #    if nat+1 < metal.natom:
+                #        jmol_list_species[metalName] += " or "
+        else:
+            if mol.smiles not in jmol_list_species:
+                jmol_list_species[mol.smiles] = " "
+            else:
+                jmol_list_species[mol.smiles] += " or "
+            for nat, atms in enumerate(mol.atoms):
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[1]) + " "
+                jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + str(atms.coord[2]) + "})"
+                if nat+1 < len(mol.atoms):
+                    jmol_list_species[mol.smiles] = jmol_list_species[mol.smiles] + " or "
+    
+    return jmol_list_species
+
+
+def species_list_reference(refCell):
+    ''' Takes the cell2mol cell object and uses its information to make a list of all the species(metals, ligands, and others) 
+    with its respectives atomic coordinates in a compatible format for jsmol
+
+    Args:
+        cell: the output of cell2mol
+
+    Return:
+        A dictionary containing all the speciess separeted and its respectives atoms coordinates in a string for jsmol
+    '''
+
+    jmol_list_species = {}
+    for mol in refCell.refmoleclist:
         if mol.iscomplex :
             for ligand in mol.ligands:
                 if ligand.smiles not in jmol_list_species:
