@@ -1630,12 +1630,13 @@ def species_list_reference(refCell):
                     if nat+1 < len(ligand.atoms):
                         jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " or "
             for metal in mol.metals:
-                if metal.charge > 0:
-                    metalName = f'[{metal.label:s}+{metal.charge:d}]'
-                elif metal.charge < 0:  #elif mtl.totcharge < 0: 
-                    metalName = f'[{metal.label:s}-{metal.charge:d}]'
-                else:
-                    metalName = f'{metal.label:s}'
+                #no charge in reference
+                #if metal.charge > 0:
+                #    metalName = f'[{metal.label:s}+{metal.charge:d}]'
+                #elif metal.charge < 0:  #elif mtl.totcharge < 0: 
+                #    metalName = f'[{metal.label:s}-{metal.charge:d}]'
+                #else:
+                metalName = f'{metal.label:s}'
                 if metalName not in jmol_list_species:
                     jmol_list_species[metalName] = " "
                 else:
