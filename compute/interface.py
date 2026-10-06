@@ -547,7 +547,7 @@ def cell_cmp_lut_base(refCell):
                 key = ('m', mtl.label)
 
                 names.setdefault(key, [])
-                names[key].append((i_mol, 'm', i_mtl))
+                names[key].append((i_mol, 'm', i_mtl, mtl.formula))
 
             # Ligands
             for i_lig, lig in enumerate(mol.ligands):
@@ -569,7 +569,7 @@ def cell_cmp_lut_base(refCell):
                 key = ('l', unique_index)
 
                 names.setdefault(key, [])
-                names[key].append((i_mol, 'l', i_lig))
+                names[key].append((i_mol, 'l', i_lig, lig.formula))
 
         else:
             # Non-complex molecule
@@ -587,7 +587,7 @@ def cell_cmp_lut_base(refCell):
             key = ('t', unique_index)
 
             names.setdefault(key, [])
-            names[key].append((i_mol, 't'))
+            names[key].append((i_mol, 't', 0, mol.formula))
 
     return names
 
@@ -1016,21 +1016,45 @@ def cell_to_svgs_base(refCell, cmplut):
                 f"specie={specie!r}"
             )
 
+        #try:
+        #    Chem.rdDepictor.Compute2DCoords(rd)
+
+        #except Exception as e:
+        #    raise ValueError(
+        #        "Compute2DCoords failed in reference mode: "
+        #        f"name={name!r}, "
+        #        f"tpl={tpl!r}, "
+        #        f"type={tpl[1]!r}, "
+        #        f"formula={getattr(specie, 'formula', None)!r}, "
+        #        f"rd={rd!r}, "
+        #        f"specie={specie!r}, "
+        #        f"original_error={e!r}"
+        #    ) from e
         try:
             Chem.rdDepictor.Compute2DCoords(rd)
+        except Exception:
+            raise ValueError(repr(rd) +' '+ sm)
 
-        except Exception as e:
-            raise ValueError(
-                "Compute2DCoords failed in reference mode: "
-                f"name={name!r}, "
-                f"tpl={tpl!r}, "
-                f"type={tpl[1]!r}, "
-                f"formula={getattr(specie, 'formula', None)!r}, "
-                f"rd={rd!r}, "
-                f"specie={specie!r}, "
-                f"original_error={e!r}"
-            ) from e
+        coords = rd.GetConformer(-1).GetPositions()
+        bbox = (coords.max(axis=0) - coords.min(axis=0))[:2]
+        size = (30*bbox+30).round()
 
+        try:
+            drawer = rdMolDraw2D.MolDraw2DSVG(int(size[0]), int(size[1]))
+        except Exception as err:
+            raise err
+            raise ValueError(repr(size), repr(coords))
+        drawer.DrawMolecule(rd)
+        drawer.FinishDrawing()
+        svg = drawer.GetDrawingText()
+        #svg = rdMolDraw2D.MolToSVG(rd)
+        svg = svg.replace('svg:', '')
+        svg = re.sub(re__svghead, '', svg)
+        svg = re.sub(re__svgbackground, '', svg, 1)
+        #res.append(name+'   '+svg)
+        res.append(svg)
+
+    res.append(repr(refCell.cell_param))
     return res
 
 
@@ -1619,16 +1643,16 @@ def species_list_reference(refCell):
     for mol in refCell.refmoleclist:
         if mol.iscomplex :
             for ligand in mol.ligands:
-                if ligand.smiles not in jmol_list_species:
-                    jmol_list_species[ligand.smiles] = " "
+                if ligand.plausible_charge_states[0].specie_smiles not in jmol_list_species:
+                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = " "
                 else:
-                    jmol_list_species[ligand.smiles] += " or "
+                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] += " or "
                 for nat, atms in enumerate(ligand.atoms):
-                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
-                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[1]) + " "
-                    jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + str(atms.coord[2]) + "})"
+                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + str(atms.coord[1]) + " "
+                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + str(atms.coord[2]) + "})"
                     if nat+1 < len(ligand.atoms):
-                        jmol_list_species[ligand.smiles] = jmol_list_species[ligand.smiles] + " or "
+                        jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + " or "
             for metal in mol.metals:
                 #no charge in reference
                 #if metal.charge > 0:

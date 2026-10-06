@@ -151,6 +151,11 @@ def process_structure_init():
                 jmolCon = bond_order_connectivity(cell)
                 jmol_list_species =species_list(cell) 
 
+                #resp = flask.make_response(flask.render_template(
+                #    "user_templates/test.html", prueba=cmp_lut
+                #))
+                #return resp
+
                 token.keepalive()
                 tkn_path = token.get_path()
 
@@ -216,9 +221,17 @@ def process_structure_init():
                 for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
                     # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
                     if desc != "":
-                        compound_data.append((name, True, desc))
+                        compound_data.append((name, True, desc, cmp_lut[name][0][3])) #cmp_lut[name][0][3] = chemical formula
                     else:
-                        compound_data.append((name, False, svg))
+                        compound_data.append((name, False, svg, cmp_lut[name][0][3])) #cmp_lut[name][0][3] = chemical formula 
+
+                        #resp = flask.make_response(flask.render_template(
+                        #    "user_templates/test.html", prueba=cmp_lut[name][0][3]
+                        #))
+                        #return resp
+
+
+
 
                 ucellparams, xyzdata = refcell_to_string_xyz(refMol, cmp_lut)
 
@@ -229,14 +242,19 @@ def process_structure_init():
 
                 jmol_list_pos = molecules_list_reference(refMol)
                 jmolCon = bond_order_connectivity_reference(refMol)
-                jmol_list_species =species_list(refMol) 
+                jmol_list_species =species_list_reference(refMol) 
 
                 token.keepalive()
                 tkn_path = token.get_path()
 
+                #resp = flask.make_response(flask.render_template(
+                #    "user_templates/test.html", prueba="OK"
+                #))
+                #return resp
+
                 resp = flask.make_response(flask.render_template(
-                    "user_templates/c2m-view.html",
-                    celldata=celldata,
+                    "user_templates/c2m-view-refcell.html",
+                    #celldata=celldata,
                     ucellparams=ucellparams,
                     compound_data=compound_data,
                     xyzdata=xyzdata,
@@ -244,16 +262,16 @@ def process_structure_init():
                     jmol_list_pos=jmol_list_pos,
                     jmol_list_species = jmol_list_species,
                     jmolCon = jmolCon,
-                    totmol = len(cell.unitcell.moleclist),
+                    totmol = len(refMol.refmoleclist),
                     enumerate=enumerate, len=len, zip=zip, # needed
                     struct_name=token.refcode,
-                    unitcell_error_reconstruction = str(cell.unitcell.error_reconstruction),
-                    unitcell_error_assign_charge = str(cell.unitcell.error_assign_charge),
-                    unitcell_error_create_bonds = str(cell.unitcell.error_create_bonds),
-                    unitcell_error_get_fragments = str(cell.unitcell.error_get_fragments),
-                    unitcell_error_get_spin = str(cell.unitcell.error_get_spin),
+                    unitcell_error_reconstruction = "",#str(refMol.error_reconstruction),
+                    unitcell_error_assign_charge = str(refMol.error_assign_charge),
+                    unitcell_error_create_bonds = str(refMol.error_create_bonds),
+                    unitcell_error_get_fragments = "",#str(refMol.error_get_fragments),
+                    unitcell_error_get_spin = str(refMol.error_get_spin),
                     refcell_error = refcell_error,
-                    unitcell_error = unitcell_error,
+                    unitcell_error = "",#unitcell_error,
                     refcell_interpretation = refcell_interpretation,
                     system_type = system_type, 
                 ))
