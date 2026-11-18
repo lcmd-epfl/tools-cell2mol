@@ -172,17 +172,21 @@
 <!--
         <p><em>Select species to visualize/hide.</em></p>
 -->
-        <div class="row" style="margin-right: 2em">
+        <div class="row reference-species-list" style="margin-right: 2em">
             
             <h2>Unique species</h2>
 
-            {% for cmp_i,(cmp_name,is_metal,desc,formula) in enumerate(compound_data) -%}
-                <div class=" col-sm text-center res-pad" style="text-align:center;float:none ">
+            {% for cmp_i,(cmp_name,is_metal,desc,formula,charges) in enumerate(compound_data) -%}
+                <div class="col-sm text-center res-pad reference-species-card" style="text-align:center;float:none ">
 <!--
                     <input class="struct2d" value='{{jmol_list_species[cmp_name]}}' type="checkbox" onchange="cmpVisibilityUpdate(jmolApplet);" id="selectcmp-{{cmp_i}}" checked/>
 -->
                     <label for="selectcmp-{{cmp_i}}">
                         <strong class="text-center">{{formula}}</strong> <br/>
+<!--
+                        <span class="reference-species-charge">Plausible charge states: {{charges}}</span>
+-->
+                        <span class="reference-species-charge">Plausible {{ 'oxidation states' if is_metal else 'charge states' }}: {{charges}}</span>
                         {{desc|safe}}
                     </label>
                 </div>

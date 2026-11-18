@@ -204,6 +204,7 @@ def process_structure_init():
                 #refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 #refMol = "test"
                 refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
+                savemolecules_reference_xyz(refMol, token.get_path())
 
                 #Change cell to refMolec to avoid confussions
                 _safe_run(lambda:refMol.save(token.get_path()+'/'+token.refcode+'.json', format="json"), "Failed to save JSON")
@@ -217,13 +218,14 @@ def process_structure_init():
                 cmp_lut = cell_cmp_lut_base(refMol)
                 ht_descs = cell_get_metal_desc_base(refMol, cmp_lut)
                 svgs = cell_to_svgs_base(refMol, cmp_lut)
+                plausible_charges = reference_plausible_charges(refMol, cmp_lut)
                 compound_data = []
-                for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                for name,desc,svg,charges in zip(cmp_lut.keys(), ht_descs, svgs, plausible_charges):
                     # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
                     if desc != "":
-                        compound_data.append((name, True, desc, cmp_lut[name][0][3])) #cmp_lut[name][0][3] = chemical formula
+                        compound_data.append((name, True, desc, cmp_lut[name][0][3], charges)) #cmp_lut[name][0][3] = chemical formula
                     else:
-                        compound_data.append((name, False, svg, cmp_lut[name][0][3])) #cmp_lut[name][0][3] = chemical formula 
+                        compound_data.append((name, False, svg, cmp_lut[name][0][3], charges)) #cmp_lut[name][0][3] = chemical formula 
 
                         #resp = flask.make_response(flask.render_template(
                         #    "user_templates/test.html", prueba=cmp_lut[name][0][3]

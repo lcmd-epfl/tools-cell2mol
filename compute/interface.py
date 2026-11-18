@@ -764,6 +764,69 @@ def cell_get_metal_desc(cell, cmplut):
     return res
     
 
+def savemolecules_reference_xyz(refCell, output_dir):
+    for idx, mol in enumerate(refCell.refmoleclist):
+        if mol.iscomplex:
+            molName = mol.get_parent("reference").name + "_Complex_" + str(idx)
+        else:
+            molName = mol.get_parent("reference").name + "_Other_" + str(idx)
+
+        filename = os.path.join(output_dir, molName + ".xyz")
+        with open(filename, "w") as fil:
+            print(mol.natoms, file=fil)
+            print(molName, file=fil)
+            for atom in mol.atoms:
+                x, y, z = atom.coord
+                print("%s   %.6f   %.6f   %.6f" % (atom.label, x, y, z), file=fil)
+
+
+def reference_plausible_charges(refCell, cmplut):
+    res = []
+    for name, lst in cmplut.items():
+        tpl = lst[0]
+        mol = refCell.refmoleclist[tpl[0]]
+        charges = []
+
+        if tpl[1] == 'm':
+            specie = mol.metals[tpl[2]]
+            states = getattr(specie, 'plausible_os', None)
+            if states is not None:
+                for charge in states:
+                    if isinstance(charge, (int, np.integer)):
+                        charges.append(int(charge))
+        else:
+            if tpl[1] == 'l':
+                specie = mol.ligands[tpl[2]]
+            else:
+                specie = mol
+
+            states = getattr(specie, 'plausible_charge_states', None)
+            if states is not None:
+                for state in states:
+                    if not getattr(state, 'status', True):
+                        continue
+                    charge = None
+                    for attr in ('specie_totcharge', 'specie_charge', 'totcharge', 'charge'):
+                        value = getattr(state, attr, None)
+                        if isinstance(value, (int, np.integer)):
+                            charge = int(value)
+                            break
+                    if charge is None:
+                        rd = getattr(state, 'specie_rdkit_obj', None)
+                        if rd is not None:
+                            charge = int(Chem.GetFormalCharge(rd))
+                    if charge is not None:
+                        charges.append(charge)
+
+        charges = sorted(set(charges))
+        if charges:
+            res.append(', '.join(f'{charge:+d}' if charge > 0 else str(charge) for charge in charges))
+        else:
+            res.append('Not available')
+
+    return res
+
+
 def cell_get_metal_desc_base(refCell, cmplut):
     res = []
     for name, lst in cmplut.items():
