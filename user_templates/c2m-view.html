@@ -169,16 +169,18 @@
     <form class="pane" id="structure-chooser" style="width: min-content;">
         <h2>Unique species</h2>
         <p><em>Select species to visualize/hide.</em></p>
-        <div class="row" style="margin-right: 2em">
+        <div style="max-height: 580px; overflow-y: auto;">
+        <div class="row">
             {% for cmp_i,(cmp_name,is_metal,desc) in enumerate(compound_data) -%}
                 <div class=" col-sm text-center res-pad" style="text-align:center;float:none ">
                     <input class="struct2d" value='{{jmol_list_species[cmp_name]}}' type="checkbox" onchange="cmpVisibilityUpdate(jmolApplet);" id="selectcmp-{{cmp_i}}" checked/>
-                    <label for="selectcmp-{{cmp_i}}">
+                    <label for="selectcmp-{{cmp_i}}" style="transform: scale(0.90); transform-origin: center center;">
                         <strong class="text-center">{{cmp_name}}</strong> <br/>
                         {{desc|safe}}
                     </label>
                 </div>
             {%- endfor %}
+        </div>
         </div>
     </form>
     
