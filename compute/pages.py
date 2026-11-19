@@ -26,6 +26,10 @@ from flask import send_file
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
     
+def _safe_save_molecule_json(molset, path):
+    molset.save(path, format="json")
+
+
 @blueprint.route("/process_structure/", methods=["POST"])
 def process_structure_init():
     """Example view to process a crystal structure."""
@@ -456,69 +460,86 @@ def process_structure_init():
         #return resp
     
     elif fileformat == "xyz-ase" and file_ext == ".xyz":
-        
-        xyzCellVec = np.zeros((3,3))
 
+        system_type = "molecule"
         try:
-            xyzCellVec[0,0] = flask.request.form.get("xyzCellVecAx", "unknown")
-            xyzCellVec[0,1] = flask.request.form.get("xyzCellVecAy", "unknown")
-            xyzCellVec[0,2] = flask.request.form.get("xyzCellVecAz", "unknown")
-            xyzCellVec[1,0] = flask.request.form.get("xyzCellVecBx", "unknown")
-            xyzCellVec[1,1] = flask.request.form.get("xyzCellVecBy", "unknown")
-            xyzCellVec[1,2] = flask.request.form.get("xyzCellVecBz", "unknown")
-            xyzCellVec[2,0] = flask.request.form.get("xyzCellVecCx", "unknown")
-            xyzCellVec[2,1] = flask.request.form.get("xyzCellVecCy", "unknown")
-            xyzCellVec[2,2] = flask.request.form.get("xyzCellVecCz", "unknown")
-        except Exception as e:
-            flask.flash("Please add all cell vectors components")
+            total_charge = int(flask.request.form.get("xyzTotalCharge", "0"))
+        except (ValueError, TypeError):
+            flask.flash("Please enter an integer total charge for the XYZ structure")
             return flask.redirect(flask.url_for("input_data"))
-        
-        if system_type == "molecule":
 
+        if system_type == "molecule":
             try:
-                mol = get_molecule(token.input_path, token.refcode, token.get_path())
-                #Change cell to refMolec to avoid confussions
+                molset = interpret_molecule_xyz(token.input_path, token.refcode, token.get_path(), total_charge)
+                moleclist = get_moleculeset_molecules(molset)
+
+                _safe_save_molecule_json(molset, token.cell_path)
+                savemolecules_moleculeset_xyz(moleclist, token.get_path(), token.refcode)
+
+                molecule_interpretation = printing_text_moleculeset(moleclist, Capturing())
+
+                if moleculeset_is_resolved(moleclist):
+                    molecule_cell = make_moleculeset_cell(moleclist)
+                    cmp_lut = cell_cmp_lut(molecule_cell)
+                    ht_descs = cell_get_metal_desc(molecule_cell, cmp_lut)
+                    svgs = cell_to_svgs(molecule_cell, cmp_lut)
+                    compound_data = []
+                    for name, desc, svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                        tpl = cmp_lut[name][0]
+                        mol = molecule_cell.unitcell.moleclist[tpl[0]]
+                        if tpl[1] == 'm':
+                            charge = mol.metals[tpl[2]].charge
+                            charge_label = 'Oxidation state'
+                        elif tpl[1] == 'l':
+                            charge = mol.ligands[tpl[2]].totcharge
+                            charge_label = 'Charge'
+                        else:
+                            charge = mol.totcharge
+                            charge_label = 'Charge'
+                        charge_value = ('+' if charge > 0 else '') + str(int(charge)) if charge is not None else 'Not available'
+                        if desc != "":
+                            compound_data.append((name, True, desc, charge_label, charge_value))
+                        else:
+                            compound_data.append((name, False, svg, charge_label, charge_value))
+                    jmolCon = bond_order_connectivity(molecule_cell)
+                    jmol_list_species = species_list(molecule_cell)
+                else:
+                    compound_data, jmol_list_species = moleculeset_partial_species(moleclist)
+                    jmolCon = bond_order_connectivity_moleculeset(moleclist)
+
+                xyzdata = moleculeset_to_string_xyz(moleclist, token.refcode)
+                jmol_list_pos = molecules_list_moleculeset(moleclist, token.refcode)
+                molecule_errors = get_moleculeset_errors(molset)
+                if not moleculeset_is_resolved(moleclist):
+                    molecule_errors.append('Molecule Status (mode=interpretation): Some chemical states are unresolved; partial results are shown.')
+
+                token.keepalive()
+                tkn_path = token.get_path()
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-view-xyzmol.html",
+                    molecule_interpretation=molecule_interpretation,
+                    compound_data=compound_data,
+                    xyzdata=xyzdata,
+                    jmol_list_pos=jmol_list_pos,
+                    jmol_list_species=jmol_list_species,
+                    jmolCon=jmolCon,
+                    totmol=len(moleclist),
+                    enumerate=enumerate, len=len, zip=zip,
+                    struct_name=token.refcode,
+                    system_type=system_type,
+                    total_charge=total_charge,
+                    molecule_errors=molecule_errors,
+                ))
+                resp.set_cookie("token_path", tkn_path, secure=False, httponly=True, samesite='Strict')
+                return resp
+
             except Exception as e:
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
                 return flask.render_template(
-                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
-
-
-
-            save_cell(mol, 'gmol', token.get_path(), token.refcode)
-
-            #savemolecules_tools(mol, token.get_path(), 'xyz') #its already the input
-            #savemolecules_tools(mol, token.get_path(), 'gmol') #will be the same as the cell
-
-            celldata = printing_text_molxyz(mol, Capturing()) #empty
-
-
-            #jmol_list_pos = molecules_list_reference(refMol)
-
-            ucellparams, xyzdata = molxyz_to_string_xyz(mol, xyzCellVec)
-            
-            token.keepalive()
-            tkn_path = token.get_path()
-            resp = flask.make_response(flask.render_template(
-            #    "user_templates/test.html",
-            #    prueba=ucellparams+xyzdata,
-                "user_templates/c2m-view-xyzmol.html",
-                celldata=celldata,
-                ucellparams=ucellparams,
-                xyzdata=xyzdata,
-            #    jmol_list_pos=jmol_list_pos,
-                struct_name=token.refcode,
-            ))
-            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-            return resp
-
-        else:
-            flask.flash("The selected system type is not implemented yet.")
-            return flask.redirect(flask.url_for("input_data"))
-
+                    "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                )
 
     elif fileformat =="unknown":
         flask.flash("Please select a file format.")

@@ -23,13 +23,11 @@ from pathlib import Path
 from cell2mol.utils import config
 
 from cell2mol.write_results import (
-    write_cell_molecules_info,
     write_unique_species,
     write_plausible_charges,
     get_reference_error_message,
-    get_reference_error_message_all,
+    get_reference_error_messages,
     get_unitcell_error_message,
-    exit_with_error_exception,
     get_reference_warning_messages,
 )
 
@@ -186,13 +184,13 @@ def get_molecule_info(mol, cell_mol_info, index=None):
     prefix = "Molecule {}:".format(index)
     cell_mol_info.append("{} {}".format(prefix, mol.formula))
 
-    if mol.iscomplex:
+    if mol.contains_metal:
         cell_mol_info.append("(TM Complex)")
-    if mol.has_ia_iia:
+    if mol.has_s_block_metal:
         cell_mol_info.append("(Complex with Alkali or Alkaline metals)")
-    if mol.has_post_transition_metal:
+    if mol.is_post_transition_metal_complex:
         cell_mol_info.append("(Complex with Post-Transition metals)")
-    if mol.is_non_complex_molecule:
+    if mol.is_metal_free_molecule:
         cell_mol_info.append("(Non-complex)")
 
     if mol.totcharge is not None:
@@ -207,7 +205,7 @@ def get_molecule_info(mol, cell_mol_info, index=None):
         cell_mol_info.append(f"smiles={mol.smiles}")
 
 
-    if not mol.is_non_complex_molecule and hasattr(mol, "metals"):
+    if not mol.is_metal_free_molecule and hasattr(mol, "metals"):
         for met in mol.metals:
             met_info = f"\t{met.formula} ({met.subtype})"
 
@@ -267,7 +265,7 @@ def get_molecule_info(mol, cell_mol_info, index=None):
     # Ligands
     # --------------------
 
-    if not mol.is_non_complex_molecule and getattr(mol, "ligands", None):
+    if not mol.is_metal_free_molecule and getattr(mol, "ligands", None):
         for lig in mol.ligands:
             lig_info = f"\t{lig.formula} ({lig.subtype})"
             for attr in ("smiles", "denticity", "totcharge"):
@@ -314,7 +312,7 @@ def get_refcell_error(refcell):
     if refcell.error_cases:
         all_codes = refcell.error_cases_all or {}
         for err_mode, code in refcell.error_cases.items():
-            msg = get_reference_error_message_all(all_codes.get(err_mode), code)
+            msg = get_reference_error_messages(all_codes.get(err_mode), code)
             refcell_error.append(f"Reference Error (mode={err_mode}): {msg}")
 
         return(refcell_error)
@@ -432,7 +430,7 @@ def savemolecules_tools(moleclist, output_dir, print_types, option_print_repeate
 
     for idx, mol in enumerate(moleclist):
 
-        if mol.iscomplex:
+        if mol.contains_metal:
             molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
         else:
             molName = mol.get_parent("reference").name + "_Other_"+ str(idx)
@@ -499,7 +497,7 @@ def cell_cmp_lut(cell):
     #for i_mol,mol in enumerate(cell.refmoleclist):
     for i_mol,mol in enumerate(cell.unitcell.moleclist):
         #if mol.type == 'Complex':
-        if mol.iscomplex :
+        if mol.contains_metal :
             #for i_mtl, mtl in enumerate(mol.metalist):
             for i_mtl, mtl in enumerate(mol.metals):
                 mlabel = mtl.label
@@ -538,7 +536,7 @@ def cell_cmp_lut_base(refCell):
 
     for i_mol, mol in enumerate(refCell.refmoleclist):
 
-        if mol.iscomplex:
+        if mol.contains_metal:
 
             # Metals
             for i_mtl, mtl in enumerate(mol.metals):
@@ -623,8 +621,8 @@ def _reference_rdkit_obj(specie):
 
         # Some Cell2Mol objects expose status; if it does not exist,
         # treat the state as usable unless its RDKit object is missing.
-        status = getattr(cs, 'status', True)
-        rd = getattr(cs, 'specie_rdkit_obj', None)
+        status = getattr(cs, 'is_valid', True)
+        rd = getattr(cs, 'species_rdkit_obj', None)
 
         if status and rd is not None:
             valid_states.append(cs)
@@ -644,14 +642,14 @@ def _reference_rdkit_obj(specie):
     # For visualization only, use the first valid plausible state.
     cs = valid_states[0]
 
-    return Chem.Mol(cs.specie_rdkit_obj)
+    return Chem.Mol(cs.species_rdkit_obj)
 
 #def cell_cmp_lut_base(refCell):
 #    names = {}
 #
 #    for i_mol, mol in enumerate(refCell.refmoleclist):
 #
-#        if mol.iscomplex:
+#        if mol.contains_metal:
 #
 #            for i_mtl, mtl in enumerate(mol.metals):
 #                key = ("metal", mtl.label)
@@ -675,7 +673,7 @@ def _reference_rdkit_obj(specie):
 #
 #    for i_mol, mol in enumerate(refCell.refmoleclist):
 #
-#        if mol.iscomplex:
+#        if mol.contains_metal:
 #
 #            for i_mtl, mtl in enumerate(mol.metals):
 #                mlabel = mtl.label
@@ -724,7 +722,7 @@ def _reference_rdkit_obj(specie):
 #    #for i_mol,mol in enumerate(cell.refmoleclist):
 #    for i_mol,mol in enumerate(refCell.refmoleclist):
 #        #if mol.type == 'Complex':
-#        if mol.iscomplex :
+#        if mol.contains_metal :
 #            #for i_mtl, mtl in enumerate(mol.metalist):
 #            for i_mtl, mtl in enumerate(mol.metals):
 #                mlabel = mtl.label
@@ -766,7 +764,7 @@ def cell_get_metal_desc(cell, cmplut):
 
 def savemolecules_reference_xyz(refCell, output_dir):
     for idx, mol in enumerate(refCell.refmoleclist):
-        if mol.iscomplex:
+        if mol.contains_metal:
             molName = mol.get_parent("reference").name + "_Complex_" + str(idx)
         else:
             molName = mol.get_parent("reference").name + "_Other_" + str(idx)
@@ -803,16 +801,16 @@ def reference_plausible_charges(refCell, cmplut):
             states = getattr(specie, 'plausible_charge_states', None)
             if states is not None:
                 for state in states:
-                    if not getattr(state, 'status', True):
+                    if not getattr(state, 'is_valid', True):
                         continue
                     charge = None
-                    for attr in ('specie_totcharge', 'specie_charge', 'totcharge', 'charge'):
+                    for attr in ('species_total_charge', 'specie_totcharge', 'specie_charge', 'totcharge', 'charge'):
                         value = getattr(state, attr, None)
                         if isinstance(value, (int, np.integer)):
                             charge = int(value)
                             break
                     if charge is None:
-                        rd = getattr(state, 'specie_rdkit_obj', None)
+                        rd = getattr(state, 'species_rdkit_obj', None)
                         if rd is not None:
                             charge = int(Chem.GetFormalCharge(rd))
                     if charge is not None:
@@ -894,7 +892,7 @@ def cell_to_string_xyz(cell, cmplut=None):
     allmols = []
     for idx, mols in enumerate(cell.unitcell.moleclist):                                                                                                   
 
-        if mols.iscomplex:
+        if mols.contains_metal:
             molName = mols.get_parent("reference").name + "_Complex_"+str(idx) 
         else:
             molName = mols.get_parent("reference").name + "_Other_"+ str(idx)
@@ -914,7 +912,7 @@ def refcell_to_string_xyz(cell, cmplut=None):
     allmols = []
     for idx, mols in enumerate(cell.refmoleclist):                                                                                                   
 
-        if mols.iscomplex:
+        if mols.contains_metal:
             molName = mols.get_parent("reference").name + "_Complex_"+str(idx) 
         else:
             molName = mols.get_parent("reference").name + "_Other_"+ str(idx)
@@ -928,6 +926,236 @@ def refcell_to_string_xyz(cell, cmplut=None):
 
     return celldesc, "".join(allmols)
 
+def interpret_molecule_xyz(input_path, refcode, output_dir, total_charge):
+    from cell2mol.process_xyz import interpret_molecule
+    previous_bond_info = config.USE_BOND_INFO
+    config.USE_BOND_INFO = False
+    try:
+        return interpret_molecule(input_path, refcode, total_charge, output_dir)
+    finally:
+        config.USE_BOND_INFO = previous_bond_info
+
+
+def get_moleculeset_molecules(molset):
+    if molset is None:
+        raise ValueError('cell2mol returned no molecule. Check the XYZ input and cell2mol logs.')
+    if isinstance(molset, (list, tuple)):
+        return list(molset)
+    for attr in ('moleclist', 'molecules', 'mol_list'):
+        molecules = getattr(molset, attr, None)
+        if molecules is not None:
+            return list(molecules)
+    if hasattr(molset, 'atoms'):
+        return [molset]
+    raise ValueError('The molecule-mode result does not contain a molecule list')
+
+
+def make_moleculeset_cell(moleclist):
+    from types import SimpleNamespace
+    return SimpleNamespace(unitcell=SimpleNamespace(moleclist=moleclist), cell_param=(1., 1., 1., 90., 90., 90.))
+
+
+def moleculeset_molecule_name(mol, idx, refcode):
+    return refcode + ('_Complex_' if mol.contains_metal else '_Other_') + str(idx)
+
+
+def moleculeset_to_string_xyz(moleclist, refcode):
+    allmols = []
+    for idx, mol in enumerate(moleclist):
+        molName = moleculeset_molecule_name(mol, idx, refcode)
+        atms = []
+        for atom in mol.atoms:
+            x, y, z = atom.coord
+            atms.append(" {:s}    {:8f} {:8f} {:8f}\n".format(atom.label, x, y, z))
+        allmols.append("{:d}\n {:s}\n".format(len(mol.atoms), molName) + "".join(atms))
+    return "".join(allmols)
+
+
+def savemolecules_moleculeset_xyz(moleclist, output_dir, refcode):
+    for idx, mol in enumerate(moleclist):
+        molName = moleculeset_molecule_name(mol, idx, refcode)
+        print_molecule(mol, molName, 'xyz', output_dir)
+
+
+def molecules_list_moleculeset(moleclist, refcode):
+    jmol_list_pos = {}
+    for idx, mol in enumerate(moleclist):
+        molName = moleculeset_molecule_name(mol, idx, refcode)
+        jmol_list_pos[molName] = ' select ' + ' or '.join(
+            'within (0.1, {{{} {} {}}})'.format(*atom.coord) for atom in mol.atoms
+        )
+    return jmol_list_pos
+
+
+def moleculeset_is_resolved(moleclist):
+    for mol in moleclist:
+        if getattr(mol, 'totcharge', None) is None:
+            return False
+        if getattr(mol, 'contains_metal', False):
+            for metal in getattr(mol, 'metals', None) or []:
+                if getattr(metal, 'charge', None) is None:
+                    return False
+            for ligand in getattr(mol, 'ligands', None) or []:
+                if getattr(ligand, 'totcharge', None) is None or getattr(ligand, 'rdkit_obj', None) is None:
+                    return False
+        elif getattr(mol, 'rdkit_obj', None) is None:
+            return False
+    return True
+
+
+def printing_text_moleculeset(moleclist, output):
+    if moleculeset_is_resolved(moleclist):
+        cell = make_moleculeset_cell(moleclist)
+        return printing_text(cell, output)
+
+    for idx, mol in enumerate(moleclist):
+        prefix = '[Complex]' if getattr(mol, 'contains_metal', False) else '[Other]'
+        output.append(f'{prefix} Formula : {mol.formula} (molecule : {idx})')
+        charge = getattr(mol, 'totcharge', None)
+        output.append('   Total charge: ' + (str(charge) if charge is not None else 'Not resolved'))
+        spin = getattr(mol, 'spin', None)
+        output.append('   Spin: ' + (str(spin) if spin is not None else 'Not available'))
+        if getattr(mol, 'smiles', None):
+            output.append('   Smiles: ' + mol.smiles)
+        for metal in getattr(mol, 'metals', None) or []:
+            output.append(f'   >> Metal : {metal.label}')
+            oxidation = getattr(metal, 'charge', None)
+            output.append('   Oxidation state: ' + (str(oxidation) if oxidation is not None else 'Not resolved'))
+            for attr, label in (('coord_nr', 'Coordination number'),
+                                ('coord_geometry', 'Coordination geometry'),
+                                ('coord_sphere_formula', 'Coordination sphere formula'),
+                                ('rel_metal_radius', 'Relative metal radius')):
+                value = getattr(metal, attr, None)
+                if value is not None:
+                    output.append('   ' + label + ': ' + str(value))
+        for ligand in getattr(mol, 'ligands', None) or []:
+            output.append(f'   >> Ligand Formula : {ligand.formula}')
+            charge = getattr(ligand, 'totcharge', None)
+            output.append('   Charge: ' + (str(charge) if charge is not None else 'Not resolved'))
+            for attr, label in (('denticity', 'Denticity'), ('haptic_type', 'Hapticity'), ('smiles', 'Smiles')):
+                value = getattr(ligand, attr, None)
+                if value is not None:
+                    output.append('   ' + label + ': ' + str(value))
+        output.append(' ')
+    return output
+
+
+def get_moleculeset_errors(molset):
+    from cell2mol.write_results import get_molecule_error_message
+
+    stages = [
+        ('hydrogens', [('has_isolated_H', 1), ('missing_H_in_Water', 2),
+                       ('missing_H_on_CoordDonor', 3), ('missing_H_in_Carbon', 4)]),
+        ('plausible_charges', [('error_plausible_charges', 5)]),
+        ('balance_charges', [('error_multiple_distrib', 6), ('error_empty_distrib', 7)]),
+        ('charge_assignment', [('error_assign_charge', 8)]),
+        ('bond_creation', [('error_create_bonds', 9)]),
+        ('spin_assignment', [('error_get_spin', 10)]),
+    ]
+    errors = []
+    for mode, attributes in stages:
+        active = [get_molecule_error_message(code)
+                  for attr, code in attributes if getattr(molset, attr, None) is True]
+        flags = [getattr(molset, attr, None) for attr, code in attributes]
+        if active:
+            message = '; '.join(active)
+        elif flags and all(flag is False for flag in flags):
+            message = 'No errors found'
+        elif flags and any(flag is False for flag in flags):
+            message = 'No errors detected in evaluated checks; other checks not reported'
+        else:
+            message = 'Not evaluated or not reported by this cell2mol version'
+        errors.append(f'Molecule Error (mode={mode}): {message}')
+
+    overall = getattr(molset, 'error_case', None)
+    if overall is None:
+        overall_msg = 'Not reported'
+    else:
+        overall_msg = get_molecule_error_message(overall)
+    errors.append(f'Molecule Error (mode=overall): {overall_msg}')
+    return errors
+
+
+def moleculeset_partial_species(moleclist):
+    from html import escape
+    compound_data = []
+    jmol_list_species = {}
+    entries = {}
+
+    for idx, mol in enumerate(moleclist):
+        items = []
+        if getattr(mol, 'contains_metal', False):
+            items += [('m', metal) for metal in getattr(mol, 'metals', None) or []]
+            items += [('l', lig) for lig in getattr(mol, 'ligands', None) or []]
+        else:
+            items.append(('t', mol))
+
+        for kind, specie in items:
+            formula = getattr(specie, 'formula', None) or getattr(specie, 'label', 'Unknown')
+            charge = getattr(specie, 'charge' if kind == 'm' else 'totcharge', None)
+            charge_label = 'Oxidation state' if kind == 'm' else 'Charge'
+            charge_value = ('+' if charge > 0 else '') + str(int(charge)) if charge is not None else 'Not resolved'
+            if kind == 'm':
+                title = str(getattr(specie, 'label', formula))
+                if charge is not None:
+                    title = f'[{title}{charge_value}]'
+            else:
+                title = getattr(specie, 'smiles', None) or formula
+
+            unique_index = getattr(specie, 'unique_index', None)
+            group_id = (kind, unique_index) if unique_index is not None else (kind, formula, title)
+            if group_id not in entries:
+                name = title
+                num = 2
+                while name in jmol_list_species:
+                    name = title + ' (' + str(num) + ')'
+                    num += 1
+                entries[group_id] = name
+                if kind == 'm':
+                    desc = '<p>Metal center: ' + escape(str(getattr(specie, 'label', formula))) + '</p>'
+                else:
+                    rd = getattr(specie, 'rdkit_obj', None)
+                    desc = None
+                    if rd is not None:
+                        try:
+                            copy = Chem.Mol(rd)
+                            Chem.rdDepictor.Compute2DCoords(copy)
+                            drawer = rdMolDraw2D.MolDraw2DSVG(450, 320)
+                            drawer.DrawMolecule(copy)
+                            drawer.FinishDrawing()
+                            desc = drawer.GetDrawingText().replace('svg:', '')
+                            desc = re.sub(re__svghead, '', desc)
+                            desc = re.sub(re__svgbackground, '', desc, 1)
+                        except (ValueError, RuntimeError):
+                            pass
+                    if desc is None:
+                        desc = '<p>Formula: ' + escape(str(formula)) + '</p>'
+                compound_data.append((name, kind == 'm', desc, charge_label, charge_value))
+                jmol_list_species[name] = ''
+
+            name = entries[group_id]
+            atoms = getattr(specie, 'atoms', None) or []
+            if kind == 'm' and not atoms:
+                atoms = [specie]
+            coords = []
+            for atom in atoms:
+                coord = getattr(atom, 'coord', None)
+                if coord is not None and len(coord) == 3:
+                    coords.append('within (0.1, {{{} {} {}}})'.format(*coord))
+            if coords:
+                selector = ' or '.join(coords)
+                if jmol_list_species[name]:
+                    jmol_list_species[name] += ' or '
+                jmol_list_species[name] += selector
+    return compound_data, jmol_list_species
+
+
+def bond_order_connectivity_moleculeset(moleclist):
+    if not moleculeset_is_resolved(moleclist):
+        return ' '
+    return bond_order_connectivity(make_moleculeset_cell(moleclist))
+
+
 def molxyz_to_string_xyz(mol, xyzCellVec, cmplut=None):
 
     celldesc = "{:f}, {:f}, {:f}, ".format(*tuple(xyzCellVec[0]))
@@ -936,7 +1164,7 @@ def molxyz_to_string_xyz(mol, xyzCellVec, cmplut=None):
 
     allmols = []
 
-    if mol.iscomplex:
+    if mol.contains_metal:
         molName = "Complex"
     else:
         molName = "Other"
@@ -1260,7 +1488,7 @@ def printing_text(cell, output):
     dicts = {}
     list_show = []
     for idx, mol in enumerate(cell.unitcell.moleclist):
-        if mol.iscomplex:        
+        if mol.contains_metal:        
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
             else:
@@ -1268,7 +1496,7 @@ def printing_text(cell, output):
                 list_show.append(idx)
 
     for idx, mol in enumerate(cell.unitcell.moleclist):
-        if mol.iscomplex == False:     
+        if mol.contains_metal == False:     
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
             else:
@@ -1277,7 +1505,7 @@ def printing_text(cell, output):
 
     for i in list_show:
         mol=cell.unitcell.moleclist[i]
-        if mol.iscomplex: 
+        if mol.contains_metal: 
             output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]}) \n"])
             output.extend([f"   Total charge : {mol.totcharge} \n"])
             output.extend([f"   Spin : {mol.spin} \n \n"])
@@ -1333,7 +1561,7 @@ def printing_text_refMol(refcell, output):
     dicts = {}
     list_show = []
     for idx, mol in enumerate(refcell.refmoleclist):
-        if mol.iscomplex:        
+        if mol.contains_metal:        
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
             else:
@@ -1341,7 +1569,7 @@ def printing_text_refMol(refcell, output):
                 list_show.append(idx)
 
     for idx, mol in enumerate(refcell.refmoleclist):
-        if mol.iscomplex == False:     
+        if mol.contains_metal == False:     
             if mol.formula in dicts.keys():
                 dicts[mol.formula] +=1 
             else:
@@ -1350,7 +1578,7 @@ def printing_text_refMol(refcell, output):
 
     for i in list_show:
         mol=refcell.refmoleclist[i]
-        if mol.iscomplex: 
+        if mol.contains_metal: 
             output.extend([f"[Complex] Formula : {mol.formula}\t(occurrence : {dicts[mol.formula]}) \n"])
             #output.extend([f"   Total charge : {mol.totcharge} \n"]) #No charge
             #output.extend([f"   Spin : {mol.spin} \n \n"]) #No spin
@@ -1388,7 +1616,7 @@ def printing_text_refMol(refcell, output):
 
 def printing_text_molxyz(mol, output):
 
-    if mol.iscomplex: 
+    if mol.contains_metal: 
         output.extend([f"[Complex] Formula : {mol.formula}\t \n"])
         #output.extend([f"   Total charge : {mol.totcharge} \n"]) #No charge
         #output.extend([f"   Spin : {mol.spin} \n \n"]) #No spin
@@ -1441,7 +1669,7 @@ def molecules_list(cell):
     jmol_list_pos = {}                                                                                                    
     for idx, mol in enumerate(cell.unitcell.moleclist):                                                                                            
 
-        if mol.iscomplex:
+        if mol.contains_metal:
             molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
         else:
             molName = mol.get_parent("reference").name + "_Other_"+ str(idx)
@@ -1472,7 +1700,7 @@ def molecules_list_reference(cell):
     jmol_list_pos = {}                                                                                                    
     for idx, mol in enumerate(cell.refmoleclist):                                                                                            
 
-        if mol.iscomplex:
+        if mol.contains_metal:
             molName = mol.get_parent("reference").name + "_Complex_"+str(idx) 
         else:
             molName = mol.get_parent("reference").name + "_Other_"+ str(idx)
@@ -1488,150 +1716,35 @@ def molecules_list_reference(cell):
     return jmol_list_pos
 
 
-def bond_order_connectivity(cell):
-    ''' Takes the cell object and returns a string containig the information needed by jsmol to generate the atomic bonds with 
-    the correct bond order
-
-    Args:
-        cell: the output of cell2mol
-        
-
-    Return:
-        A string with the jsmol instructions to select all bonded atoms within the same molecule and specify its bond order
-    '''
-
+def _molecule_bond_orders_to_jsmol(moleclist):
     jmolCon = " "
-
-    #for mol in cell.moleclist: #loop over all molecules
-    #    connectMat = mol.conmat #connectivity matrix
-    #    a = mol.atoms #list with all the atoms forming the molecule
-    #
-    #    for atomi, atomCon in enumerate(connectMat): #loop over atoms 
-    #        for atomj, conn in enumerate(atomCon): #loop over atoms
-    #            if (conn == 1. and atomj > atomi): #check if there is a bond and avoid double counting
-    #                atomiBonds = a[atomi].bond #all bonds of atomi
-    #                for bonds in atomiBonds: #loop over all bonds (the first index is always < than the second)
-    #                    if (atomi == bonds[0] and atomj == bonds[1]): #if the bonded atoms matches
-    #                        #select atomi by its coordinates
-    #                        jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-    #                        jmolCon = jmolCon + str(a[int(atomi)].coord[0]) + " "
-    #                        jmolCon = jmolCon + str(a[int(atomi)].coord[1]) + " "
-    #                        jmolCon = jmolCon + str(a[int(atomi)].coord[2]) + " "
-    #                        jmolCon = jmolCon + "}) or "
-    #                        #select atomj by its coordinates
-    #                        jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-    #                        jmolCon = jmolCon + str(a[int(atomj)].coord[0]) + " "
-    #                        jmolCon = jmolCon + str(a[int(atomj)].coord[1]) + " "
-    #                        jmolCon = jmolCon + str(a[int(atomj)].coord[2]) + " "
-    #                        jmolCon = jmolCon + "}) ;"
-    #                        #bond order
-    #                        jmolCon = jmolCon + " bondorder " + str(bonds[2]) + " ; "
-
-
-
-    #for mol in cell.moleclist: #loop over all molecules
-    #    
-    #    #connectMat = cell.moleclist[0].get_adjmatrix()[0] #connectivity matrix
-    #    connectMat = mol.get_adjmatrix()[0] #connectivity matrix
-    #    atm = mol.atoms
-    #        
-    #    for atomi, atomCon in enumerate(connectMat): #loop over atoms
-    #        for atomj, conn in enumerate(atomCon[atomi:]): #loop over connectivity of each not repeated atom of previous loop
-    #            if (conn == 1): #if there is a bond
-    #                #select atomi by its coordinates
-    #                jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-    #                jmolCon = jmolCon + str(atm[atomi].coord[0]) + " "
-    #                jmolCon = jmolCon + str(atm[atomi].coord[1]) + " "
-    #                jmolCon = jmolCon + str(atm[atomi].coord[2]) + " "
-    #                jmolCon = jmolCon + "}) or "
-    #                #select atomj by its coordinates
-    #                jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-    #                jmolCon = jmolCon + str(atm[atomj].coord[0]) + " "
-    #                jmolCon = jmolCon + str(atm[atomj].coord[1]) + " "
-    #                jmolCon = jmolCon + str(atm[atomj].coord[2]) + " "
-    #                jmolCon = jmolCon + "}) ;"
-    #                for bond in atm[atomi].bonds: #loop ovre all bonds of atomi
-    #                    if (bond.atom2.coord[0] == atm[atomj].coord[0] and
-    #                        bond.atom2.coord[1] == atm[atomj].coord[1] and
-    #                        bond.atom2.coord[2] == atm[atomj].coord[2]): #if the bond is with atomj
-
-    #                        #jmolCon = str( bond.atom2.coord.all() == atm[atomj].coord.all() ) #if the bond is with atomj
-    #                        #jmolCon = str(bond.order)
-    #                        #bond order
-    #                        jmolCon = jmolCon + " bondorder " + str(bond.order) + " ; "
-    #                        break
-
-
-    #Double looping. atom1-atom2 = atom2-atom1. Can be improved            
-    for mol in cell.unitcell.moleclist:
-        for atm in mol.atoms:
-            for bond in atm.bonds: #loop over all atoms
-                if (bond.order > 1.0):
-                    #select atom 1 by its coordinates
-                    jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                    jmolCon = jmolCon + str(bond.atom1.coord[0]) + " "
-                    jmolCon = jmolCon + str(bond.atom1.coord[1]) + " "
-                    jmolCon = jmolCon + str(bond.atom1.coord[2]) + " "
-                    jmolCon = jmolCon + "}) or "
-                    #select atom 2 by its coordinates
-                    jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                    jmolCon = jmolCon + str(bond.atom2.coord[0]) + " "
-                    jmolCon = jmolCon + str(bond.atom2.coord[1]) + " "
-                    jmolCon = jmolCon + str(bond.atom2.coord[2]) + " "
-                    jmolCon = jmolCon + "}) ; "
-                    #bond order
-                    if (bond.order == 2.0):
-                        jmolCon = jmolCon + " bondOrder 2 ; "
-                    elif (bond.order == 3.0):
-                        jmolCon = jmolCon + " bondOrder 3 ; "
-                    else:
-                        jmolCon = jmolCon + " bondOrder " + str(bond.order) + " ; "
-
+    for mol in moleclist or []:
+        for bond in getattr(mol, "bonds", None) or []:
+            if isinstance(bond, dict):
+                order = bond.get("order", 1.0)
+                atom_indices = bond.get("atom_indices", [])
+                if order <= 1.0 or len(atom_indices) != 2:
+                    continue
+                atom1 = mol.atoms[atom_indices[0]]
+                atom2 = mol.atoms[atom_indices[1]]
+            else:
+                order = bond.order
+                if order <= 1.0:
+                    continue
+                atom1 = bond.atom1
+                atom2 = bond.atom2
+            jmolCon += " select within (0.1, {" + " ".join(map(str, atom1.coord)) + "}) or "
+            jmolCon += " within (0.1, {" + " ".join(map(str, atom2.coord)) + "}) ; "
+            jmolCon += " bondOrder " + str(order) + " ; "
     return jmolCon
 
 
+def bond_order_connectivity(cell):
+    return _molecule_bond_orders_to_jsmol(cell.unitcell.moleclist)
 
 
 def bond_order_connectivity_reference(refCell):
-    ''' Takes the cell object and returns a string containig the information needed by jsmol to generate the atomic bonds with 
-    the correct bond order
-
-    Args:
-        cell: the output of cell2mol
-        
-
-    Return:
-        A string with the jsmol instructions to select all bonded atoms within the same molecule and specify its bond order
-    '''
-
-    jmolCon = " "
-
-    #Double looping. atom1-atom2 = atom2-atom1. Can be improved            
-    for mol in refCell.refmoleclist:
-        for atm in mol.atoms:
-            for bond in atm.bonds: #loop over all atoms
-                if (bond.order > 1.0):
-                    #select atom 1 by its coordinates
-                    jmolCon = jmolCon + " select within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                    jmolCon = jmolCon + str(bond.atom1.coord[0]) + " "
-                    jmolCon = jmolCon + str(bond.atom1.coord[1]) + " "
-                    jmolCon = jmolCon + str(bond.atom1.coord[2]) + " "
-                    jmolCon = jmolCon + "}) or "
-                    #select atom 2 by its coordinates
-                    jmolCon = jmolCon + " within (0.1, {" #+ str(atomi) + " " +str(atomCon)
-                    jmolCon = jmolCon + str(bond.atom2.coord[0]) + " "
-                    jmolCon = jmolCon + str(bond.atom2.coord[1]) + " "
-                    jmolCon = jmolCon + str(bond.atom2.coord[2]) + " "
-                    jmolCon = jmolCon + "}) ; "
-                    #bond order
-                    if (bond.order == 2.0):
-                        jmolCon = jmolCon + " bondOrder 2 ; "
-                    elif (bond.order == 3.0):
-                        jmolCon = jmolCon + " bondOrder 3 ; "
-                    else:
-                        jmolCon = jmolCon + " bondOrder " + str(bond.order) + " ; "
-
-    return jmolCon
+    return _molecule_bond_orders_to_jsmol(refCell.refmoleclist)
 
 
 def species_list(cell):
@@ -1647,7 +1760,7 @@ def species_list(cell):
 
     jmol_list_species = {}
     for mol in cell.unitcell.moleclist:
-        if mol.iscomplex :
+        if mol.contains_metal :
             for ligand in mol.ligands:
                 if ligand.smiles not in jmol_list_species:
                     jmol_list_species[ligand.smiles] = " "
@@ -1704,18 +1817,18 @@ def species_list_reference(refCell):
 
     jmol_list_species = {}
     for mol in refCell.refmoleclist:
-        if mol.iscomplex :
+        if mol.contains_metal :
             for ligand in mol.ligands:
-                if ligand.plausible_charge_states[0].specie_smiles not in jmol_list_species:
-                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = " "
+                if ligand.plausible_charge_states[0].species_smiles not in jmol_list_species:
+                    jmol_list_species[ligand.plausible_charge_states[0].species_smiles] = " "
                 else:
-                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] += " or "
+                    jmol_list_species[ligand.plausible_charge_states[0].species_smiles] += " or "
                 for nat, atms in enumerate(ligand.atoms):
-                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
-                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + str(atms.coord[1]) + " "
-                    jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + str(atms.coord[2]) + "})"
+                    jmol_list_species[ligand.plausible_charge_states[0].species_smiles] = jmol_list_species[ligand.plausible_charge_states[0].species_smiles] + " within (0.1, {" + str(atms.coord[0]) + " "
+                    jmol_list_species[ligand.plausible_charge_states[0].species_smiles] = jmol_list_species[ligand.plausible_charge_states[0].species_smiles] + str(atms.coord[1]) + " "
+                    jmol_list_species[ligand.plausible_charge_states[0].species_smiles] = jmol_list_species[ligand.plausible_charge_states[0].species_smiles] + str(atms.coord[2]) + "})"
                     if nat+1 < len(ligand.atoms):
-                        jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] = jmol_list_species[ligand.plausible_charge_states[0].specie_smiles] + " or "
+                        jmol_list_species[ligand.plausible_charge_states[0].species_smiles] = jmol_list_species[ligand.plausible_charge_states[0].species_smiles] + " or "
             for metal in mol.metals:
                 #no charge in reference
                 #if metal.charge > 0:
