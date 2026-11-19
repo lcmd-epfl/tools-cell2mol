@@ -20,7 +20,7 @@ def describe_processing_error(error):
             "suggestion": (
                 "See Calculation Log for the warnings and errors reported by cell2mol. "
                 "If CIF connectivity was enabled, you may also compare the result with "
-                "distance-based connectivity. Do not assume a charge or bond assignment succeeded."
+                "distance-based connectivity."
             ),
             "partial": None,
             "code": None,
