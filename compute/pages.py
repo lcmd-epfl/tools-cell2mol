@@ -4,7 +4,13 @@ from tools_barebone.structure_importers import get_structure_tuple, UnknownForma
 import io
 import flask
 from .interface import *
-from .tokens import monitoring, Token
+from .tokens import monitoring, Token, InvalidXYZInput
+from .calculation_logging import (
+    calculation_logged, start_calculation_log,
+    mark_calculation_failure, get_calculation_log_preview,
+    calculation_log_path,
+)
+from .error_reporting import describe_processing_error, molecule_status_message
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 
@@ -13,6 +19,7 @@ from .tokens import monitoring, Token
 #from cell2mol.xyz_molecule import get_molecule
 
 from cell2mol.process_unitcell import interpret_unitcell 
+from cell2mol.process_reference import interpret_reference 
 
 import os
 import glob
@@ -22,10 +29,16 @@ import webbrowser
 import logging
 
 from flask import send_file
+from werkzeug.datastructures import FileStorage
 
 blueprint = flask.Blueprint("compute", __name__, url_prefix="/compute")
     
+def _safe_save_molecule_json(molset, path):
+    molset.save(path, format="json")
+
+
 @blueprint.route("/process_structure/", methods=["POST"])
+@calculation_logged
 def process_structure_init():
     """Example view to process a crystal structure."""
 
@@ -43,11 +56,22 @@ def process_structure_init():
     structurefile = flask.request.files["structurefile"]
     file_ext = os.path.splitext(structurefile.filename)[1]
     system_type = flask.request.form.get("systemtype", "unknown")
+    cif_connectivity = flask.request.form.get("cifConnectivity", "no")
+
+    #resp = flask.make_response(flask.render_template(
+    #    "user_templates/test.html", prueba = cif_connectivity
+    #))
+    #return resp
 
     #Only accept files whose extension is equal to the option extension selected
     #if fileformat in file_ext:
 
-    token = Token(structurefile, fileformat)        
+    try:
+        token = Token(structurefile, fileformat)
+    except InvalidXYZInput as exc:
+        flask.flash("XYZ input error: " + str(exc))
+        return flask.redirect(flask.url_for("input_data"))
+    start_calculation_log(token, system_type, fileformat, form_data.get("xyzTotalCharge"))
     output += [
         "structure_file: "+ repr(dir(structurefile)),
         "form_data: "+ repr(form_data),
@@ -75,6 +99,13 @@ def process_structure_init():
         #    raise ValueError("session expired")
         #token.keepalive()
 
+        def _safe_run(func, error_msg):
+            """Utility to wrap save operations in try-except."""
+            try:
+                func()
+            except Exception:
+                logger.exception(error_msg)
+
         ##################
         ## Run cell2mol ##
         ##################
@@ -89,177 +120,237 @@ def process_structure_init():
             #return flask.redirect(flask.url_for("input_data"))
 
             try:
+
+                if cif_connectivity == "no":
+                    config.USE_BOND_INFO = False
+
                 #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+
+                #cell.save(token.get_path()+token.refcode+'.json', format="json")
+                _safe_run(lambda:cell.save(token.get_path()+'/'+token.refcode+'.json', format="json"), "Failed to save JSON")
+
+                refcell_error = get_refcell_error(cell.reference)
+                unitcell_error = get_unitcell_error(cell.unitcell)
+
+                refcell_interpretation = get_refcell_interpretation(cell.reference)
+
+
+                #resp = flask.make_response(flask.render_template(
+                #    "user_templates/test.html", prueba=refcell_error
+                #))
+                #return resp
+
+                save_cell(cell, 'gmol', token.get_path(), token.refcode)
+                savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
+                savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
+                celldata = printing_text(cell, Capturing()) #empty
+
+                cmp_lut = cell_cmp_lut(cell)
+                ht_descs = cell_get_metal_desc(cell, cmp_lut)
+                svgs = cell_to_svgs(cell, cmp_lut)
+                compound_data = []
+                for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                    # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+                    if desc != "":
+                        compound_data.append((name, True, desc))
+                    else:
+                        compound_data.append((name, False, svg))
+
+                ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
+                labels = []
+                for mol in cell.unitcell.moleclist:
+                    for atm in mol.atoms:
+                        labels.append(atm.label)
+
+                jmol_list_pos = molecules_list(cell)
+                jmolCon = bond_order_connectivity(cell)
+                jmol_list_species =species_list(cell) 
+
+                #resp = flask.make_response(flask.render_template(
+                #    "user_templates/test.html", prueba=cmp_lut
+                #))
+                #return resp
+
+                token.keepalive()
+                tkn_path = token.get_path()
+
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-view.html",
+                    celldata=celldata,
+                    ucellparams=ucellparams,
+                    compound_data=compound_data,
+                    xyzdata=xyzdata,
+                    labels=labels,
+                    jmol_list_pos=jmol_list_pos,
+                    jmol_list_species = jmol_list_species,
+                    jmolCon = jmolCon,
+                    totmol = len(cell.unitcell.moleclist),
+                    enumerate=enumerate, len=len, zip=zip, # needed
+                    struct_name=token.refcode,
+                    unitcell_error_reconstruction = str(cell.unitcell.error_reconstruction),
+                    unitcell_error_assign_charge = str(cell.unitcell.error_assign_charge),
+                    unitcell_error_create_bonds = str(cell.unitcell.error_create_bonds),
+                    unitcell_error_get_fragments = str(cell.unitcell.error_get_fragments),
+                    unitcell_error_get_spin = str(cell.unitcell.error_get_spin),
+                    refcell_error = refcell_error,
+                    unitcell_error = unitcell_error,
+                    refcell_interpretation = refcell_interpretation,
+                    system_type=system_type,
+                    calculation_log_preview=get_calculation_log_preview(token),
+                ))
+                resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+                return resp
+
             except Exception as e:
+                mark_calculation_failure(e)
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
-                return flask.render_template(
+                resp = flask.make_response(flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
+                        calculation_log_preview=get_calculation_log_preview(token),
+                        failure=describe_processing_error(e),
+                        ))
+                resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+                return resp
 
-            #error = False
-
-            unitcell_error = get_error_code(token.get_path(), "unitcell")
-            reference_error = get_error_code(token.get_path(), "reference")
-
-
-
-            #with open(token.get_path()+"/cell2mol.out") as f:
-            #    output += f.readlines()
-            #return flask.render_template(
-            #        "user_templates/c2m-debug.html", msg="error", output_lines=output,
-            #        )
-
-
-            #with open(token.error_path, 'r') as err:
-            #    for line in err.readlines():
-            #        if "Error" in line:
-            #            output.append(line)
-            #            error = True
-
-            #if error :
-            #    flask.flash("Something went wrong")
-            #    return flask.redirect(flask.url_for("input_data"))
-
-
-
-            save_cell(cell, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
-            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
-            #celldata = printing_text(cell, Capturing()) #empty
-
-            cmp_lut = cell_cmp_lut(cell)
-            ht_descs = cell_get_metal_desc(cell, cmp_lut)
-            svgs = cell_to_svgs(cell, cmp_lut)
-            compound_data = []
-            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-                # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
-                if desc != "":
-                    compound_data.append((name, True, desc))
-                else:
-                    compound_data.append((name, False, svg))
-
-
-            #flask.flash(str(cmp_lut.keys()))
-            #return flask.redirect(flask.url_for("input_data"))
-
-            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
-
-            labels = []
-            for mol in cell.unitcell.moleclist:
-                for atm in mol.atoms:
-                    labels.append(atm.label)
-
-
-            jmol_list_pos = molecules_list(cell)
-            jmolCon = bond_order_connectivity(cell)
-            jmol_list_species =species_list(cell) 
-
-            #output="Output try"
-            infodata = "info data try"
-
-
-            #resp = flask.make_response(flask.render_template(
-            #    "user_templates/c2m-view.html",
-            #    output_lines=output,
-            #    #infodata=infodata.strip(),
-            #    celldata=celldata,
-            #    #ucellparams=ucellparams,
-            #    compound_data=compound_data,
-            #    xyzdata=xyzdata,
-            #    labels=labels,
-            #    pos=pos,
-            #    cellvec=cellvec,
-            #    cellparam=cellparam,
-            #    jmol_list_pos=jmol_list_pos,
-            #    jmol_list_species = jmol_list_species,
-            #    jmolCon = jmolCon,
-            #    totmol = len(cell.moleclist),
-            #    enumerate=enumerate, len=len, zip=zip, # needed
-            #    struct_name=token.refcode,
-            #))
-
-            #xyzdata = "1 \\n try \\n H 0.0 0.0 0.0 \\n"
-
-            #output = infodata
-            #infodata = info file
-            token.keepalive()
-            tkn_path = token.get_path()
-
-            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=labels,)
-
-            resp = flask.make_response(flask.render_template(
-                "user_templates/c2m-view.html",
-            #    "user_templates/test.html",
-            #    output_lines=output,
-            #    #infodata=infodata.strip(),
-            #    celldata=celldata,
-                ucellparams=ucellparams,
-                compound_data=compound_data,
-                xyzdata=xyzdata,
-                labels=labels,
-            #    pos=pos,
-            #    cellvec=cellvec,
-            #    cellparam=cellparam,
-                jmol_list_pos=jmol_list_pos,
-                jmol_list_species = jmol_list_species,
-                jmolCon = jmolCon,
-                totmol = len(cell.unitcell.moleclist),
-                enumerate=enumerate, len=len, zip=zip, # needed
-                struct_name=token.refcode,
-            ))
-            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-            return resp
 
         elif system_type == "reference":
 
             try:
+
+                if cif_connectivity == "no":
+                    config.USE_BOND_INFO = False
+
                 #refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
-                refMol = "test"
+                #refMol = "test"
+                refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
+                savemolecules_reference_xyz(refMol, token.get_path())
+
                 #Change cell to refMolec to avoid confussions
+                _safe_run(lambda:refMol.save(token.get_path()+'/'+token.refcode+'.json', format="json"), "Failed to save JSON")
+
+                refcell_error = get_refcell_error(refMol)
+                #unitcell_error = get_unitcell_error(cell.unitcell)
+
+                refcell_interpretation = get_refcell_interpretation(refMol)
+
+
+                cmp_lut = cell_cmp_lut_base(refMol)
+                ht_descs = cell_get_metal_desc_base(refMol, cmp_lut)
+                svgs = cell_to_svgs_base(refMol, cmp_lut)
+                plausible_charges = reference_plausible_charges(refMol, cmp_lut)
+                compound_data = []
+                for name,desc,svg,charges in zip(cmp_lut.keys(), ht_descs, svgs, plausible_charges):
+                    # note: this line above uses the assumption that the order of items in a dict is predictable. Only true in recent-ish versions of python3
+                    if desc != "":
+                        compound_data.append((name, True, desc, cmp_lut[name][0][3], charges)) #cmp_lut[name][0][3] = chemical formula
+                    else:
+                        compound_data.append((name, False, svg, cmp_lut[name][0][3], charges)) #cmp_lut[name][0][3] = chemical formula 
+
+                        #resp = flask.make_response(flask.render_template(
+                        #    "user_templates/test.html", prueba=cmp_lut[name][0][3]
+                        #))
+                        #return resp
+
+
+
+
+                ucellparams, xyzdata = refcell_to_string_xyz(refMol, cmp_lut)
+
+                labels = []
+                for mol in refMol.refmoleclist:
+                    for atm in mol.atoms:
+                        labels.append(atm.label)
+
+                jmol_list_pos = molecules_list_reference(refMol)
+                jmolCon = bond_order_connectivity_reference(refMol)
+                jmol_list_species =species_list_reference(refMol) 
+
+                token.keepalive()
+                tkn_path = token.get_path()
+
+                #resp = flask.make_response(flask.render_template(
+                #    "user_templates/test.html", prueba="OK"
+                #))
+                #return resp
+
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-view-refcell.html",
+                    #celldata=celldata,
+                    ucellparams=ucellparams,
+                    compound_data=compound_data,
+                    xyzdata=xyzdata,
+                    labels=labels,
+                    jmol_list_pos=jmol_list_pos,
+                    jmol_list_species = jmol_list_species,
+                    jmolCon = jmolCon,
+                    totmol = len(refMol.refmoleclist),
+                    enumerate=enumerate, len=len, zip=zip, # needed
+                    struct_name=token.refcode,
+                    unitcell_error_reconstruction = "",#str(refMol.error_reconstruction),
+                    unitcell_error_assign_charge = str(refMol.error_assign_charge),
+                    unitcell_error_create_bonds = str(refMol.error_create_bonds),
+                    unitcell_error_get_fragments = "",#str(refMol.error_get_fragments),
+                    unitcell_error_get_spin = str(refMol.error_get_spin),
+                    refcell_error = refcell_error,
+                    unitcell_error = "",#unitcell_error,
+                    refcell_interpretation = refcell_interpretation,
+                    system_type = system_type, 
+                    calculation_log_preview=get_calculation_log_preview(token),
+                ))
+                resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+                return resp
+
+
+
+
             except Exception as e:
+                mark_calculation_failure(e)
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
-                return flask.render_template(
+                resp = flask.make_response(flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
+                        calculation_log_preview=get_calculation_log_preview(token),
+                        failure=describe_processing_error(e),
+                        ))
+                resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+                return resp
+
+            #save_cell(refMol, 'gmol', token.get_path(), token.refcode)
+            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
+            #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
+            #celldata = printing_text_refMol(refMol, Capturing()) #empty
 
 
+            #jmol_list_pos = molecules_list_reference(refMol)
 
-            save_cell(refMol, 'gmol', token.get_path(), token.refcode)
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
-            savemolecules_tools(refMol.refmoleclist, token.get_path(), 'gmol')
-            celldata = printing_text_refMol(refMol, Capturing()) #empty
+            #ucellparams, xyzdata = refcell_to_string_xyz(refMol)
 
-            #return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=celldata, )
+            ##ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
 
-            jmol_list_pos = molecules_list_reference(refMol)
+            ##if ref_error_file:
 
-            ucellparams, xyzdata = refcell_to_string_xyz(refMol)
+            ##    with open(ref_error_file[0], "r") as f:
+            ##        ref_error_content = f.read()
 
-            ref_error_file = glob.glob(os.path.join(token.get_path(), "reference_error_*.out"))
-
-            if ref_error_file:
-
-                with open(ref_error_file[0], "r") as f:
-                    ref_error_content = f.read()
-
-            token.keepalive()
-            tkn_path = token.get_path()
-            resp = flask.make_response(flask.render_template(
-                "user_templates/c2m-view-refcell.html",
-                celldata=celldata,
-                ucellparams=ucellparams,
-                xyzdata=xyzdata,
-                jmol_list_pos=jmol_list_pos,
-                struct_name=token.refcode,
-                ref_error_content=ref_error_content,
-            ))
-            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-            return resp
+            ##return flask.render_template("user_templates/c2m-debug.html", msg="ok", output_lines=ref_error_file, )
+            #token.keepalive()
+            #tkn_path = token.get_path()
+            #resp = flask.make_response(flask.render_template(
+            #    "user_templates/c2m-view-refcell.html",
+            #    celldata=celldata,
+            #    ucellparams=ucellparams,
+            #    xyzdata=xyzdata,
+            #    jmol_list_pos=jmol_list_pos,
+            #    struct_name=token.refcode,
+            #    #ref_error_content=ref_error_content,
+            #))
+            #resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
+            #return resp
 
         else:
             flask.flash("The selected system type is not implemented yet.")
@@ -394,69 +485,91 @@ def process_structure_init():
         #return resp
     
     elif fileformat == "xyz-ase" and file_ext == ".xyz":
-        
-        xyzCellVec = np.zeros((3,3))
 
+        system_type = "molecule"
         try:
-            xyzCellVec[0,0] = flask.request.form.get("xyzCellVecAx", "unknown")
-            xyzCellVec[0,1] = flask.request.form.get("xyzCellVecAy", "unknown")
-            xyzCellVec[0,2] = flask.request.form.get("xyzCellVecAz", "unknown")
-            xyzCellVec[1,0] = flask.request.form.get("xyzCellVecBx", "unknown")
-            xyzCellVec[1,1] = flask.request.form.get("xyzCellVecBy", "unknown")
-            xyzCellVec[1,2] = flask.request.form.get("xyzCellVecBz", "unknown")
-            xyzCellVec[2,0] = flask.request.form.get("xyzCellVecCx", "unknown")
-            xyzCellVec[2,1] = flask.request.form.get("xyzCellVecCy", "unknown")
-            xyzCellVec[2,2] = flask.request.form.get("xyzCellVecCz", "unknown")
-        except Exception as e:
-            flask.flash("Please add all cell vectors components")
+            total_charge = int(flask.request.form.get("xyzTotalCharge", "0"))
+        except (ValueError, TypeError):
+            flask.flash("Please enter an integer total charge for the XYZ structure")
             return flask.redirect(flask.url_for("input_data"))
-        
-        if system_type == "molecule":
 
+        if system_type == "molecule":
             try:
-                mol = get_molecule(token.input_path, token.refcode, token.get_path())
-                #Change cell to refMolec to avoid confussions
+                molset = interpret_molecule_xyz(token.input_path, token.refcode, token.get_path(), total_charge)
+                moleclist = get_moleculeset_molecules(molset)
+
+                _safe_save_molecule_json(molset, token.cell_path)
+                savemolecules_moleculeset_xyz(moleclist, token.get_path(), token.refcode)
+
+                molecule_interpretation = printing_text_moleculeset(moleclist, Capturing())
+
+                if moleculeset_is_resolved(moleclist):
+                    molecule_cell = make_moleculeset_cell(moleclist)
+                    cmp_lut = cell_cmp_lut(molecule_cell)
+                    ht_descs = cell_get_metal_desc(molecule_cell, cmp_lut)
+                    svgs = cell_to_svgs(molecule_cell, cmp_lut)
+                    compound_data = []
+                    for name, desc, svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                        tpl = cmp_lut[name][0]
+                        mol = molecule_cell.unitcell.moleclist[tpl[0]]
+                        if tpl[1] == 'm':
+                            charge = mol.metals[tpl[2]].charge
+                            charge_label = 'Oxidation state'
+                        elif tpl[1] == 'l':
+                            charge = mol.ligands[tpl[2]].totcharge
+                            charge_label = 'Charge'
+                        else:
+                            charge = mol.totcharge
+                            charge_label = 'Charge'
+                        charge_value = ('+' if charge > 0 else '') + str(int(charge)) if charge is not None else 'Not available'
+                        if desc != "":
+                            compound_data.append((name, True, desc, charge_label, charge_value))
+                        else:
+                            compound_data.append((name, False, svg, charge_label, charge_value))
+                    jmolCon = bond_order_connectivity(molecule_cell)
+                    jmol_list_species = species_list(molecule_cell)
+                else:
+                    compound_data, jmol_list_species = moleculeset_partial_species(moleclist)
+                    jmolCon = bond_order_connectivity_moleculeset(moleclist)
+
+                xyzdata = moleculeset_to_string_xyz(moleclist, token.refcode)
+                jmol_list_pos = molecules_list_moleculeset(moleclist, token.refcode)
+                molecule_errors = get_moleculeset_errors(molset)
+                molecule_errors.insert(0, molecule_status_message(molset, moleculeset_is_resolved(moleclist)))
+
+                token.keepalive()
+                tkn_path = token.get_path()
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-view-xyzmol.html",
+                    molecule_interpretation=molecule_interpretation,
+                    compound_data=compound_data,
+                    xyzdata=xyzdata,
+                    jmol_list_pos=jmol_list_pos,
+                    jmol_list_species=jmol_list_species,
+                    jmolCon=jmolCon,
+                    totmol=len(moleclist),
+                    enumerate=enumerate, len=len, zip=zip,
+                    struct_name=token.refcode,
+                    system_type=system_type,
+                    total_charge=total_charge,
+                    molecule_errors=molecule_errors,
+                    calculation_log_preview=get_calculation_log_preview(token),
+                ))
+                resp.set_cookie("token_path", tkn_path, secure=False, httponly=True, samesite='Strict')
+                return resp
+
             except Exception as e:
+                mark_calculation_failure(e)
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
-                return flask.render_template(
-                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
-
-
-
-            save_cell(mol, 'gmol', token.get_path(), token.refcode)
-
-            #savemolecules_tools(mol, token.get_path(), 'xyz') #its already the input
-            #savemolecules_tools(mol, token.get_path(), 'gmol') #will be the same as the cell
-
-            celldata = printing_text_molxyz(mol, Capturing()) #empty
-
-
-            #jmol_list_pos = molecules_list_reference(refMol)
-
-            ucellparams, xyzdata = molxyz_to_string_xyz(mol, xyzCellVec)
-            
-            token.keepalive()
-            tkn_path = token.get_path()
-            resp = flask.make_response(flask.render_template(
-            #    "user_templates/test.html",
-            #    prueba=ucellparams+xyzdata,
-                "user_templates/c2m-view-xyzmol.html",
-                celldata=celldata,
-                ucellparams=ucellparams,
-                xyzdata=xyzdata,
-            #    jmol_list_pos=jmol_list_pos,
-                struct_name=token.refcode,
-            ))
-            resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
-            return resp
-
-        else:
-            flask.flash("The selected system type is not implemented yet.")
-            return flask.redirect(flask.url_for("input_data"))
-
+                resp = flask.make_response(flask.render_template(
+                    "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                    calculation_log_preview=get_calculation_log_preview(token),
+                    failure=describe_processing_error(e),
+                ))
+                resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+                return resp
 
     elif fileformat =="unknown":
         flask.flash("Please select a file format.")
@@ -657,6 +770,20 @@ def process_structure_init():
 
 
 #>>> D O W N L O A D   C E L L 2 M O L   O U T P U T <<<
+@blueprint.route("/process_structure/download-log", methods=["GET"])
+def process_structure_download_log():
+    tkn_path = flask.request.cookies.get('token_path', None)
+    token = Token.from_path(tkn_path) if tkn_path else None
+    if token is None:
+        return flask.make_response("Calculation session expired", 404)
+    token.keepalive()
+    log_path = calculation_log_path(token)
+    if not os.path.isfile(log_path):
+        return flask.make_response("Calculation log not available", 404)
+    return send_file(log_path, as_attachment=True,
+                     download_name="calculation.log", mimetype="text/plain")
+
+
 @blueprint.route("/process_structure/download-c2moutput", methods=["GET"])
 def process_structure_download_c2m_output():
 
@@ -749,6 +876,47 @@ def process_structure_download_reference_summary():
 
 
 
+#>>> D O W N L O A D   J S O N <<<
+@blueprint.route("/process_example_structure/download-json", methods=["GET"])
+@blueprint.route("/process_structure/download-json", methods=["GET"])
+def process_structure_download_json():
+
+    output = Capturing()
+    try:
+        tkn_path = flask.request.cookies.get('token_path', None)
+        if tkn_path is None:
+            raise ValueError("no token?")
+        token = Token.from_path(tkn_path)
+        if token is None:
+            raise ValueError("session expired")
+        output.append(token.cell_path)
+        token.keepalive()
+                
+        headers = {"Content-Disposition": f"attachment; filename=Cell_{token.refcode:s}.json"}
+        with open(token.cell_path, 'rb') as f:
+            body = f.read()
+        return flask.make_response((body, headers))
+    
+        if True or res.status_code >= 400:
+            output.append(repr(res))
+            raise ValueError("Bad status code: {:d}".format(res.status_code))
+        else:
+            return res
+        
+     
+    except Exception as err:
+        msg = "Failure…"
+        output.append(repr(err))
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+    except:
+        msg = "Failure…"
+        output.append("unknown error")
+        return flask.render_template(
+            "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+        )
+
 #>>> D O W N L O A D   C E L L <<<
 
 @blueprint.route("/process_structure/download-gmol", methods=["GET"])
@@ -791,6 +959,7 @@ def process_structure_download_gmol():
         )
 
 # >>> D O W N L O A D   M O L <<<
+@blueprint.route("/process_example_structure/download-xyzselected", methods=["GET", "POST"])
 @blueprint.route("/process_structure/download-xyzselected", methods=["GET", "POST"])
 def process_structure_download_xyzselected():
     output = Capturing()
@@ -847,84 +1016,195 @@ def session_keepalive():
 # >>> YOXKUS example <<<
 
 @blueprint.route("/process_example_structure/", methods=["POST"])
+@calculation_logged
 def process_structure_example_init():
-    
-    example_selected=flask.request.form['selected_option']
-    #resp = flask.make_response(flask.render_template(
-    #    "user_templates/test.html",
-    #    prueba=datos,
-    #))
-    #return resp
 
+    example_selected = flask.request.form.get('selected_option')
     if example_selected == "YOXKUS_unitcell":
-        
+
         output = Capturing()
-        
-        # Get structure, file format, file content, and form data
-        # (needed for additional information, e.g. cell in the case
-        # of a XYZ file)
-        fileformat = "cif-pymatgen"#flask.request.form.get("fileformat", "unknown")
-        form_data = dict(flask.request.form)
-        structurefile = open("/home/app/code/webservice/compute/examples/cif/YOXKUS.cif", 'r')#flask.request.files["structurefile"]
+        example_path = os.path.join(os.path.dirname(__file__), "examples", "cif", "YOXKUS.cif")
 
+        with open(example_path, 'rb') as structurefile:
+            token = Token(FileStorage(structurefile, filename="YOXKUS.cif"), "cif-pymatgen")
 
-        input_path="/home/app/code/webservice/compute/examples/cif/YOXKUS.cif"
+        start_calculation_log(token, "unitcell", "cif-pymatgen")
+        previous_bond_info = config.USE_BOND_INFO
 
         try:
-            cell = process_unitcell(input_path, "YOXKUS", "/home/app/code/webservice/compute/examples/cif/results", cif_bond_info=False)
+            config.USE_BOND_INFO = False
+            cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+
+            try:
+                cell.save(token.get_path()+'/'+token.refcode+'.json', format="json")
+            except Exception:
+                logging.getLogger(__name__).exception("Failed to save JSON")
+
+            refcell_error = get_refcell_error(cell.reference)
+            unitcell_error = get_unitcell_error(cell.unitcell)
+            refcell_interpretation = get_refcell_interpretation(cell.reference)
+
+            save_cell(cell, 'gmol', token.get_path(), token.refcode)
+            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
+            savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'gmol')
+            celldata = printing_text(cell, Capturing())
+
+            cmp_lut = cell_cmp_lut(cell)
+            ht_descs = cell_get_metal_desc(cell, cmp_lut)
+            svgs = cell_to_svgs(cell, cmp_lut)
+            compound_data = []
+            for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                if desc != "":
+                    compound_data.append((name, True, desc))
+                else:
+                    compound_data.append((name, False, svg))
+
+            ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+
+            labels = []
+            for mol in cell.unitcell.moleclist:
+                for atm in mol.atoms:
+                    labels.append(atm.label)
+
+            jmol_list_pos = molecules_list(cell)
+            jmolCon = bond_order_connectivity(cell)
+            jmol_list_species = species_list(cell)
+
+            token.keepalive()
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-view.html",
+                celldata=celldata,
+                ucellparams=ucellparams,
+                compound_data=compound_data,
+                xyzdata=xyzdata,
+                labels=labels,
+                jmol_list_pos=jmol_list_pos,
+                jmol_list_species=jmol_list_species,
+                jmolCon=jmolCon,
+                totmol=len(cell.unitcell.moleclist),
+                enumerate=enumerate, len=len, zip=zip,
+                struct_name=token.refcode,
+                unitcell_error_reconstruction=str(cell.unitcell.error_reconstruction),
+                unitcell_error_assign_charge=str(cell.unitcell.error_assign_charge),
+                unitcell_error_create_bonds=str(cell.unitcell.error_create_bonds),
+                unitcell_error_get_fragments=str(cell.unitcell.error_get_fragments),
+                unitcell_error_get_spin=str(cell.unitcell.error_get_spin),
+                refcell_error=refcell_error,
+                unitcell_error=unitcell_error,
+                refcell_interpretation=refcell_interpretation,
+                system_type="unitcell",
+                calculation_log_preview=get_calculation_log_preview(token),
+            ))
+            resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+            return resp
+
         except Exception as e:
-                msg = "Failure…"
-                output += traceback.format_tb(e.__traceback__)
-                output.append(repr(e))
-                return flask.render_template(
-                        "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
+            mark_calculation_failure(e)
+            msg = "Failure…"
+            output += traceback.format_tb(e.__traceback__)
+            output.append(repr(e))
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                calculation_log_preview=get_calculation_log_preview(token),
+                failure=describe_processing_error(e),
+            ))
+            resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+            return resp
+        finally:
+            config.USE_BOND_INFO = previous_bond_info
 
-        #celldata = printing_text(cell, Capturing()) #empty
+    elif example_selected == "NH4Cl_H2O_molecule":
 
-        cmp_lut = cell_cmp_lut(cell)
-        ht_descs = cell_get_metal_desc(cell, cmp_lut)
-        svgs = cell_to_svgs(cell, cmp_lut)
-        compound_data = []
-        for name,desc,svg in zip(cmp_lut.keys(), ht_descs, svgs):
-            if desc != "":
-                compound_data.append((name, True, desc))
+        output = Capturing()
+        example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "NH4Cl_H2O.xyz")
+
+        with open(example_path, 'rb') as structurefile:
+            token = Token(FileStorage(structurefile, filename="NH4Cl_H2O.xyz"), "xyz-ase")
+
+        total_charge = 0
+        start_calculation_log(token, "molecule", "xyz-ase", total_charge)
+
+        try:
+            molset = interpret_molecule_xyz(token.input_path, token.refcode, token.get_path(), total_charge)
+            moleclist = get_moleculeset_molecules(molset)
+
+            _safe_save_molecule_json(molset, token.cell_path)
+            savemolecules_moleculeset_xyz(moleclist, token.get_path(), token.refcode)
+
+            molecule_interpretation = printing_text_moleculeset(moleclist, Capturing())
+
+            if moleculeset_is_resolved(moleclist):
+                molecule_cell = make_moleculeset_cell(moleclist)
+                cmp_lut = cell_cmp_lut(molecule_cell)
+                ht_descs = cell_get_metal_desc(molecule_cell, cmp_lut)
+                svgs = cell_to_svgs(molecule_cell, cmp_lut)
+                compound_data = []
+                for name, desc, svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                    tpl = cmp_lut[name][0]
+                    mol = molecule_cell.unitcell.moleclist[tpl[0]]
+                    if tpl[1] == 'm':
+                        charge = mol.metals[tpl[2]].charge
+                        charge_label = 'Oxidation state'
+                    elif tpl[1] == 'l':
+                        charge = mol.ligands[tpl[2]].totcharge
+                        charge_label = 'Charge'
+                    else:
+                        charge = mol.totcharge
+                        charge_label = 'Charge'
+                    charge_value = ('+' if charge > 0 else '') + str(int(charge)) if charge is not None else 'Not available'
+                    if desc != "":
+                        compound_data.append((name, True, desc, charge_label, charge_value))
+                    else:
+                        compound_data.append((name, False, svg, charge_label, charge_value))
+                jmolCon = bond_order_connectivity(molecule_cell)
+                jmol_list_species = species_list(molecule_cell)
             else:
-                compound_data.append((name, False, svg))
+                compound_data, jmol_list_species = moleculeset_partial_species(moleclist)
+                jmolCon = bond_order_connectivity_moleculeset(moleclist)
 
+            xyzdata = moleculeset_to_string_xyz(moleclist, token.refcode)
+            jmol_list_pos = molecules_list_moleculeset(moleclist, token.refcode)
+            molecule_errors = get_moleculeset_errors(molset)
+            molecule_errors.insert(0, molecule_status_message(molset, moleculeset_is_resolved(moleclist)))
 
-        ucellparams, xyzdata = cell_to_string_xyz(cell, cmp_lut)
+            token.keepalive()
+            tkn_path = token.get_path()
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-view-xyzmol.html",
+                molecule_interpretation=molecule_interpretation,
+                compound_data=compound_data,
+                xyzdata=xyzdata,
+                jmol_list_pos=jmol_list_pos,
+                jmol_list_species=jmol_list_species,
+                jmolCon=jmolCon,
+                totmol=len(moleclist),
+                enumerate=enumerate, len=len, zip=zip,
+                struct_name=token.refcode,
+                system_type="molecule",
+                total_charge=total_charge,
+                molecule_errors=molecule_errors,
+                calculation_log_preview=get_calculation_log_preview(token),
+            ))
+            resp.set_cookie("token_path", tkn_path, secure=False, httponly=True, samesite='Strict')
+            return resp
 
-        labels = []
-        for mol in cell.moleclist:
-            for atm in mol.atoms:
-                labels.append(atm.label)
-
-
-        jmol_list_pos = molecules_list(cell)
-        jmolCon = bond_order_connectivity(cell)
-        jmol_list_species =species_list(cell) 
-
-        resp = flask.make_response(flask.render_template(
-            "user_templates/c2m-view-YOXKUS.html",
-            #celldata=celldata,
-            ucellparams=ucellparams,
-            compound_data=compound_data,
-            xyzdata=xyzdata,
-            labels=labels,
-            jmol_list_pos=jmol_list_pos,
-            jmol_list_species = jmol_list_species,
-            jmolCon = jmolCon,
-            totmol = len(cell.moleclist),
-            enumerate=enumerate, len=len, zip=zip, # needed
-            struct_name="YOXKUS",
-        ))
-        return resp
+        except Exception as e:
+            mark_calculation_failure(e)
+            msg = "Failure…"
+            output += traceback.format_tb(e.__traceback__)
+            output.append(repr(e))
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                calculation_log_preview=get_calculation_log_preview(token),
+                failure=describe_processing_error(e),
+            ))
+            resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+            return resp
 
     else:
 
-        flask.flash("The selected example is not implemented yet.")   
-        return flask.redirect(flask.url_for("input_data"))     
+        flask.flash("Please select an example.")
+        return flask.redirect(flask.url_for("input_data"))
 
 
 @blueprint.route("/analysis_YOXKUS", methods=["GET"])

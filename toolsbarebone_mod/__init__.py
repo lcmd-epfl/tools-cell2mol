@@ -199,23 +199,17 @@ def get_structure_tuple(  # pylint: disable=too-many-locals
         "cif-ase": "cif",  # currently broken in ASE: https://gitlab.com/ase/ase/issues/15
     }
     if fileformat in ase_fileformats.keys():
-        asestructure = ase.io.read(fileobject, format=ase_fileformats[fileformat])
+        asestructure = ase.io.read(fileobject, format=ase_fileformats[fileformat], index=0) if fileformat == "xyz-ase" else ase.io.read(fileobject, format=ase_fileformats[fileformat])
 
         if fileformat == "xyz-ase":
-            # XYZ does not contain cell information, add them back from the
-            # additional form data (note that at the moment we are not using the
-            # extended XYZ format)
-            if extra_data is None:
-                raise ValueError(
-                    "Please pass also the extra_data with the cell information if you want to use the xyz format"
-                )
-            # avoid generator expressions by explicitly requesting tuple/list
-            cell = list(
-                tuple(float(extra_data["xyzCellVec" + v + a]) for a in "xyz")
-                for v in "ABC"
-            )
-
-            asestructure.set_cell(cell)
+            positions = asestructure.get_positions()
+            if len(positions) == 0:
+                raise ValueError("The XYZ structure does not contain atoms")
+            origin = positions.min(axis=0)
+            cell_lengths = np.ptp(positions, axis=0) + 20.0
+            asestructure.set_cell(np.diag(cell_lengths))
+            asestructure.set_positions(positions - origin + 10.0)
+            asestructure.set_pbc(False)
 
         return tuple_from_ase(asestructure)
     if fileformat == "cif-pymatgen":

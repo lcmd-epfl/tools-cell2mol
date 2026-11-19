@@ -91,10 +91,19 @@
         <div class="dropdown-content">
             <div data-value="YOXKUS_unitcell">
                 Option 1: <b>YOXKUS_unitcell</b>
-                <div class="YOXKUS.cif">
+                <div class="option-details">
                     &emsp;&emsp;crystal structure: <i>YOXKUS.cif</i><br>
                     &emsp;&emsp;file format: <i>CIF File (.cif)</i><br>
                     &emsp;&emsp;system type: <i>Unit Cell</i>
+                </div>
+            </div>
+            <div data-value="NH4Cl_H2O_molecule">
+                Option 2: <b>NH4Cl_H2O_molecule</b>
+                <div class="option-details">
+                    &emsp;&emsp;molecular structure: <i>NH4Cl_H2O.xyz</i><br>
+                    &emsp;&emsp;file format: <i>XYZ File (.xyz)</i><br>
+                    &emsp;&emsp;system type: <i>Molecule</i><br>
+                    &emsp;&emsp;total charge: <i>0</i>
                 </div>
             </div>
         </div>
@@ -161,7 +170,7 @@
                      });
 
              // Option selection logic
-             const options = document.querySelectorAll('.dropdown-content div');
+             const options = document.querySelectorAll('.dropdown-content > div[data-value]');
              options.forEach(option => {
                        option.addEventListener('click', function() {
                                    const value = option.getAttribute('data-value');

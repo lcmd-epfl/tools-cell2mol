@@ -53,9 +53,16 @@
         <h1 style="text-align: center;">cell2mol debug output page</h1>
     </div>
 
-    <h2>An error has ocured…</h2>
-
-    <h2>Please check the traceback for details or try with a different input file. </h2>
+    {% if failure is defined and failure %}
+    <h2>{{ failure.title }}</h2>
+    <p>{{ failure.summary }}</p>
+    {% if failure.detail %}<p><strong>Details:</strong> {{ failure.detail }}</p>{% endif %}
+    {% if failure.partial %}<p>{{ failure.partial }}</p>{% endif %}
+    <p>{{ failure.suggestion }}</p>
+    {% else %}
+    <h2>Calculation could not be completed</h2>
+    <p>Open Calculation Log for details or try with a different input file.</p>
+    {% endif %}
 
                                                                                                                                    
     <div id="accordion">                                                                                            
@@ -70,6 +77,8 @@
             </p>
             {%- endfor %}
         </div>
+
+        {% include 'user_templates/calculation_log.html' %}
     </div>
 
 

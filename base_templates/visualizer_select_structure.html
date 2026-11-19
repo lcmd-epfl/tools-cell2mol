@@ -124,6 +124,7 @@
             </div>
             </div>
 
+
             <div class="row" style="margin-top:1px; margin-bottom:4px;">
 
                 <div id="cifImportantInfo" hidden>
@@ -148,6 +149,14 @@
                             {% endfor %}
                         </select>
                     </div>
+
+                    <div class='col-sm-12' style="display:flex; justify-content: center;  margin-top: 10px;">
+                        <div>
+                            <input type="checkbox" id="cifConn" name="cifConnectivity" value="yes" checked>
+                            <label for="connectivityfromcif"> Use .cif information for connectivity if available?</label><br>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div id="xyzImportantInfo" hidden>
@@ -176,7 +185,9 @@
 
             </div>
 
+
             <div id="xyzFormatFields" class="row" style="display: none">
+                {#
                 <div class='col-sm-6'>Cell vectors (&#x212B;)</div>
                 <div class='col-sm-6'>
                     <div class='row'>
@@ -197,6 +208,13 @@
                         <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecCy"></div>
                         <div class='col-xs-3'><input type="number" step="any" class="form-control" name="xyzCellVecCz"></div>
                     </div>
+                </div>
+                #}
+                <div class='col-sm-6'>
+                    <label for="xyzTotalCharge">Total charge of the XYZ structure:</label>
+                </div>
+                <div class='col-sm-6'>
+                    <input type="number" step="1" class="form-control" name="xyzTotalCharge" id="xyzTotalCharge" value="0" style="max-width: 140px;">
                 </div>
             </div>
             {% if include_pages['upload_structure_additional_content'] is not none %}
@@ -223,20 +241,26 @@
 
 <script>
     function formatInfo() {
-        //document.getElementById(divId).style.display = element.value == "cif-pymatgen" ? 'block' : 'none';
         var inputFileFormat = document.getElementById("fileformatSelect").value;
+        var isCif = inputFileFormat == "cif-pymatgen";
+        var isXyz = inputFileFormat == "xyz-ase";
 
-        if (inputFileFormat == "cif-pymatgen") {                                                                                                 
-            document.getElementById("cifImportantInfo").style.display="block";                                                       
-            document.getElementById("xyzImportantInfo").style.display="none";                                                           
-        } else if (inputFileFormat == "xyz-ase") {                                                                                         
-            document.getElementById("cifImportantInfo").style.display="none";                                                       
-            document.getElementById("xyzImportantInfo").style.display="block";                                                           
-        } else {                                                                                                                        
-            document.getElementById("cifImportantInfo").style.display="none";                                                            
-            document.getElementById("xyzImportantInfo").style.display="none";                                                           
-        }                                                 
+        document.getElementById("cifImportantInfo").style.display = isCif ? "block" : "none";
+        document.getElementById("xyzImportantInfo").style.display = isXyz ? "block" : "none";
+        document.getElementById("xyzFormatFields").style.display = isXyz ? "block" : "none";
+
+        var cifSystemType = document.querySelector('#cifImportantInfo select[name="systemtype"]');
+        var xyzSystemType = document.querySelector('#xyzImportantInfo select[name="systemtype"]');
+        var defaultSystemType = document.querySelector('#systemTypeBlock select[name="systemtype"]');
+        cifSystemType.disabled = !isCif;
+        xyzSystemType.disabled = !isXyz;
+        defaultSystemType.disabled = true;
+        if (isXyz) {
+            xyzSystemType.value = "molecule";
+        }
+        document.getElementById("xyzTotalCharge").disabled = !isXyz;
     }
+    document.addEventListener("DOMContentLoaded", formatInfo);
 </script>
 
 

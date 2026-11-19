@@ -1,6 +1,54 @@
 import os, time
 import threading
 import tempfile
+import math
+from ase.data import atomic_numbers
+
+
+class InvalidXYZInput(ValueError):
+    pass
+
+
+def normalize_xyz_content(content):
+    lines = content.splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+
+    if not lines:
+        raise InvalidXYZInput("The XYZ file is empty")
+
+    try:
+        natoms = int(lines[0].strip())
+    except ValueError as exc:
+        raise InvalidXYZInput("The first XYZ line must contain the number of atoms") from exc
+
+    if natoms < 1:
+        raise InvalidXYZInput("The XYZ file must contain at least one atom")
+    if len(lines) < 2:
+        raise InvalidXYZInput("The XYZ file must include a second header line (the comment, which can be empty)")
+
+    comment = lines[1]
+    atom_lines = [(i, line) for i, line in enumerate(lines[2:], start=3) if line.strip()]
+    if len(atom_lines) != natoms:
+        raise InvalidXYZInput(
+            f"The XYZ file declares {natoms} atoms, but contains {len(atom_lines)} "
+            "coordinate records. Check the atom count and any extra frames."
+        )
+
+    for number, line in atom_lines:
+        fields = line.split()
+        if len(fields) < 4:
+            raise InvalidXYZInput(f"XYZ line {number}: expected an element symbol and three coordinates")
+        if atomic_numbers.get(fields[0], 0) == 0:
+            raise InvalidXYZInput(f"XYZ line {number}: unknown element symbol '{fields[0]}'")
+        try:
+            xyz = [float(value) for value in fields[1:4]]
+        except ValueError as exc:
+            raise InvalidXYZInput(f"XYZ line {number}: coordinates must be numeric") from exc
+        if not all(math.isfinite(value) for value in xyz):
+            raise InvalidXYZInput(f"XYZ line {number}: coordinates must be finite numbers")
+
+    return "\n".join([str(natoms), comment] + [line for _, line in atom_lines]) + "\n"
 
 def monitoring():
     """expire all sessions that haven't recieved a keepalive in 5min"""
@@ -45,11 +93,26 @@ class Token:
         else:
             self.input_path = os.path.join(self.localdir.name, 'input.cif')
 
-        self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
+        #Do not download gmol, but json 
+        #self.cell_path = os.path.join(self.localdir.name, f'Cell_{self.refcode:s}.gmol')
+        self.cell_path = os.path.join(self.localdir.name, f'{self.refcode:s}.json')
+
         self.last_alive = time.monotonic()
 
-        with open(self.input_path,'w') as f:
-            f.write(structurefile.read().decode("utf-8"))
+        if fileformat == "xyz-ase":
+            original_content = structurefile.read()
+            try:
+                content = original_content.decode("utf-8-sig")
+            except UnicodeDecodeError as exc:
+                raise InvalidXYZInput("The XYZ file must use UTF-8 text encoding") from exc
+            normalized_content = normalize_xyz_content(content)
+            with open(os.path.join(self.localdir.name, 'input_original.xyz'), 'wb') as f:
+                f.write(original_content)
+            with open(self.input_path, 'w') as f:
+                f.write(normalized_content)
+        else:
+            with open(self.input_path,'w') as f:
+                f.write(structurefile.read().decode("utf-8"))
 
         try:
             TOKEN_LOCK.acquire()

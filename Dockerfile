@@ -11,7 +11,16 @@ RUN pip3 install -U 'pip>=10' setuptools==65.4.1 wheel
 
 #RUN apt-get update
 #RUN apt-get install -y libxrender-dev libxext-dev
+
+#RUN rm -f /etc/apt/sources.list.d/passenger.list \
+# && apt-get update \
+# && apt-get install -y --no-install-recommends libxrender-dev libxext-dev \
+# && rm -rf /var/lib/apt/lists/*
 RUN rm -f /etc/apt/sources.list.d/passenger.list \
+ && sed -i \
+    -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+    -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
+    /etc/apt/sources.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends libxrender-dev libxext-dev \
  && rm -rf /var/lib/apt/lists/*
