@@ -161,7 +161,7 @@
                      });
 
              // Option selection logic
-             const options = document.querySelectorAll('.dropdown-content div');
+             const options = document.querySelectorAll('.dropdown-content > div[data-value]');
              options.forEach(option => {
                        option.addEventListener('click', function() {
                                    const value = option.getAttribute('data-value');
