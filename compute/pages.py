@@ -1127,10 +1127,10 @@ def process_structure_example_init():
     elif example_selected in ("ammonium_chloride_water_molecule", "NH4Cl_H2O_molecule"):
 
         output = Capturing()
-        example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "ammonium_chloride_water_multimolecule.xyz")
+        example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "NH4Cl_H2O.xyz")
 
         with open(example_path, 'rb') as structurefile:
-            token = Token(FileStorage(structurefile, filename="ammonium_chloride_water_multimolecule.xyz"), "xyz-ase")
+            token = Token(FileStorage(structurefile, filename="NH4Cl_H2O.xyz"), "xyz-ase")
 
         total_charge = 0
         start_calculation_log(token, "molecule", "xyz-ase", total_charge)
