@@ -5,6 +5,11 @@ import io
 import flask
 from .interface import *
 from .tokens import monitoring, Token, InvalidXYZInput
+from .calculation_logging import (
+    calculation_logged, start_calculation_log,
+    mark_calculation_failure, get_calculation_log_preview,
+    calculation_log_path,
+)
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 
@@ -31,6 +36,7 @@ def _safe_save_molecule_json(molset, path):
 
 
 @blueprint.route("/process_structure/", methods=["POST"])
+@calculation_logged
 def process_structure_init():
     """Example view to process a crystal structure."""
 
@@ -63,6 +69,7 @@ def process_structure_init():
     except InvalidXYZInput as exc:
         flask.flash("XYZ input error: " + str(exc))
         return flask.redirect(flask.url_for("input_data"))
+    start_calculation_log(token, system_type, fileformat, form_data.get("xyzTotalCharge"))
     output += [
         "structure_file: "+ repr(dir(structurefile)),
         "form_data: "+ repr(form_data),
@@ -189,17 +196,22 @@ def process_structure_init():
                     unitcell_error = unitcell_error,
                     refcell_interpretation = refcell_interpretation,
                     system_type=system_type,
+                    calculation_log_preview=get_calculation_log_preview(token),
                 ))
                 resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
                 return resp
 
             except Exception as e:
+                mark_calculation_failure(e)
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
-                return flask.render_template(
+                resp = flask.make_response(flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
+                        calculation_log_preview=get_calculation_log_preview(token),
+                        ))
+                resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+                return resp
 
 
         elif system_type == "reference":
@@ -284,6 +296,7 @@ def process_structure_init():
                     unitcell_error = "",#unitcell_error,
                     refcell_interpretation = refcell_interpretation,
                     system_type = system_type, 
+                    calculation_log_preview=get_calculation_log_preview(token),
                 ))
                 resp.set_cookie("token_path",tkn_path,  secure=False,httponly=True,samesite='Strict') 
                 return resp
@@ -292,12 +305,16 @@ def process_structure_init():
 
 
             except Exception as e:
+                mark_calculation_failure(e)
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
-                return flask.render_template(
+                resp = flask.make_response(flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                        )
+                        calculation_log_preview=get_calculation_log_preview(token),
+                        ))
+                resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+                return resp
 
             #save_cell(refMol, 'gmol', token.get_path(), token.refcode)
             #savemolecules_tools(refMol.refmoleclist, token.get_path(), 'xyz')
@@ -533,17 +550,22 @@ def process_structure_init():
                     system_type=system_type,
                     total_charge=total_charge,
                     molecule_errors=molecule_errors,
+                    calculation_log_preview=get_calculation_log_preview(token),
                 ))
                 resp.set_cookie("token_path", tkn_path, secure=False, httponly=True, samesite='Strict')
                 return resp
 
             except Exception as e:
+                mark_calculation_failure(e)
                 msg = "Failure…"
                 output += traceback.format_tb(e.__traceback__)
                 output.append(repr(e))
-                return flask.render_template(
+                resp = flask.make_response(flask.render_template(
                     "user_templates/c2m-debug.html", msg=msg, output_lines=output,
-                )
+                    calculation_log_preview=get_calculation_log_preview(token),
+                ))
+                resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+                return resp
 
     elif fileformat =="unknown":
         flask.flash("Please select a file format.")
@@ -744,6 +766,20 @@ def process_structure_init():
 
 
 #>>> D O W N L O A D   C E L L 2 M O L   O U T P U T <<<
+@blueprint.route("/process_structure/download-log", methods=["GET"])
+def process_structure_download_log():
+    tkn_path = flask.request.cookies.get('token_path', None)
+    token = Token.from_path(tkn_path) if tkn_path else None
+    if token is None:
+        return flask.make_response("Calculation session expired", 404)
+    token.keepalive()
+    log_path = calculation_log_path(token)
+    if not os.path.isfile(log_path):
+        return flask.make_response("Calculation log not available", 404)
+    return send_file(log_path, as_attachment=True,
+                     download_name="calculation.log", mimetype="text/plain")
+
+
 @blueprint.route("/process_structure/download-c2moutput", methods=["GET"])
 def process_structure_download_c2m_output():
 

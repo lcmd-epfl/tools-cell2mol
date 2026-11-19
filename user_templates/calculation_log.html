@@ -1,0 +1,6 @@
+<h2>Calculation Log</h2>
+<div>
+    <p><em>Technical messages from the calculation. The full log is available for download.</em></p>
+    <pre style="white-space: pre-wrap; overflow-wrap: anywhere; max-height: 400px; overflow-y: auto;">{{ calculation_log_preview | default('No calculation log available.') }}</pre>
+    <a class="btn btn-default" href="{{ url_for('compute.process_structure_download_log') }}" target="_blank">Download calculation log (.log)</a>
+</div>
