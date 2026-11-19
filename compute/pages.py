@@ -10,7 +10,10 @@ from .calculation_logging import (
     mark_calculation_failure, get_calculation_log_preview,
     calculation_log_path,
 )
-from .error_reporting import describe_processing_error, molecule_status_message
+from .error_reporting import (
+    describe_processing_error, molecule_status_message,
+    Cell2molNoResultError,
+)
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 
@@ -104,7 +107,7 @@ def process_structure_init():
             try:
                 func()
             except Exception:
-                logger.exception(error_msg)
+                logging.getLogger("compute.calculation").exception(error_msg)
 
         ##################
         ## Run cell2mol ##
@@ -126,6 +129,8 @@ def process_structure_init():
 
                 #cell = process_unitcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+                if cell is None:
+                    raise Cell2molNoResultError(token.refcode, "unit-cell")
 
                 #cell.save(token.get_path()+token.refcode+'.json', format="json")
                 _safe_run(lambda:cell.save(token.get_path()+'/'+token.refcode+'.json', format="json"), "Failed to save JSON")
@@ -227,6 +232,8 @@ def process_structure_init():
                 #refMol = process_refcell(token.input_path, token.refcode, token.get_path(), cif_bond_info=False)
                 #refMol = "test"
                 refMol = interpret_reference(token.input_path, token.refcode, token.get_path())
+                if refMol is None:
+                    raise Cell2molNoResultError(token.refcode, "reference")
                 savemolecules_reference_xyz(refMol, token.get_path())
 
                 #Change cell to refMolec to avoid confussions
@@ -496,6 +503,8 @@ def process_structure_init():
         if system_type == "molecule":
             try:
                 molset = interpret_molecule_xyz(token.input_path, token.refcode, token.get_path(), total_charge)
+                if molset is None:
+                    raise Cell2molNoResultError(token.refcode, "molecule")
                 moleclist = get_moleculeset_molecules(molset)
 
                 _safe_save_molecule_json(molset, token.cell_path)
@@ -1034,6 +1043,8 @@ def process_structure_example_init():
         try:
             config.USE_BOND_INFO = False
             cell = interpret_unitcell(token.input_path, token.refcode, token.get_path())
+            if cell is None:
+                raise Cell2molNoResultError(token.refcode, "unit-cell")
 
             try:
                 cell.save(token.get_path()+'/'+token.refcode+'.json', format="json")
@@ -1113,19 +1124,21 @@ def process_structure_example_init():
         finally:
             config.USE_BOND_INFO = previous_bond_info
 
-    elif example_selected == "NH4Cl_H2O_molecule":
+    elif example_selected in ("ammonium_chloride_water_molecule", "NH4Cl_H2O_molecule"):
 
         output = Capturing()
-        example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "NH4Cl_H2O.xyz")
+        example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "ammonium_chloride_water_multimolecule.xyz")
 
         with open(example_path, 'rb') as structurefile:
-            token = Token(FileStorage(structurefile, filename="NH4Cl_H2O.xyz"), "xyz-ase")
+            token = Token(FileStorage(structurefile, filename="ammonium_chloride_water_multimolecule.xyz"), "xyz-ase")
 
         total_charge = 0
         start_calculation_log(token, "molecule", "xyz-ase", total_charge)
 
         try:
             molset = interpret_molecule_xyz(token.input_path, token.refcode, token.get_path(), total_charge)
+            if molset is None:
+                raise Cell2molNoResultError(token.refcode, "molecule")
             moleclist = get_moleculeset_molecules(molset)
 
             _safe_save_molecule_json(molset, token.cell_path)

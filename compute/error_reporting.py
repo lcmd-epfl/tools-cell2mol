@@ -1,7 +1,31 @@
 from cell2mol.utils import config
 
 
+class Cell2molNoResultError(RuntimeError):
+    """The interpreter stopped without returning a displayable result."""
+
+    def __init__(self, structure, mode):
+        super().__init__(
+            f"cell2mol returned no usable {mode} result for {structure}."
+        )
+
+
+
 def describe_processing_error(error):
+    if isinstance(error, Cell2molNoResultError):
+        return {
+            "title": "No result returned by cell2mol",
+            "summary": "The chemical interpretation did not produce a result that can be displayed or downloaded.",
+            "detail": str(error),
+            "suggestion": (
+                "See Calculation Log for the warnings and errors reported by cell2mol. "
+                "If CIF connectivity was enabled, you may also compare the result with "
+                "distance-based connectivity."
+            ),
+            "partial": None,
+            "code": None,
+        }
+
     code = getattr(error, "exit_code", None)
     if code is None:
         if isinstance(error, MemoryError):
