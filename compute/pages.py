@@ -4,7 +4,7 @@ from tools_barebone.structure_importers import get_structure_tuple, UnknownForma
 import io
 import flask
 from .interface import *
-from .tokens import monitoring, Token
+from .tokens import monitoring, Token, InvalidXYZInput
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 
@@ -58,7 +58,11 @@ def process_structure_init():
     #Only accept files whose extension is equal to the option extension selected
     #if fileformat in file_ext:
 
-    token = Token(structurefile, fileformat)        
+    try:
+        token = Token(structurefile, fileformat)
+    except InvalidXYZInput as exc:
+        flask.flash("XYZ input error: " + str(exc))
+        return flask.redirect(flask.url_for("input_data"))
     output += [
         "structure_file: "+ repr(dir(structurefile)),
         "form_data: "+ repr(form_data),
