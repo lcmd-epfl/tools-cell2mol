@@ -877,6 +877,7 @@ def process_structure_download_reference_summary():
 
 
 #>>> D O W N L O A D   J S O N <<<
+@blueprint.route("/process_example_structure/download-json", methods=["GET"])
 @blueprint.route("/process_structure/download-json", methods=["GET"])
 def process_structure_download_json():
 
@@ -958,6 +959,7 @@ def process_structure_download_gmol():
         )
 
 # >>> D O W N L O A D   M O L <<<
+@blueprint.route("/process_example_structure/download-xyzselected", methods=["GET", "POST"])
 @blueprint.route("/process_structure/download-xyzselected", methods=["GET", "POST"])
 def process_structure_download_xyzselected():
     output = Capturing()
@@ -1110,6 +1112,94 @@ def process_structure_example_init():
             return resp
         finally:
             config.USE_BOND_INFO = previous_bond_info
+
+    elif example_selected == "NH4Cl_H2O_molecule":
+
+        output = Capturing()
+        example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "NH4Cl_H2O.xyz")
+
+        with open(example_path, 'rb') as structurefile:
+            token = Token(FileStorage(structurefile, filename="NH4Cl_H2O.xyz"), "xyz-ase")
+
+        total_charge = 0
+        start_calculation_log(token, "molecule", "xyz-ase", total_charge)
+
+        try:
+            molset = interpret_molecule_xyz(token.input_path, token.refcode, token.get_path(), total_charge)
+            moleclist = get_moleculeset_molecules(molset)
+
+            _safe_save_molecule_json(molset, token.cell_path)
+            savemolecules_moleculeset_xyz(moleclist, token.get_path(), token.refcode)
+
+            molecule_interpretation = printing_text_moleculeset(moleclist, Capturing())
+
+            if moleculeset_is_resolved(moleclist):
+                molecule_cell = make_moleculeset_cell(moleclist)
+                cmp_lut = cell_cmp_lut(molecule_cell)
+                ht_descs = cell_get_metal_desc(molecule_cell, cmp_lut)
+                svgs = cell_to_svgs(molecule_cell, cmp_lut)
+                compound_data = []
+                for name, desc, svg in zip(cmp_lut.keys(), ht_descs, svgs):
+                    tpl = cmp_lut[name][0]
+                    mol = molecule_cell.unitcell.moleclist[tpl[0]]
+                    if tpl[1] == 'm':
+                        charge = mol.metals[tpl[2]].charge
+                        charge_label = 'Oxidation state'
+                    elif tpl[1] == 'l':
+                        charge = mol.ligands[tpl[2]].totcharge
+                        charge_label = 'Charge'
+                    else:
+                        charge = mol.totcharge
+                        charge_label = 'Charge'
+                    charge_value = ('+' if charge > 0 else '') + str(int(charge)) if charge is not None else 'Not available'
+                    if desc != "":
+                        compound_data.append((name, True, desc, charge_label, charge_value))
+                    else:
+                        compound_data.append((name, False, svg, charge_label, charge_value))
+                jmolCon = bond_order_connectivity(molecule_cell)
+                jmol_list_species = species_list(molecule_cell)
+            else:
+                compound_data, jmol_list_species = moleculeset_partial_species(moleclist)
+                jmolCon = bond_order_connectivity_moleculeset(moleclist)
+
+            xyzdata = moleculeset_to_string_xyz(moleclist, token.refcode)
+            jmol_list_pos = molecules_list_moleculeset(moleclist, token.refcode)
+            molecule_errors = get_moleculeset_errors(molset)
+            molecule_errors.insert(0, molecule_status_message(molset, moleculeset_is_resolved(moleclist)))
+
+            token.keepalive()
+            tkn_path = token.get_path()
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-view-xyzmol.html",
+                molecule_interpretation=molecule_interpretation,
+                compound_data=compound_data,
+                xyzdata=xyzdata,
+                jmol_list_pos=jmol_list_pos,
+                jmol_list_species=jmol_list_species,
+                jmolCon=jmolCon,
+                totmol=len(moleclist),
+                enumerate=enumerate, len=len, zip=zip,
+                struct_name=token.refcode,
+                system_type="molecule",
+                total_charge=total_charge,
+                molecule_errors=molecule_errors,
+                calculation_log_preview=get_calculation_log_preview(token),
+            ))
+            resp.set_cookie("token_path", tkn_path, secure=False, httponly=True, samesite='Strict')
+            return resp
+
+        except Exception as e:
+            mark_calculation_failure(e)
+            msg = "Failure…"
+            output += traceback.format_tb(e.__traceback__)
+            output.append(repr(e))
+            resp = flask.make_response(flask.render_template(
+                "user_templates/c2m-debug.html", msg=msg, output_lines=output,
+                calculation_log_preview=get_calculation_log_preview(token),
+                failure=describe_processing_error(e),
+            ))
+            resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
+            return resp
 
     else:
 
