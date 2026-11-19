@@ -10,6 +10,7 @@ from .calculation_logging import (
     mark_calculation_failure, get_calculation_log_preview,
     calculation_log_path,
 )
+from .error_reporting import describe_processing_error, molecule_status_message
 #from cell2mol.c2m_module import save_cell
 #from cell2mol.read_write import savemolecules, writexyz
 
@@ -209,6 +210,7 @@ def process_structure_init():
                 resp = flask.make_response(flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         calculation_log_preview=get_calculation_log_preview(token),
+                        failure=describe_processing_error(e),
                         ))
                 resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
                 return resp
@@ -312,6 +314,7 @@ def process_structure_init():
                 resp = flask.make_response(flask.render_template(
                         "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                         calculation_log_preview=get_calculation_log_preview(token),
+                        failure=describe_processing_error(e),
                         ))
                 resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
                 return resp
@@ -531,8 +534,7 @@ def process_structure_init():
                 xyzdata = moleculeset_to_string_xyz(moleclist, token.refcode)
                 jmol_list_pos = molecules_list_moleculeset(moleclist, token.refcode)
                 molecule_errors = get_moleculeset_errors(molset)
-                if not moleculeset_is_resolved(moleclist):
-                    molecule_errors.append('Molecule Status (mode=interpretation): Some chemical states are unresolved; partial results are shown.')
+                molecule_errors.insert(0, molecule_status_message(molset, moleculeset_is_resolved(moleclist)))
 
                 token.keepalive()
                 tkn_path = token.get_path()
@@ -563,6 +565,7 @@ def process_structure_init():
                 resp = flask.make_response(flask.render_template(
                     "user_templates/c2m-debug.html", msg=msg, output_lines=output,
                     calculation_log_preview=get_calculation_log_preview(token),
+                    failure=describe_processing_error(e),
                 ))
                 resp.set_cookie("token_path", token.get_path(), secure=False, httponly=True, samesite='Strict')
                 return resp
