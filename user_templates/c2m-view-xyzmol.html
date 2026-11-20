@@ -155,14 +155,7 @@
             {%- endfor %}
             -->
 
-            {% set ns = namespace(indent=false) %}
-            {% for line in molecule_interpretation %}
-                {% if "\t" in line %}
-                    &numsp;&numsp;&numsp;&numsp; {{- line -}} <br>
-                {% else %}
-                    {{- line -}} <br>
-                {% endif %}
-            {%- endfor %}
+            <pre style="white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: inherit; line-height: inherit; background: transparent; border: 0; padding: 0; margin: 0; tab-size: 4;">{{ molecule_interpretation | join('\n') }}</pre>
 
 
         </div>
