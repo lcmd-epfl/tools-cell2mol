@@ -40,6 +40,97 @@ def _safe_save_molecule_json(molset, path):
     molset.save(path, format="json")
 
 
+def _cell2mol_reference_interpretation(token, refcell, unitcell=None):
+    summary_path = os.path.join(token.get_path(), "reference_summary.txt")
+    try:
+        with open(summary_path, encoding="utf-8") as summary_file:
+            summary_lines = summary_file.read().splitlines()
+        if summary_lines:
+            for index, line in enumerate(summary_lines):
+                if line.startswith((
+                    "Possible charges of species in ",
+                    "No species list found in the cell object.",
+                    "Reference Error (mode=",
+                    "Potential issues and data status detected:",
+                )):
+                    summary_lines = summary_lines[:index]
+                    break
+            while summary_lines and not summary_lines[-1].strip():
+                summary_lines.pop()
+            if summary_lines:
+                return summary_lines
+    except (OSError, UnicodeError):
+        logging.getLogger(__name__).warning(
+            "Could not read the cell2mol reference summary: %s", summary_path,
+            exc_info=True,
+        )
+
+    from cell2mol.write_results import write_cell_molecule_details, write_unique_species
+    summary = io.StringIO()
+    print(token.refcode, file=summary)
+    print(
+        f"Total charge comparison result: {getattr(refcell, 'total_charge_comparison', None)}",
+        file=summary,
+    )
+    print(
+        f"Metal oxidation state comparison result: {getattr(refcell, 'metal_os_comparison', None)}",
+        file=summary,
+    )
+    print(f"  - Reported:   {getattr(refcell, 'reported_metal_os', None)}", file=summary)
+    print(f"  - Matched:    {getattr(refcell, 'reported_metal_os_matched', None)}", file=summary)
+    confidence = getattr(refcell, "metal_os_match_confidence", None)
+    print(f"  - Confidence: {confidence:.2f}" if confidence is not None else "  - Confidence: N/A", file=summary)
+    if unitcell is not None:
+        method = getattr(unitcell, "os_method", None)
+        print(
+            f"Metal oxidation states determined by: {' -> '.join(method) if method else 'N/A'}",
+            file=summary,
+        )
+    write_cell_molecule_details(refcell, file=summary)
+    write_unique_species(refcell, file=summary)
+    return summary.getvalue().splitlines()
+
+
+def _cell2mol_molecule_interpretation(token, molset):
+    summary_path = os.path.join(token.get_path(), "molecule_summary.txt")
+    try:
+        with open(summary_path, encoding="utf-8") as summary_file:
+            summary_lines = summary_file.read().splitlines()
+        for index, line in enumerate(summary_lines):
+            if line.startswith((
+                "Possible charges of species in ",
+                "No species list found in the cell object.",
+                "Molecule Error (mode=",
+                "Potential issues and data status detected:",
+            )):
+                summary_lines = summary_lines[:index]
+                break
+        while summary_lines and not summary_lines[-1].strip():
+            summary_lines.pop()
+        if summary_lines:
+            return summary_lines
+        logging.getLogger(__name__).warning("Empty cell2mol molecule summary: %s", summary_path)
+    except (OSError, UnicodeError):
+        logging.getLogger(__name__).warning(
+            "Could not read the cell2mol molecule summary: %s", summary_path,
+            exc_info=True,
+        )
+
+    from cell2mol.write_results import write_molecule_details, write_unique_species
+    summary = io.StringIO()
+    print(token.refcode, file=summary)
+    print(f"{len(molset.moleclist)} molecules, totcharge={molset.totcharge}", file=summary)
+    method = getattr(molset, "os_method", None)
+    print(
+        f"Metal oxidation states determined by: {' -> '.join(method) if method else 'N/A'}",
+        file=summary,
+    )
+    for index, mol in enumerate(molset.moleclist):
+        write_molecule_details(mol, file=summary, index=index)
+    write_unique_species(molset, file=summary)
+    return summary.getvalue().splitlines()
+
+
 @blueprint.route("/process_structure/", methods=["POST"])
 @calculation_logged
 def process_structure_init():
@@ -138,7 +229,7 @@ def process_structure_init():
                 refcell_error = get_refcell_error(cell.reference)
                 unitcell_error = get_unitcell_error(cell.unitcell)
 
-                refcell_interpretation = get_refcell_interpretation(cell.reference)
+                refcell_interpretation = _cell2mol_reference_interpretation(token, cell.reference, cell.unitcell)
 
 
                 #resp = flask.make_response(flask.render_template(
@@ -242,7 +333,7 @@ def process_structure_init():
                 refcell_error = get_refcell_error(refMol)
                 #unitcell_error = get_unitcell_error(cell.unitcell)
 
-                refcell_interpretation = get_refcell_interpretation(refMol)
+                refcell_interpretation = _cell2mol_reference_interpretation(token, refMol)
 
 
                 cmp_lut = cell_cmp_lut_base(refMol)
@@ -510,7 +601,7 @@ def process_structure_init():
                 _safe_save_molecule_json(molset, token.cell_path)
                 savemolecules_moleculeset_xyz(moleclist, token.get_path(), token.refcode)
 
-                molecule_interpretation = printing_text_moleculeset(moleclist, Capturing())
+                molecule_interpretation = _cell2mol_molecule_interpretation(token, molset)
 
                 if moleculeset_is_resolved(moleclist):
                     molecule_cell = make_moleculeset_cell(moleclist)
@@ -1033,6 +1124,9 @@ def process_structure_example_init():
 
         output = Capturing()
         example_path = os.path.join(os.path.dirname(__file__), "examples", "cif", "YOXKUS.cif")
+        if not os.path.isfile(example_path):
+            flask.flash("The preloaded YOXKUS example file is missing. Please contact the administrator.")
+            return flask.redirect(flask.url_for("input_data"))
 
         with open(example_path, 'rb') as structurefile:
             token = Token(FileStorage(structurefile, filename="YOXKUS.cif"), "cif-pymatgen")
@@ -1053,7 +1147,7 @@ def process_structure_example_init():
 
             refcell_error = get_refcell_error(cell.reference)
             unitcell_error = get_unitcell_error(cell.unitcell)
-            refcell_interpretation = get_refcell_interpretation(cell.reference)
+            refcell_interpretation = _cell2mol_reference_interpretation(token, cell.reference, cell.unitcell)
 
             save_cell(cell, 'gmol', token.get_path(), token.refcode)
             savemolecules_tools(cell.unitcell.moleclist, token.get_path(), 'xyz')
@@ -1128,6 +1222,9 @@ def process_structure_example_init():
 
         output = Capturing()
         example_path = os.path.join(os.path.dirname(__file__), "examples", "xyz", "NH4Cl_H2O.xyz")
+        if not os.path.isfile(example_path):
+            flask.flash("The preloaded NH4Cl_H2O example file is missing. Please contact the administrator.")
+            return flask.redirect(flask.url_for("input_data"))
 
         with open(example_path, 'rb') as structurefile:
             token = Token(FileStorage(structurefile, filename="NH4Cl_H2O.xyz"), "xyz-ase")
@@ -1144,7 +1241,7 @@ def process_structure_example_init():
             _safe_save_molecule_json(molset, token.cell_path)
             savemolecules_moleculeset_xyz(moleclist, token.get_path(), token.refcode)
 
-            molecule_interpretation = printing_text_moleculeset(moleclist, Capturing())
+            molecule_interpretation = _cell2mol_molecule_interpretation(token, molset)
 
             if moleculeset_is_resolved(moleclist):
                 molecule_cell = make_moleculeset_cell(moleclist)
